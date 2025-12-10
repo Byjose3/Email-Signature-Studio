@@ -688,15 +688,16 @@ export default function Home() {
           divElement.style.marginTop = divElement.style.marginTop
         }
         if (divElement.style.marginBottom) {
-          // Se for subtítulo, reduz drasticamente o margin-bottom
+          // Se for subtítulo, remove completamente o margin-bottom
           if (isProbablySubtitle) {
-            const currentMargin = parseInt(divElement.style.marginBottom)
-            if (currentMargin > 5) {
-              divElement.style.marginBottom = '3px' // Espaçamento mínimo
-            }
+            divElement.style.marginBottom = '0' // SEM espaçamento extra
           } else {
             divElement.style.marginBottom = divElement.style.marginBottom
           }
+        }
+        // Se for subtítulo e tiver margin geral (não específico), também zera
+        if (isProbablySubtitle && divElement.style.margin && !divElement.style.marginBottom) {
+          divElement.style.marginBottom = '0'
         }
         // Preserva line-height explícito (importante para texto não ficar colado)
         if (divElement.style.lineHeight) {
@@ -1156,11 +1157,12 @@ export default function Home() {
             !pElement.style.marginLeft && !pElement.style.marginRight) {
           pElement.style.margin = '0'
         } else if (isProbablySubtitle && pElement.style.marginBottom) {
-          // Se for subtítulo, reduz o margin-bottom
-          const currentMargin = parseInt(pElement.style.marginBottom)
-          if (currentMargin > 5) {
-            pElement.style.marginBottom = '3px'
-          }
+          // Se for subtítulo, remove completamente o margin-bottom
+          pElement.style.marginBottom = '0' // SEM espaçamento extra
+        }
+        // Se for subtítulo e tiver margin geral (não específico), também zera
+        if (isProbablySubtitle && pElement.style.margin && !pElement.style.marginBottom) {
+          pElement.style.marginBottom = '0'
         }
 
         if (!pElement.style.padding && !pElement.style.paddingTop && !pElement.style.paddingBottom &&
