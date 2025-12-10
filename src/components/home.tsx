@@ -684,14 +684,18 @@ export default function Home() {
           divElement.style.lineHeight = divElement.style.lineHeight
         }
 
-        // BACKUP para Gmail produção: adiciona <br> após cada DIV com texto
-        // Gmail remove line-height mas preserva <br> tags
+        // BACKUP para Gmail produção: adiciona <br> apenas quando há margin explícito
+        // NÃO adiciona <br> indiscriminadamente para evitar espaçamento excessivo
         const hasText = divElement.textContent?.trim()
         const nextSibling = divElement.nextElementSibling
         const isLastDiv = !nextSibling || nextSibling.tagName !== 'DIV'
 
-        if (hasText && !isLastDiv) {
-          // Adiciona <br> invisível para forçar espaçamento vertical
+        // Apenas adiciona <br> se houver margin-bottom explícito e significativo
+        const hasExplicitMargin = divElement.style.marginBottom &&
+                                  parseInt(divElement.style.marginBottom) > 5
+
+        if (hasText && !isLastDiv && hasExplicitMargin) {
+          // Adiciona <br> invisível apenas quando há margin explícito
           const br = doc.createElement('br')
           divElement.appendChild(br)
         }
@@ -753,8 +757,9 @@ export default function Home() {
             htmlElement.setAttribute('style', currentStyle + `;line-height:${lineHeight}`)
           }
         } else if (htmlElement.tagName === 'P' || htmlElement.tagName === 'DIV') {
-          // Define line-height padrão para parágrafos se não tiver
-          htmlElement.style.lineHeight = '1.4'
+          // Define line-height compacto para evitar espaçamento excessivo
+          // 1.2 em vez de 1.4 para assinaturas mais compactas
+          htmlElement.style.lineHeight = '1.2'
         }
 
         // Garante que font-family está definido
@@ -1094,7 +1099,10 @@ export default function Home() {
             const originalPadding = cellElement.style.padding || cellElement.getAttribute('padding')
 
             if (!isSeparator && !originalPadding && !hasIndividualPadding) {
-              cellElement.style.padding = '0'
+              // Define apenas padding horizontal como 0, preserva vertical
+              cellElement.style.paddingLeft = '0'
+              cellElement.style.paddingRight = '0'
+              // Não força padding-top/bottom a 0 - deixa o browser usar o padrão ou valor herdado
             }
 
             // Garante que vertical-align está definido
