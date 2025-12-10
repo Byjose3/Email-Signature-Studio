@@ -1,5 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Upload, Copy, Check, Image, AlertCircle, FileText, Lock, Unlock } from 'lucide-react'
+import { Upload, Copy, Check, Image, AlertCircle, FileText, Lock, Unlock, Save, FolderOpen, Trash2, Download } from 'lucide-react'
+
+interface SavedSignature {
+  id: string
+  name: string
+  html: string
+  thumbnail: string
+  savedAt: string
+  logoWidth: number
+  logoHeight: number
+  textColor: string
+  separatorColor: string
+}
 
 export default function Home() {
   const [processedHtml, setProcessedHtml] = useState('')
@@ -12,6 +24,9 @@ export default function Home() {
   const [textColor, setTextColor] = useState<string>('')
   const [separatorColor, setSeparatorColor] = useState<string>('')
   const [links, setLinks] = useState<Array<{ text: string; url: string; index: number }>>([])
+  const [savedSignatures, setSavedSignatures] = useState<SavedSignature[]>([])
+  const [signatureName, setSignatureName] = useState('')
+  const [showSaveDialog, setShowSaveDialog] = useState(false)
   const previewRef = useRef<HTMLDivElement>(null)
   const pasteAreaRef = useRef<HTMLDivElement>(null)
 
@@ -19,7 +34,312 @@ export default function Home() {
     if (pasteAreaRef.current) {
       pasteAreaRef.current.focus()
     }
+    // Carrega assinaturas guardadas do localStorage
+    loadSavedSignatures()
   }, [])
+
+  // Carrega assinaturas do localStorage
+  const loadSavedSignatures = () => {
+    try {
+      const saved = localStorage.getItem('emailSignatures')
+      if (saved) {
+        const signatures = JSON.parse(saved) as SavedSignature[]
+        setSavedSignatures(signatures)
+      }
+    } catch (err) {
+      console.error('Erro ao carregar assinaturas:', err)
+    }
+  }
+
+  // Guarda assinatura no localStorage
+  const saveSignature = () => {
+    if (!processedHtml) {
+      setError('Não há assinatura para guardar.')
+      setTimeout(() => setError(''), 3000)
+      return
+    }
+
+    if (!signatureName.trim()) {
+      setError('Por favor, dê um nome à assinatura.')
+      setTimeout(() => setError(''), 3000)
+      return
+    }
+
+    try {
+      // Cria thumbnail (versão simplificada do HTML para preview)
+      const thumbnail = processedHtml.substring(0, 500)
+
+      const newSignature: SavedSignature = {
+        id: Date.now().toString(),
+        name: signatureName.trim(),
+        html: processedHtml,
+        thumbnail,
+        savedAt: new Date().toISOString(),
+        logoWidth,
+        logoHeight,
+        textColor,
+        separatorColor
+      }
+
+      const updated = [...savedSignatures, newSignature]
+      setSavedSignatures(updated)
+      localStorage.setItem('emailSignatures', JSON.stringify(updated))
+
+      setSignatureName('')
+      setShowSaveDialog(false)
+      setError('')
+
+      // Mostra mensagem de sucesso
+      const successMsg = error
+      setError('✅ Assinatura guardada com sucesso!')
+      setTimeout(() => setError(''), 3000)
+    } catch (err) {
+      console.error('Erro ao guardar assinatura:', err)
+      setError('Erro ao guardar assinatura. O espaço de armazenamento pode estar cheio.')
+      setTimeout(() => setError(''), 5000)
+    }
+  }
+
+  // Carrega uma assinatura guardada
+  const loadSignature = (signature: SavedSignature) => {
+    if (pasteAreaRef.current) {
+      pasteAreaRef.current.innerHTML = signature.html
+    }
+    setProcessedHtml(signature.html)
+    setLogoWidth(signature.logoWidth)
+    setLogoHeight(signature.logoHeight)
+    setTextColor(signature.textColor)
+    setSeparatorColor(signature.separatorColor)
+    processHtml(signature.html, signature.textColor, signature.separatorColor)
+  }
+
+  // Elimina uma assinatura
+  const deleteSignature = (id: string) => {
+    if (!confirm('Tem certeza que deseja eliminar esta assinatura?')) {
+      return
+    }
+
+    const updated = savedSignatures.filter(sig => sig.id !== id)
+    setSavedSignatures(updated)
+    localStorage.setItem('emailSignatures', JSON.stringify(updated))
+  }
+
+  // Exporta uma assinatura específica para HTML
+  const exportSignatureAsHTML = (signature: SavedSignature) => {
+    // Cria um HTML completo que pode ser aberto no browser
+    const htmlContent = `<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${signature.name}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .signature-container {
+            border: 1px solid #ddd;
+            padding: 20px;
+            background: white;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📧 ${signature.name}</h1>
+
+        <div class="info">
+            <strong>ℹ️ Informação:</strong><br>
+            Guardada em: ${new Date(signature.savedAt).toLocaleDateString('pt-PT')} às ${new Date(signature.savedAt).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}<br>
+            <br>
+            <strong>Como usar:</strong><br>
+            1. Selecione todo o conteúdo da assinatura abaixo (Ctrl+A)<br>
+            2. Copie (Ctrl+C)<br>
+            3. Cole no Email Signature Studio ou diretamente no Gmail
+        </div>
+
+        <div class="signature-container">
+            ${signature.html}
+        </div>
+    </div>
+</body>
+</html>`
+
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    // Remove caracteres especiais do nome do arquivo
+    const fileName = signature.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()
+    link.download = `${fileName}-${new Date().toISOString().split('T')[0]}.html`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  // Exporta todas as assinaturas para HTML (backup)
+  const exportAllSignatures = () => {
+    if (savedSignatures.length === 0) {
+      setError('Não há assinaturas para exportar.')
+      setTimeout(() => setError(''), 3000)
+      return
+    }
+
+    // Gera HTML com todas as assinaturas
+    const signaturesHTML = savedSignatures.map((sig, index) => `
+      <div class="signature-section">
+        <h2>📧 ${index + 1}. ${sig.name}</h2>
+        <div class="signature-info">
+          <strong>Guardada em:</strong> ${new Date(sig.savedAt).toLocaleDateString('pt-PT')} às ${new Date(sig.savedAt).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}<br>
+          <strong>Dimensões do Logo:</strong> ${sig.logoWidth}x${sig.logoHeight}px
+        </div>
+        <div class="signature-container">
+          ${sig.html}
+        </div>
+      </div>
+    `).join('')
+
+    const htmlContent = `<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backup de Assinaturas - ${new Date().toLocaleDateString('pt-PT')}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .header-info {
+            background: #e3f2fd;
+            padding: 20px;
+            border-left: 5px solid #007bff;
+            margin-bottom: 30px;
+            border-radius: 4px;
+        }
+        .signature-section {
+            margin-bottom: 50px;
+            padding: 25px;
+            background: #fafafa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        .signature-section h2 {
+            color: #1976d2;
+            margin-top: 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #1976d2;
+        }
+        .signature-info {
+            background: white;
+            padding: 12px;
+            margin: 15px 0;
+            border-left: 4px solid #4caf50;
+            font-size: 14px;
+            border-radius: 4px;
+        }
+        .signature-container {
+            border: 2px solid #ddd;
+            padding: 20px;
+            background: white;
+            margin-top: 15px;
+            border-radius: 4px;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #ddd;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+        .instructions {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📁 Backup de Assinaturas de Email</h1>
+
+        <div class="header-info">
+            <strong>ℹ️ Informação do Backup</strong><br>
+            Data de exportação: ${new Date().toLocaleDateString('pt-PT')} às ${new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}<br>
+            Total de assinaturas: ${savedSignatures.length}
+        </div>
+
+        <div class="instructions">
+            <strong>📋 Como usar este backup:</strong><br>
+            1. Para usar uma assinatura, role até ela abaixo<br>
+            2. Selecione todo o conteúdo da assinatura (arraste o mouse ou use Ctrl+A dentro da caixa)<br>
+            3. Copie (Ctrl+C)<br>
+            4. Cole no Email Signature Studio ou diretamente no Gmail
+        </div>
+
+        ${signaturesHTML}
+
+        <div class="footer">
+            <strong>Email Signature Studio</strong><br>
+            Backup gerado automaticamente em ${new Date().toLocaleDateString('pt-PT')}
+        </div>
+    </div>
+</body>
+</html>`
+
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `backup-assinaturas-${new Date().toISOString().split('T')[0]}.html`
+    link.click()
+    URL.revokeObjectURL(url)
+
+    setError(`✅ Backup criado com ${savedSignatures.length} assinatura(s)!`)
+    setTimeout(() => setError(''), 3000)
+  }
 
   // Reprocessa HTML quando a cor da BARRA mudar (cor de texto é aplicada manualmente)
   useEffect(() => {
@@ -1466,6 +1786,142 @@ export default function Home() {
               <p className="text-red-800 text-sm">{error}</p>
             </div>
           )}
+
+          {/* Seção de Assinaturas Guardadas */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <FolderOpen className="w-6 h-6" />
+                Assinaturas Guardadas ({savedSignatures.length})
+              </h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={exportAllSignatures}
+                  disabled={savedSignatures.length === 0}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+                  title="Exportar backup HTML de todas as assinaturas"
+                >
+                  <Download className="w-4 h-4" />
+                  Backup HTML
+                </button>
+              </div>
+            </div>
+
+            {/* Aviso sobre localStorage */}
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm text-amber-800">
+                <strong>⚠️ Aviso:</strong> As assinaturas são guardadas localmente no seu browser. Se limpar os dados ou cache do browser, perderá as assinaturas guardadas. Use a função "Exportar" para fazer backup.
+              </p>
+            </div>
+
+            {/* Botão para guardar assinatura atual */}
+            {processedHtml && (
+              <div className="mb-4">
+                {!showSaveDialog ? (
+                  <button
+                    onClick={() => setShowSaveDialog(true)}
+                    className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-green-600 to-teal-600 text-white rounded-lg hover:from-green-700 hover:to-teal-700 transition-all shadow-md font-medium"
+                  >
+                    <Save className="w-5 h-5" />
+                    Guardar Assinatura Atual
+                  </button>
+                ) : (
+                  <div className="p-4 bg-green-50 border-2 border-green-200 rounded-lg space-y-3">
+                    <label className="block text-sm font-semibold text-gray-700">
+                      Nome da Assinatura
+                    </label>
+                    <input
+                      type="text"
+                      value={signatureName}
+                      onChange={(e) => setSignatureName(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && saveSignature()}
+                      placeholder="Ex: Assinatura Corporativa 2024"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={saveSignature}
+                        className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
+                      >
+                        Guardar
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowSaveDialog(false)
+                          setSignatureName('')
+                        }}
+                        className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors font-medium"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Lista de Assinaturas */}
+            {savedSignatures.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {savedSignatures.map((sig) => (
+                  <div
+                    key={sig.id}
+                    className="p-4 bg-gradient-to-br from-gray-50 to-blue-50 border-2 border-gray-200 rounded-lg hover:border-blue-400 transition-all hover:shadow-md"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <h3 className="font-semibold text-gray-800 truncate flex-1">
+                        {sig.name}
+                      </h3>
+                      <button
+                        onClick={() => deleteSignature(sig.id)}
+                        className="flex-shrink-0 p-1 text-red-600 hover:bg-red-100 rounded transition-colors"
+                        title="Eliminar assinatura"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="mb-3 p-2 bg-white border border-gray-200 rounded h-24 overflow-hidden">
+                      <div
+                        className="text-xs scale-50 origin-top-left"
+                        dangerouslySetInnerHTML={{ __html: sig.thumbnail }}
+                        style={{ width: '200%', height: '200%' }}
+                      />
+                    </div>
+
+                    <div className="text-xs text-gray-600 mb-3">
+                      Guardada em: {new Date(sig.savedAt).toLocaleDateString('pt-PT')} às {new Date(sig.savedAt).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => loadSignature(sig)}
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-sm"
+                      >
+                        <FolderOpen className="w-4 h-4" />
+                        Carregar
+                      </button>
+                      <button
+                        onClick={() => exportSignatureAsHTML(sig)}
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium text-sm"
+                        title="Exportar como HTML"
+                      >
+                        <Download className="w-4 h-4" />
+                        HTML
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg">
+                <FolderOpen className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                <p className="text-gray-600 font-medium">Nenhuma assinatura guardada</p>
+                <p className="text-sm text-gray-500 mt-1">Crie uma assinatura e clique em "Guardar" para começar</p>
+              </div>
+            )}
+          </div>
 
           <div className="grid lg:grid-cols-2 gap-6 items-start">
             {/* Coluna Esquerda - Input */}
