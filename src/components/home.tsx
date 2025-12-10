@@ -672,12 +672,31 @@ export default function Home() {
       const divs = doc.querySelectorAll('div')
       divs.forEach(div => {
         const divElement = div as HTMLElement
+
+        // Detecta se é o subtítulo (normalmente tem texto curto e está no topo)
+        // Subtítulo geralmente é "IN BANK SERVICE®" ou similar
+        const text = divElement.textContent?.trim() || ''
+        const isBold = divElement.style.fontWeight === 'bold' ||
+                      divElement.style.fontWeight === '700' ||
+                      divElement.querySelector('strong, b') !== null
+        const isShort = text.length < 50 // Subtítulos são geralmente curtos
+        const isProbablySubtitle = isBold && isShort &&
+                                  (text.includes('®') || text.includes('SERVICE') || text.toUpperCase() === text)
+
         // Preserva margins explícitos
         if (divElement.style.marginTop) {
           divElement.style.marginTop = divElement.style.marginTop
         }
         if (divElement.style.marginBottom) {
-          divElement.style.marginBottom = divElement.style.marginBottom
+          // Se for subtítulo, reduz drasticamente o margin-bottom
+          if (isProbablySubtitle) {
+            const currentMargin = parseInt(divElement.style.marginBottom)
+            if (currentMargin > 5) {
+              divElement.style.marginBottom = '3px' // Espaçamento mínimo
+            }
+          } else {
+            divElement.style.marginBottom = divElement.style.marginBottom
+          }
         }
         // Preserva line-height explícito (importante para texto não ficar colado)
         if (divElement.style.lineHeight) {
@@ -685,16 +704,17 @@ export default function Home() {
         }
 
         // BACKUP para Gmail produção: adiciona <br> apenas quando há margin explícito
-        // NÃO adiciona <br> indiscriminadamente para evitar espaçamento excessivo
+        // NÃO adiciona <br> para subtítulos (para evitar espaçamento excessivo)
         const hasText = divElement.textContent?.trim()
         const nextSibling = divElement.nextElementSibling
         const isLastDiv = !nextSibling || nextSibling.tagName !== 'DIV'
 
         // Apenas adiciona <br> se houver margin-bottom explícito e significativo
+        // E NÃO for o subtítulo
         const hasExplicitMargin = divElement.style.marginBottom &&
                                   parseInt(divElement.style.marginBottom) > 5
 
-        if (hasText && !isLastDiv && hasExplicitMargin) {
+        if (hasText && !isLastDiv && hasExplicitMargin && !isProbablySubtitle) {
           // Adiciona <br> invisível apenas quando há margin explícito
           const br = doc.createElement('br')
           divElement.appendChild(br)
@@ -757,9 +777,9 @@ export default function Home() {
             htmlElement.setAttribute('style', currentStyle + `;line-height:${lineHeight}`)
           }
         } else if (htmlElement.tagName === 'P' || htmlElement.tagName === 'DIV') {
-          // Define line-height compacto para evitar espaçamento excessivo
-          // 1.2 em vez de 1.4 para assinaturas mais compactas
-          htmlElement.style.lineHeight = '1.2'
+          // Define line-height adequado para legibilidade
+          // 1.5 para espaçamento confortável entre linhas de texto
+          htmlElement.style.lineHeight = '1.5'
         }
 
         // Garante que font-family está definido
@@ -1119,13 +1139,30 @@ export default function Home() {
       // Preserva parágrafos e line breaks
       const paragraphs = doc.querySelectorAll('p')
       paragraphs.forEach(p => {
+        const pElement = p as HTMLElement
+
+        // Detecta se é o subtítulo (mesma lógica dos DIVs)
+        const text = pElement.textContent?.trim() || ''
+        const isBold = pElement.style.fontWeight === 'bold' ||
+                      pElement.style.fontWeight === '700' ||
+                      pElement.querySelector('strong, b') !== null
+        const isShort = text.length < 50
+        const isProbablySubtitle = isBold && isShort &&
+                                  (text.includes('®') || text.includes('SERVICE') || text.toUpperCase() === text)
+
         // PRESERVA margin/padding original se existir (importante para espaçamento)
         // Só define como '0' se NÃO tiver margin/padding definido
-        const pElement = p as HTMLElement
         if (!pElement.style.margin && !pElement.style.marginTop && !pElement.style.marginBottom &&
             !pElement.style.marginLeft && !pElement.style.marginRight) {
           pElement.style.margin = '0'
+        } else if (isProbablySubtitle && pElement.style.marginBottom) {
+          // Se for subtítulo, reduz o margin-bottom
+          const currentMargin = parseInt(pElement.style.marginBottom)
+          if (currentMargin > 5) {
+            pElement.style.marginBottom = '3px'
+          }
         }
+
         if (!pElement.style.padding && !pElement.style.paddingTop && !pElement.style.paddingBottom &&
             !pElement.style.paddingLeft && !pElement.style.paddingRight) {
           pElement.style.padding = '0'
