@@ -1607,7 +1607,7 @@ export default function Home() {
   }
 
   const applyColorToSelection = () => {
-    if (!previewRef.current || !textColor) return
+    if (!pasteAreaRef.current || !textColor) return
 
     const selection = window.getSelection()
     if (!selection || selection.rangeCount === 0) {
@@ -1618,9 +1618,9 @@ export default function Home() {
 
     const range = selection.getRangeAt(0)
 
-    // Verifica se a seleção está dentro do preview
-    if (!previewRef.current.contains(range.commonAncestorContainer)) {
-      setError('Por favor, selecione texto dentro da pré-visualização.')
+    // Verifica se a seleção está dentro da área editável
+    if (!pasteAreaRef.current.contains(range.commonAncestorContainer)) {
+      setError('Por favor, selecione texto dentro da área de edição.')
       setTimeout(() => setError(''), 3000)
       return
     }
@@ -1633,11 +1633,11 @@ export default function Home() {
       // Envolve o conteúdo selecionado no span
       range.surroundContents(span)
 
-      // Atualiza o HTML processado
-      setProcessedHtml(previewRef.current.innerHTML)
-
       // Limpa seleção
       selection.removeAllRanges()
+
+      // Reprocessa o HTML para atualizar a pré-visualização
+      processHtml()
     } catch (error) {
       // Se falhar (seleção complexa), tenta abordagem alternativa
       try {
@@ -1645,8 +1645,10 @@ export default function Home() {
         span.appendChild(fragment)
         range.insertNode(span)
 
-        setProcessedHtml(previewRef.current.innerHTML)
         selection.removeAllRanges()
+
+        // Reprocessa o HTML para atualizar a pré-visualização
+        processHtml()
       } catch (e) {
         setError('Não foi possível aplicar cor a esta seleção. Tente selecionar apenas texto simples.')
         setTimeout(() => setError(''), 3000)
