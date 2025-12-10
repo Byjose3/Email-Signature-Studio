@@ -34,6 +34,7 @@ export default function Home() {
   const [savedSignatures, setSavedSignatures] = useState<SavedSignature[]>([])
   const [signatureName, setSignatureName] = useState('')
   const [showSaveDialog, setShowSaveDialog] = useState(false)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const previewRef = useRef<HTMLDivElement>(null)
   const pasteAreaRef = useRef<HTMLDivElement>(null)
 
@@ -120,15 +121,19 @@ export default function Home() {
     // para manter os espaçamentos originais intactos
   }
 
-  // Elimina uma assinatura
-  const deleteSignature = (id: string) => {
-    if (!confirm('Tem certeza que deseja eliminar esta assinatura?')) {
-      return
-    }
+  // Confirma a eliminação de uma assinatura
+  const confirmDelete = (id: string) => {
+    setDeleteConfirmId(id)
+  }
 
-    const updated = savedSignatures.filter(sig => sig.id !== id)
+  // Elimina uma assinatura
+  const deleteSignature = () => {
+    if (!deleteConfirmId) return
+
+    const updated = savedSignatures.filter(sig => sig.id !== deleteConfirmId)
     setSavedSignatures(updated)
     localStorage.setItem('emailSignatures', JSON.stringify(updated))
+    setDeleteConfirmId(null)
   }
 
   // Exporta uma assinatura específica para HTML
@@ -1851,6 +1856,42 @@ export default function Home() {
               </p>
             </div>
 
+            {/* Dialog de Confirmação de Eliminação */}
+            {deleteConfirmId && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="flex-shrink-0 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                      <AlertCircle className="w-6 h-6 text-red-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        Eliminar Assinatura
+                      </h3>
+                      <p className="text-gray-600 text-sm">
+                        Tem certeza que deseja eliminar esta assinatura? Esta ação não pode ser desfeita.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3 justify-end">
+                    <button
+                      onClick={() => setDeleteConfirmId(null)}
+                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors font-medium"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={deleteSignature}
+                      className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors font-medium flex items-center gap-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Lista de Assinaturas */}
             {savedSignatures.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1864,7 +1905,7 @@ export default function Home() {
                         {sig.name}
                       </h3>
                       <button
-                        onClick={() => deleteSignature(sig.id)}
+                        onClick={() => confirmDelete(sig.id)}
                         className="flex-shrink-0 p-1 text-red-600 hover:bg-red-100 rounded transition-colors"
                         title="Eliminar assinatura"
                       >
@@ -2030,16 +2071,19 @@ export default function Home() {
                         <div className="flex items-center gap-2">
                           <input
                             type="color"
-                            value={textColor}
+                            value={textColor || '#000000'}
                             onChange={(e) => setTextColor(e.target.value)}
                             className="w-12 h-10 rounded border border-gray-300 cursor-pointer"
                           />
                           <input
                             type="text"
                             value={textColor}
-                            onChange={(e) => setTextColor(e.target.value)}
+                            onChange={(e) => {
+                              const value = e.target.value
+                              setTextColor(value)
+                            }}
                             placeholder="#000000"
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 font-mono text-sm"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 font-mono text-sm uppercase"
                           />
                         </div>
                       </div>
@@ -2051,16 +2095,19 @@ export default function Home() {
                         <div className="flex items-center gap-2">
                           <input
                             type="color"
-                            value={separatorColor}
+                            value={separatorColor || '#d4d4d4'}
                             onChange={(e) => setSeparatorColor(e.target.value)}
                             className="w-12 h-10 rounded border border-gray-300 cursor-pointer"
                           />
                           <input
                             type="text"
                             value={separatorColor}
-                            onChange={(e) => setSeparatorColor(e.target.value)}
-                            placeholder="#a9754f"
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 font-mono text-sm"
+                            onChange={(e) => {
+                              const value = e.target.value
+                              setSeparatorColor(value)
+                            }}
+                            placeholder="#d4d4d4"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 font-mono text-sm uppercase"
                           />
                         </div>
                       </div>
