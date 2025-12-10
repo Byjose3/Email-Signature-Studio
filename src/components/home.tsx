@@ -97,6 +97,12 @@ export default function Home() {
       setShowSaveDialog(false)
       setError('')
 
+      // Limpa o preview e o input de edição após guardar
+      setProcessedHtml('')
+      if (pasteAreaRef.current) {
+        pasteAreaRef.current.innerHTML = ''
+      }
+
       // Mostra mensagem de sucesso
       setSuccessMessage('Assinatura guardada com sucesso!')
       setTimeout(() => setSuccessMessage(''), 3000)
@@ -359,11 +365,19 @@ export default function Home() {
     setTimeout(() => setSuccessMessage(''), 3000)
   }
 
-  // Reprocessa HTML quando a cor da BARRA mudar (cor de texto é aplicada manualmente)
+  // Reprocessa HTML quando a cor de TEXTO mudar
+  useEffect(() => {
+    if (textColor && pasteAreaRef.current && pasteAreaRef.current.innerHTML && pasteAreaRef.current.innerHTML !== '<span class="text-gray-400 select-none">Edite a sua assinatura, depois de a carregar</span>') {
+      const currentContent = pasteAreaRef.current.innerHTML
+      processHtml(currentContent, textColor, separatorColor)
+    }
+  }, [textColor])
+
+  // Reprocessa HTML quando a cor da BARRA mudar
   useEffect(() => {
     if (separatorColor && pasteAreaRef.current && pasteAreaRef.current.innerHTML && pasteAreaRef.current.innerHTML !== '<span class="text-gray-400 select-none">Edite a sua assinatura, depois de a carregar</span>') {
       const currentContent = pasteAreaRef.current.innerHTML
-      processHtml(currentContent, undefined, separatorColor)
+      processHtml(currentContent, textColor, separatorColor)
     }
   }, [separatorColor])
 
@@ -1519,6 +1533,19 @@ export default function Home() {
     const textElements = doc.querySelectorAll('p, div, span, td, b, strong, i, em')
     textElements.forEach(element => {
       const htmlElement = element as HTMLElement
+
+      // Aplica cor customizada do texto se fornecida
+      if (customTextColor && htmlElement.textContent && htmlElement.textContent.trim() !== '') {
+        // Não aplica cor a elementos que são apenas containers (sem texto direto)
+        const hasDirectText = Array.from(htmlElement.childNodes).some(node =>
+          node.nodeType === Node.TEXT_NODE && node.textContent?.trim() !== ''
+        )
+
+        // Aplica a cor se o elemento tem texto ou é um span/b/strong/i/em
+        if (hasDirectText || ['SPAN', 'B', 'STRONG', 'I', 'EM'].includes(htmlElement.tagName)) {
+          htmlElement.style.color = customTextColor
+        }
+      }
 
       // Preserva e reforça bold
       if (htmlElement.style.fontWeight === 'bold' || htmlElement.style.fontWeight === '700' ||
