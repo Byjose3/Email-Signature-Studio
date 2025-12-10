@@ -367,17 +367,33 @@ export default function Home() {
 
   // Reprocessa HTML quando a cor de TEXTO mudar
   useEffect(() => {
-    if (textColor && pasteAreaRef.current && pasteAreaRef.current.innerHTML && pasteAreaRef.current.innerHTML !== '<span class="text-gray-400 select-none">Edite a sua assinatura, depois de a carregar</span>') {
+    if (textColor && pasteAreaRef.current && pasteAreaRef.current.innerHTML) {
       const currentContent = pasteAreaRef.current.innerHTML
-      processHtml(currentContent, textColor, separatorColor)
+      // Verifica se não é o placeholder e se tem conteúdo válido
+      if (currentContent !== '<span class="text-gray-400 select-none">Edite a sua assinatura, depois de a carregar</span>' &&
+          currentContent.trim() !== '' &&
+          processedHtml) { // Só reprocessa se já existe HTML processado
+        const processed = processHtml(currentContent, textColor, separatorColor)
+        if (processed) {
+          setProcessedHtml(processed)
+        }
+      }
     }
   }, [textColor])
 
   // Reprocessa HTML quando a cor da BARRA mudar
   useEffect(() => {
-    if (separatorColor && pasteAreaRef.current && pasteAreaRef.current.innerHTML && pasteAreaRef.current.innerHTML !== '<span class="text-gray-400 select-none">Edite a sua assinatura, depois de a carregar</span>') {
+    if (separatorColor && pasteAreaRef.current && pasteAreaRef.current.innerHTML) {
       const currentContent = pasteAreaRef.current.innerHTML
-      processHtml(currentContent, textColor, separatorColor)
+      // Verifica se não é o placeholder e se tem conteúdo válido
+      if (currentContent !== '<span class="text-gray-400 select-none">Edite a sua assinatura, depois de a carregar</span>' &&
+          currentContent.trim() !== '' &&
+          processedHtml) { // Só reprocessa se já existe HTML processado
+        const processed = processHtml(currentContent, textColor, separatorColor)
+        if (processed) {
+          setProcessedHtml(processed)
+        }
+      }
     }
   }, [separatorColor])
 
@@ -1535,14 +1551,10 @@ export default function Home() {
       const htmlElement = element as HTMLElement
 
       // Aplica cor customizada do texto se fornecida
-      if (customTextColor && htmlElement.textContent && htmlElement.textContent.trim() !== '') {
-        // Não aplica cor a elementos que são apenas containers (sem texto direto)
-        const hasDirectText = Array.from(htmlElement.childNodes).some(node =>
-          node.nodeType === Node.TEXT_NODE && node.textContent?.trim() !== ''
-        )
-
-        // Aplica a cor se o elemento tem texto ou é um span/b/strong/i/em
-        if (hasDirectText || ['SPAN', 'B', 'STRONG', 'I', 'EM'].includes(htmlElement.tagName)) {
+      if (customTextColor) {
+        // Aplica cor a todos os elementos de texto, exceto links (que devem manter cor de link)
+        const isLink = htmlElement.tagName === 'A'
+        if (!isLink && htmlElement.textContent && htmlElement.textContent.trim() !== '') {
           htmlElement.style.color = customTextColor
         }
       }
@@ -1664,7 +1676,13 @@ export default function Home() {
       selection.removeAllRanges()
 
       // Reprocessa o HTML para atualizar a pré-visualização
-      processHtml()
+      if (pasteAreaRef.current) {
+        const currentContent = pasteAreaRef.current.innerHTML
+        const processed = processHtml(currentContent, textColor, separatorColor)
+        if (processed) {
+          setProcessedHtml(processed)
+        }
+      }
     } catch (error) {
       // Se falhar (seleção complexa), tenta abordagem alternativa
       try {
@@ -1675,7 +1693,13 @@ export default function Home() {
         selection.removeAllRanges()
 
         // Reprocessa o HTML para atualizar a pré-visualização
-        processHtml()
+        if (pasteAreaRef.current) {
+          const currentContent = pasteAreaRef.current.innerHTML
+          const processed = processHtml(currentContent, textColor, separatorColor)
+          if (processed) {
+            setProcessedHtml(processed)
+          }
+        }
       } catch (e) {
         setError('Não foi possível aplicar cor a esta seleção. Tente selecionar apenas texto simples.')
         setTimeout(() => setError(''), 3000)
