@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Upload, Copy, Check, Image, AlertCircle, FileText, Lock, Unlock, Save, FolderOpen, Trash2, Download } from 'lucide-react'
+import { Upload, Copy, Check, Image, AlertCircle, FileText, Lock, Unlock, Save, FolderOpen, Trash2, Download, Edit3 } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 interface SavedSignature {
   id: string
@@ -1766,10 +1767,10 @@ export default function Home() {
         <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
           <div className="mb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">
-              Editor de Assinatura Gmail
+              Email Signature Studio
             </h1>
             <p className="text-gray-600">
-              Cole ou carregue seu HTML, substitua imagens e copie para o Gmail
+              Crie, edite e gerencie suas assinaturas de email para Gmail
             </p>
           </div>
 
@@ -1787,8 +1788,22 @@ export default function Home() {
             </div>
           )}
 
-          {/* Seção de Assinaturas Guardadas */}
-          <div className="mb-6">
+          {/* Tabs de navegação */}
+          <Tabs defaultValue="editor" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="editor" className="flex items-center gap-2 text-base">
+                <Edit3 className="w-4 h-4" />
+                Editor de Assinatura
+              </TabsTrigger>
+              <TabsTrigger value="saved" className="flex items-center gap-2 text-base">
+                <FolderOpen className="w-4 h-4" />
+                Assinaturas Guardadas ({savedSignatures.length})
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Tab: Assinaturas Guardadas */}
+            <TabsContent value="saved" className="mt-0">
+              <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                 <FolderOpen className="w-6 h-6" />
@@ -1921,9 +1936,12 @@ export default function Home() {
                 <p className="text-sm text-gray-500 mt-1">Crie uma assinatura e clique em "Guardar" para começar</p>
               </div>
             )}
-          </div>
+              </div>
+            </TabsContent>
 
-          <div className="grid lg:grid-cols-2 gap-6 items-start">
+            {/* Tab: Editor de Assinatura */}
+            <TabsContent value="editor" className="mt-0">
+              <div className="grid lg:grid-cols-2 gap-6 items-start">
             {/* Coluna Esquerda - Input */}
             <div className="space-y-6">
               <div>
@@ -2166,7 +2184,9 @@ export default function Home() {
                 )}
               </div>
             </div>
-          </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>
