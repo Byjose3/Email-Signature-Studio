@@ -683,24 +683,44 @@ export default function Home() {
         const isProbablySubtitle = isBold && isShort &&
                                   (text.includes('®') || text.includes('SERVICE') || text.toUpperCase() === text)
 
+        // Detecta se é o primeiro contacto (linha logo após o subtítulo)
+        // Geralmente começa com "p:", "m:", "e:", "w:", "a:" etc
+        const startsWithContactLabel = /^(p|m|e|w|a|t|f):/i.test(text)
+        const isFirstContact = startsWithContactLabel && text.includes('+351')
+
         // Preserva margins explícitos
         if (divElement.style.marginTop) {
-          divElement.style.marginTop = divElement.style.marginTop
+          // Se for primeiro contacto, remove margin-top para colar ao subtítulo
+          if (isFirstContact) {
+            divElement.style.marginTop = '0'
+            divElement.style.paddingTop = '0'
+          } else {
+            divElement.style.marginTop = divElement.style.marginTop
+          }
         }
         if (divElement.style.marginBottom) {
           // Se for subtítulo, remove completamente o margin-bottom
           if (isProbablySubtitle) {
             divElement.style.marginBottom = '0' // SEM espaçamento extra
+            divElement.style.paddingBottom = '0' // Remove padding também
           } else {
             divElement.style.marginBottom = divElement.style.marginBottom
           }
         }
         // Se for subtítulo e tiver margin geral (não específico), também zera
-        if (isProbablySubtitle && divElement.style.margin && !divElement.style.marginBottom) {
+        if (isProbablySubtitle) {
           divElement.style.marginBottom = '0'
+          divElement.style.paddingBottom = '0'
+          // FORÇA line-height compacto no subtítulo para evitar espaço extra
+          divElement.style.lineHeight = '1.0'
+        }
+        // Se for primeiro contacto, FORÇA remoção de espaçamento superior
+        if (isFirstContact) {
+          divElement.style.marginTop = '0'
+          divElement.style.paddingTop = '0'
         }
         // Preserva line-height explícito (importante para texto não ficar colado)
-        if (divElement.style.lineHeight) {
+        if (divElement.style.lineHeight && !isProbablySubtitle) {
           divElement.style.lineHeight = divElement.style.lineHeight
         }
 
@@ -1151,6 +1171,10 @@ export default function Home() {
         const isProbablySubtitle = isBold && isShort &&
                                   (text.includes('®') || text.includes('SERVICE') || text.toUpperCase() === text)
 
+        // Detecta se é o primeiro contacto
+        const startsWithContactLabel = /^(p|m|e|w|a|t|f):/i.test(text)
+        const isFirstContact = startsWithContactLabel && text.includes('+351')
+
         // PRESERVA margin/padding original se existir (importante para espaçamento)
         // Só define como '0' se NÃO tiver margin/padding definido
         if (!pElement.style.margin && !pElement.style.marginTop && !pElement.style.marginBottom &&
@@ -1160,9 +1184,17 @@ export default function Home() {
           // Se for subtítulo, remove completamente o margin-bottom
           pElement.style.marginBottom = '0' // SEM espaçamento extra
         }
-        // Se for subtítulo e tiver margin geral (não específico), também zera
-        if (isProbablySubtitle && pElement.style.margin && !pElement.style.marginBottom) {
+        // Se for subtítulo, FORÇA remoção completa de espaçamento
+        if (isProbablySubtitle) {
           pElement.style.marginBottom = '0'
+          pElement.style.paddingBottom = '0'
+          // FORÇA line-height compacto no subtítulo
+          pElement.style.lineHeight = '1.0'
+        }
+        // Se for primeiro contacto, FORÇA remoção de espaçamento superior
+        if (isFirstContact) {
+          pElement.style.marginTop = '0'
+          pElement.style.paddingTop = '0'
         }
 
         if (!pElement.style.padding && !pElement.style.paddingTop && !pElement.style.paddingBottom &&
