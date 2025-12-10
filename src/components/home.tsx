@@ -1550,7 +1550,7 @@ export default function Home() {
                       </div>
                     </div>
                     
-                    <div className="text-xs text-purple-700 bg-white/50 p-2 rounded">
+                    <div className="text-purple-700 bg-white/50 p-2 rounded" style={{ fontSize: '14px' }}>
                       <strong>💡 Dica:</strong> Dimensões atuais: {logoWidth}x{logoHeight}px
                       {logoWidth > 200 && <span className="text-orange-600 ml-2">⚠️ Logo pode ficar muito grande no Gmail</span>}
                     </div>
@@ -1617,7 +1617,7 @@ export default function Home() {
                       </button>
                     )}
 
-                    <div className="text-xs text-green-700 bg-white/50 p-2 rounded">
+                    <div className="text-green-700 bg-white/50 p-2 rounded" style={{ fontSize: '14px' }}>
                       <strong>💡 Dica:</strong> {textColor ? 'Selecione o texto na pré-visualização e clique no botão acima para aplicar a cor' : 'A cor da barra é aplicada automaticamente'}
                     </div>
                   </div>
@@ -1662,7 +1662,7 @@ export default function Home() {
                         </div>
                       </div>
                     ))}
-                    <div className="text-xs text-blue-700 bg-white/50 p-2 rounded">
+                    <div className="text-blue-700 bg-white/50 p-2 rounded" style={{ fontSize: '14px' }}>
                       <strong>💡 Dica:</strong> Altere os URLs dos links conforme necessário. As mudanças são aplicadas automaticamente.
                     </div>
                   </div>
