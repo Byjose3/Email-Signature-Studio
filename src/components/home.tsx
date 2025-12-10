@@ -2122,34 +2122,37 @@ export default function Home() {
                 Pré-visualização (Gmail)
               </label>
 
-              <button
-                onClick={copyToClipboard}
-                disabled={!processedHtml}
-                className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg font-medium mb-4"
-              >
-                {copied ? (
-                  <>
-                    <Check className="w-5 h-5" />
-                    Copiado!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-5 h-5" />
-                    Copiar Assinatura
-                  </>
-                )}
-              </button>
-
-              {/* Botão para guardar assinatura atual */}
-              {processedHtml && !showSaveDialog && (
+              {/* Botões de ação lado a lado */}
+              <div className="flex gap-3 mb-4">
                 <button
-                  onClick={() => setShowSaveDialog(true)}
-                  className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md font-medium mb-4"
+                  onClick={copyToClipboard}
+                  disabled={!processedHtml}
+                  className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg font-medium"
                 >
-                  <Save className="w-5 h-5" />
-                  Guardar Assinatura
+                  {copied ? (
+                    <>
+                      <Check className="w-5 h-5" />
+                      Copiado!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-5 h-5" />
+                      Copiar
+                    </>
+                  )}
                 </button>
-              )}
+
+                {/* Botão para guardar assinatura atual */}
+                {processedHtml && !showSaveDialog && (
+                  <button
+                    onClick={() => setShowSaveDialog(true)}
+                    className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md font-medium"
+                  >
+                    <Save className="w-5 h-5" />
+                    Guardar
+                  </button>
+                )}
+              </div>
 
               {/* Dialog para guardar assinatura */}
               {processedHtml && showSaveDialog && (
