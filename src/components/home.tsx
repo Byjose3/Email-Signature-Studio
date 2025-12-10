@@ -23,6 +23,7 @@ export default function Home() {
   const [processedHtml, setProcessedHtml] = useState('')
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
   const [logoWidth, setLogoWidth] = useState<number>(160)
   const [logoHeight, setLogoHeight] = useState<number>(0)
   const [aspectRatioLocked, setAspectRatioLocked] = useState(true)
@@ -72,8 +73,8 @@ export default function Home() {
     }
 
     try {
-      // Cria thumbnail (versão simplificada do HTML para preview)
-      const thumbnail = processedHtml.substring(0, 500)
+      // Cria thumbnail usando o HTML completo para preview
+      const thumbnail = processedHtml
 
       const newSignature: SavedSignature = {
         id: Date.now().toString(),
@@ -96,9 +97,8 @@ export default function Home() {
       setError('')
 
       // Mostra mensagem de sucesso
-      const successMsg = error
-      setError('Assinatura guardada com sucesso!')
-      setTimeout(() => setError(''), 3000)
+      setSuccessMessage('Assinatura guardada com sucesso!')
+      setTimeout(() => setSuccessMessage(''), 3000)
     } catch (err) {
       console.error('Erro ao guardar assinatura:', err)
       setError('Erro ao guardar assinatura. O espaço de armazenamento pode estar cheio.')
@@ -116,7 +116,8 @@ export default function Home() {
     setLogoHeight(signature.logoHeight)
     setTextColor(signature.textColor)
     setSeparatorColor(signature.separatorColor)
-    processHtml(signature.html, signature.textColor, signature.separatorColor)
+    // Não reprocessa o HTML - usa o HTML guardado tal como está
+    // para manter os espaçamentos originais intactos
   }
 
   // Elimina uma assinatura
@@ -168,9 +169,12 @@ export default function Home() {
         }
         .signature-container {
             border: 1px solid #ddd;
-            padding: 20px;
+            padding: 0;
             background: white;
             margin-top: 20px;
+        }
+        .signature-container table {
+            margin: 0;
         }
     </style>
 </head>
@@ -284,10 +288,13 @@ export default function Home() {
         }
         .signature-container {
             border: 2px solid #ddd;
-            padding: 20px;
+            padding: 0;
             background: white;
             margin-top: 15px;
             border-radius: 4px;
+        }
+        .signature-container table {
+            margin: 0;
         }
         .footer {
             margin-top: 40px;
@@ -343,8 +350,8 @@ export default function Home() {
     link.click()
     URL.revokeObjectURL(url)
 
-    setError(`Backup criado com ${savedSignatures.length} assinatura(s)!`)
-    setTimeout(() => setError(''), 3000)
+    setSuccessMessage(`Backup criado com ${savedSignatures.length} assinatura(s)!`)
+    setTimeout(() => setSuccessMessage(''), 3000)
   }
 
   // Reprocessa HTML quando a cor da BARRA mudar (cor de texto é aplicada manualmente)
@@ -1795,6 +1802,13 @@ export default function Home() {
             </div>
           )}
 
+          {successMessage && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3">
+              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <p className="text-green-800 text-sm">{successMessage}</p>
+            </div>
+          )}
+
           {/* Tabs de navegação */}
           <Tabs defaultValue="editor" className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6">
@@ -1858,11 +1872,15 @@ export default function Home() {
                       </button>
                     </div>
 
-                    <div className="mb-3 p-2 bg-white border border-gray-200 rounded h-24 overflow-hidden">
+                    <div className="mb-3 p-2 bg-white border border-gray-200 rounded h-32 overflow-hidden relative">
                       <div
-                        className="text-xs scale-50 origin-top-left"
+                        className="absolute top-0 left-0 origin-top-left pointer-events-none"
                         dangerouslySetInnerHTML={{ __html: sig.thumbnail }}
-                        style={{ width: '200%', height: '200%' }}
+                        style={{
+                          transform: 'scale(0.25)',
+                          transformOrigin: 'top left',
+                          width: '400%'
+                        }}
                       />
                     </div>
 
