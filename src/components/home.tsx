@@ -142,6 +142,41 @@ export default function Home() {
     setDeleteConfirmId(null)
   }
 
+  // Copia uma assinatura guardada diretamente para a área de transferência
+  const copySavedSignature = async (signature: SavedSignature) => {
+    try {
+      const htmlToCopy = signature.html
+
+      // Usa método confiável para copiar HTML
+      const tempDiv = document.createElement('div')
+      tempDiv.innerHTML = htmlToCopy
+      tempDiv.style.position = 'absolute'
+      tempDiv.style.left = '-9999px'
+      document.body.appendChild(tempDiv)
+
+      const range = document.createRange()
+      range.selectNodeContents(tempDiv)
+      const selection = window.getSelection()
+      selection?.removeAllRanges()
+      selection?.addRange(range)
+
+      const successful = document.execCommand('copy')
+
+      selection?.removeAllRanges()
+      document.body.removeChild(tempDiv)
+
+      if (successful) {
+        setSuccessMessage('Assinatura copiada! Cole diretamente no Gmail.')
+        setTimeout(() => setSuccessMessage(''), 3000)
+      } else {
+        throw new Error('Falha ao copiar')
+      }
+    } catch (err) {
+      setError('Erro ao copiar assinatura.')
+      setTimeout(() => setError(''), 3000)
+    }
+  }
+
   // Exporta uma assinatura específica para HTML
   const exportSignatureAsHTML = (signature: SavedSignature) => {
     // Cria um HTML completo que pode ser aberto no browser
@@ -1984,19 +2019,12 @@ export default function Home() {
 
                     <div className="flex gap-2">
                       <button
-                        onClick={() => loadSignature(sig)}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-sm"
-                      >
-                        <FolderOpen className="w-4 h-4" />
-                        Carregar
-                      </button>
-                      <button
-                        onClick={() => exportSignatureAsHTML(sig)}
+                        onClick={() => copySavedSignature(sig)}
                         className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium text-sm"
-                        title="Exportar como HTML"
+                        title="Copiar assinatura para colar no Gmail"
                       >
-                        <Download className="w-4 h-4" />
-                        HTML
+                        <Copy className="w-4 h-4" />
+                        Copiar
                       </button>
                     </div>
                   </div>
