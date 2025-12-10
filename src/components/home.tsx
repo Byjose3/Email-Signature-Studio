@@ -1,5 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Upload, Copy, Check, Image, AlertCircle, FileText, Lock, Unlock, Save, FolderOpen, Trash2, Download, Edit3 } from 'lucide-react'
+import {
+  Upload, Copy, Check, Image, AlertCircle, FileText, Lock, Unlock, Save,
+  FolderOpen, Trash2, Download, Edit3, Mail, Building2, Link2, Ruler,
+  Palette, ImageIcon, Lightbulb, Info, ClipboardList, Sparkles, Eye,
+  CheckCircle, Settings
+} from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 interface SavedSignature {
@@ -92,7 +97,7 @@ export default function Home() {
 
       // Mostra mensagem de sucesso
       const successMsg = error
-      setError('✅ Assinatura guardada com sucesso!')
+      setError('Assinatura guardada com sucesso!')
       setTimeout(() => setError(''), 3000)
     } catch (err) {
       console.error('Erro ao guardar assinatura:', err)
@@ -171,10 +176,10 @@ export default function Home() {
 </head>
 <body>
     <div class="container">
-        <h1>📧 ${signature.name}</h1>
+        <h1>${signature.name}</h1>
 
         <div class="info">
-            <strong>ℹ️ Informação:</strong><br>
+            <strong>Informação:</strong><br>
             Guardada em: ${new Date(signature.savedAt).toLocaleDateString('pt-PT')} às ${new Date(signature.savedAt).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}<br>
             <br>
             <strong>Como usar:</strong><br>
@@ -212,7 +217,7 @@ export default function Home() {
     // Gera HTML com todas as assinaturas
     const signaturesHTML = savedSignatures.map((sig, index) => `
       <div class="signature-section">
-        <h2>📧 ${index + 1}. ${sig.name}</h2>
+        <h2>${index + 1}. ${sig.name}</h2>
         <div class="signature-info">
           <strong>Guardada em:</strong> ${new Date(sig.savedAt).toLocaleDateString('pt-PT')} às ${new Date(sig.savedAt).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}<br>
           <strong>Dimensões do Logo:</strong> ${sig.logoWidth}x${sig.logoHeight}px
@@ -304,16 +309,16 @@ export default function Home() {
 </head>
 <body>
     <div class="container">
-        <h1>📁 Backup de Assinaturas de Email</h1>
+        <h1>Backup de Assinaturas de Email</h1>
 
         <div class="header-info">
-            <strong>ℹ️ Informação do Backup</strong><br>
+            <strong>Informação do Backup</strong><br>
             Data de exportação: ${new Date().toLocaleDateString('pt-PT')} às ${new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}<br>
             Total de assinaturas: ${savedSignatures.length}
         </div>
 
         <div class="instructions">
-            <strong>📋 Como usar este backup:</strong><br>
+            <strong>Como usar este backup:</strong><br>
             1. Para usar uma assinatura, role até ela abaixo<br>
             2. Selecione todo o conteúdo da assinatura (arraste o mouse ou use Ctrl+A dentro da caixa)<br>
             3. Copie (Ctrl+C)<br>
@@ -338,13 +343,13 @@ export default function Home() {
     link.click()
     URL.revokeObjectURL(url)
 
-    setError(`✅ Backup criado com ${savedSignatures.length} assinatura(s)!`)
+    setError(`Backup criado com ${savedSignatures.length} assinatura(s)!`)
     setTimeout(() => setError(''), 3000)
   }
 
   // Reprocessa HTML quando a cor da BARRA mudar (cor de texto é aplicada manualmente)
   useEffect(() => {
-    if (separatorColor && pasteAreaRef.current && pasteAreaRef.current.innerHTML && pasteAreaRef.current.innerHTML !== '<span class="text-gray-400 select-none">Cole sua assinatura aqui (Ctrl+V)...</span>') {
+    if (separatorColor && pasteAreaRef.current && pasteAreaRef.current.innerHTML && pasteAreaRef.current.innerHTML !== '<span class="text-gray-400 select-none">Edite a sua assinatura, depois de a carregar</span>') {
       const currentContent = pasteAreaRef.current.innerHTML
       processHtml(currentContent, undefined, separatorColor)
     }
@@ -1106,7 +1111,7 @@ export default function Home() {
   const handleContentChange = () => {
     if (pasteAreaRef.current) {
       const currentContent = pasteAreaRef.current.innerHTML
-      if (currentContent && currentContent !== '<span class="text-gray-400 select-none">Cole sua assinatura aqui (Ctrl+V)...</span>') {
+      if (currentContent && currentContent !== '<span class="text-gray-400 select-none">Edite a sua assinatura, depois de a carregar</span>') {
         processHtml(currentContent, undefined, separatorColor)
       }
     }
@@ -1719,8 +1724,9 @@ export default function Home() {
               />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-700 truncate">
-                {isLogo ? '🏢 ' : '🔗 '}{altText}
+              <p className="text-sm font-medium text-gray-700 truncate flex items-center gap-1">
+                {isLogo ? <Building2 className="w-4 h-4" /> : <Link2 className="w-4 h-4" />}
+                {altText}
               </p>
               <p className="text-xs text-gray-500 mt-1">
                 {isLogo ? 'Logo da empresa' : 'Ícone/Imagem'}
@@ -1776,8 +1782,9 @@ export default function Home() {
 
           {/* Como definir a assinatura no Gmail */}
           <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800">
-              <strong>📧 Como definir a assinatura no Gmail:</strong> Após copiar, vá ao Gmail → Configurações (⚙️) → Ver todas as configurações → Geral → Assinatura → Cole a assinatura copiada (Ctrl+V) → Salvar alterações
+            <p className="text-sm text-blue-800 flex items-start gap-2">
+              <Mail className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <span><strong>Como definir a assinatura no Gmail:</strong> Após copiar, vá ao Gmail → Configurações → Ver todas as configurações → Geral → Assinatura → Cole a assinatura copiada (Ctrl+V) → Salvar alterações</span>
             </p>
           </div>
 
@@ -1824,8 +1831,9 @@ export default function Home() {
 
             {/* Aviso sobre localStorage */}
             <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-sm text-amber-800">
-                <strong>⚠️ Aviso:</strong> As assinaturas são guardadas localmente no seu browser. Se limpar os dados ou cache do browser, perderá as assinaturas guardadas. Use a função "Exportar" para fazer backup.
+              <p className="text-sm text-amber-800 flex items-start gap-2">
+                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <span><strong>Aviso:</strong> As assinaturas são guardadas localmente no seu browser. Se limpar os dados ou cache do browser, perderá as assinaturas guardadas. Use a função "Exportar" para fazer backup.</span>
               </p>
             </div>
 
@@ -1972,14 +1980,15 @@ export default function Home() {
                   suppressContentEditableWarning
                   className="relative w-full p-4 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-inner overflow-auto"
                   style={{ outline: 'none', height: '532px' }}
-                  data-placeholder="Cole sua assinatura aqui (Ctrl+V)..."
+                  data-placeholder="Edite a sua assinatura, depois de a carregar"
                 ></div>
               </div>
 
               {processedHtml && (
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">
-                    📏 Ajustar Tamanho do Logo
+                  <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <Ruler className="w-5 h-5" />
+                    Ajustar Tamanho do Logo
                   </label>
                   <div className="p-4 bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200 rounded-lg space-y-3">
                     <div className="flex items-center gap-3">
@@ -2024,9 +2033,12 @@ export default function Home() {
                       </div>
                     </div>
                     
-                    <div className="text-purple-700 bg-white/50 p-2 rounded" style={{ fontSize: '14px' }}>
-                      <strong>💡 Dica:</strong> Dimensões atuais: {logoWidth}x{logoHeight}px
-                      {logoWidth > 200 && <span className="text-orange-600 ml-2">⚠️ Logo pode ficar muito grande no Gmail</span>}
+                    <div className="text-purple-700 bg-white/50 p-2 rounded flex items-start gap-2" style={{ fontSize: '14px' }}>
+                      <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <strong>Dica:</strong> Dimensões atuais: {logoWidth}x{logoHeight}px
+                        {logoWidth > 200 && <span className="text-orange-600 ml-2 inline-flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Logo pode ficar muito grande no Gmail</span>}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2034,8 +2046,9 @@ export default function Home() {
 
               {processedHtml && (
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">
-                    🎨 Ajustar Cores
+                  <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <Palette className="w-5 h-5" />
+                    Ajustar Cores
                   </label>
                   <div className="p-4 bg-gradient-to-br from-green-50 to-teal-50 border-2 border-green-200 rounded-lg space-y-3">
                     <div className="flex items-center gap-4">
@@ -2087,12 +2100,14 @@ export default function Home() {
                         onClick={applyColorToSelection}
                         className="w-full px-4 py-2 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
                       >
-                        ✨ Aplicar Cor ao Texto Selecionado
+                        <Sparkles className="w-4 h-4" />
+                        Aplicar Cor ao Texto Selecionado
                       </button>
                     )}
 
-                    <div className="text-green-700 bg-white/50 p-2 rounded" style={{ fontSize: '14px' }}>
-                      <strong>💡 Dica:</strong> {textColor ? 'Selecione o texto na pré-visualização e clique no botão acima para aplicar a cor' : 'A cor da barra é aplicada automaticamente'}
+                    <div className="text-green-700 bg-white/50 p-2 rounded flex items-start gap-2" style={{ fontSize: '14px' }}>
+                      <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      <span><strong>Dica:</strong> {textColor ? 'Selecione o texto na pré-visualização e clique no botão acima para aplicar a cor' : 'A cor da barra é aplicada automaticamente'}</span>
                     </div>
                   </div>
                 </div>
@@ -2100,8 +2115,9 @@ export default function Home() {
 
               {imageButtons && imageButtons.length > 0 && (
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">
-                    📸 Substituir Imagens ({imageButtons.length})
+                  <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <ImageIcon className="w-5 h-5" />
+                    Substituir Imagens ({imageButtons.length})
                   </label>
                   <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                     {imageButtons}
@@ -2111,8 +2127,9 @@ export default function Home() {
 
               {links.length > 0 && (
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">
-                    🔗 Editar Links ({links.length})
+                  <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <Link2 className="w-5 h-5" />
+                    Editar Links ({links.length})
                   </label>
                   <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg space-y-3">
                     {links.map((link) => (
@@ -2136,8 +2153,9 @@ export default function Home() {
                         </div>
                       </div>
                     ))}
-                    <div className="text-blue-700 bg-white/50 p-2 rounded" style={{ fontSize: '14px' }}>
-                      <strong>💡 Dica:</strong> Altere os URLs dos links conforme necessário. As mudanças são aplicadas automaticamente.
+                    <div className="text-blue-700 bg-white/50 p-2 rounded flex items-start gap-2" style={{ fontSize: '14px' }}>
+                      <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      <span><strong>Dica:</strong> Altere os URLs dos links conforme necessário. As mudanças são aplicadas automaticamente.</span>
                     </div>
                   </div>
                 </div>
@@ -2146,8 +2164,9 @@ export default function Home() {
 
             {/* Coluna Direita - Preview */}
             <div className="lg:sticky lg:top-12 lg:self-start">
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
-                👁️ Pré-visualização (Gmail)
+              <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <Eye className="w-5 h-5" />
+                Pré-visualização (Gmail)
               </label>
 
               <button
