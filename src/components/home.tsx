@@ -1837,53 +1837,6 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Botão para guardar assinatura atual */}
-            {processedHtml && (
-              <div className="mb-4">
-                {!showSaveDialog ? (
-                  <button
-                    onClick={() => setShowSaveDialog(true)}
-                    className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-green-600 to-teal-600 text-white rounded-lg hover:from-green-700 hover:to-teal-700 transition-all shadow-md font-medium"
-                  >
-                    <Save className="w-5 h-5" />
-                    Guardar Assinatura Atual
-                  </button>
-                ) : (
-                  <div className="p-4 bg-green-50 border-2 border-green-200 rounded-lg space-y-3">
-                    <label className="block text-sm font-semibold text-gray-700">
-                      Nome da Assinatura
-                    </label>
-                    <input
-                      type="text"
-                      value={signatureName}
-                      onChange={(e) => setSignatureName(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && saveSignature()}
-                      placeholder="Ex: Assinatura Corporativa 2024"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                      autoFocus
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        onClick={saveSignature}
-                        className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
-                      >
-                        Guardar
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowSaveDialog(false)
-                          setSignatureName('')
-                        }}
-                        className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors font-medium"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* Lista de Assinaturas */}
             {savedSignatures.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -2186,6 +2139,52 @@ export default function Home() {
                   </>
                 )}
               </button>
+
+              {/* Botão para guardar assinatura atual */}
+              {processedHtml && !showSaveDialog && (
+                <button
+                  onClick={() => setShowSaveDialog(true)}
+                  className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md font-medium mb-4"
+                >
+                  <Save className="w-5 h-5" />
+                  Guardar Assinatura
+                </button>
+              )}
+
+              {/* Dialog para guardar assinatura */}
+              {processedHtml && showSaveDialog && (
+                <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-lg space-y-3 mb-4">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Nome da Assinatura
+                  </label>
+                  <input
+                    type="text"
+                    value={signatureName}
+                    onChange={(e) => setSignatureName(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && saveSignature()}
+                    placeholder="Ex: Assinatura Corporativa 2024"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={saveSignature}
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
+                    >
+                      Guardar
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowSaveDialog(false)
+                        setSignatureName('')
+                      }}
+                      className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors font-medium"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div
                 ref={previewRef}
