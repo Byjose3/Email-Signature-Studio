@@ -2116,12 +2116,11 @@ export default function Home() {
                           Altura (px)
                         </label>
                         <input
-                          type="number"
-                          value={logoHeight}
-                          onChange={(e) => handleLogoHeightChange(parseInt(e.target.value) || 0)}
-                          min="10"
-                          max="500"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          type="text"
+                          value={logoHeight === 0 ? 'auto' : logoHeight}
+                          readOnly
+                          disabled
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
                         />
                       </div>
                     </div>
