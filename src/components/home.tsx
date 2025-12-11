@@ -706,23 +706,15 @@ export default function Home() {
           divElement.style.lineHeight = divElement.style.lineHeight
         }
 
-        // ADICIONA <br> APÓS o subtítulo (APENAS se não houver margin-bottom)
+        // ADICIONA <br> após o subtítulo para espaçamento REAL em produção
         if (isProbablySubtitle) {
-          // Se o subtítulo JÁ TEM margin-bottom original, NÃO adiciona <br>
-          // (o espaçamento original já funciona em produção)
-          const hasMarginBottom = divElement.style.marginBottom &&
-                                 divElement.style.marginBottom !== '0px' &&
-                                 divElement.style.marginBottom !== '0'
-
-          if (!hasMarginBottom) {
-            // SÓ adiciona <br> se NÃO houver margin-bottom original
-            const hasBrInside = divElement.querySelector('br')
-            if (!hasBrInside) {
-              const brInside = doc.createElement('br')
-              divElement.appendChild(brInside)
-            }
+          // Gmail REMOVE margins CSS, então SEMPRE adiciona <br>
+          // Preview mostra margins (fake), mas Gmail só preserva <br> (real)
+          const hasBrInside = divElement.querySelector('br')
+          if (!hasBrInside) {
+            const brInside = doc.createElement('br')
+            divElement.appendChild(brInside)
           }
-          // NÃO força margin/padding - preserva valores originais
         }
       })
 
@@ -1167,23 +1159,15 @@ export default function Home() {
           pElement.style.padding = '0'
         }
 
-        // ADICIONA <br> APÓS o subtítulo (APENAS se não houver margin-bottom)
+        // ADICIONA <br> após o subtítulo para espaçamento REAL em produção
         if (isProbablySubtitle) {
-          // Se o subtítulo JÁ TEM margin-bottom original, NÃO adiciona <br>
-          // (o espaçamento original já funciona em produção)
-          const hasMarginBottom = pElement.style.marginBottom &&
-                                 pElement.style.marginBottom !== '0px' &&
-                                 pElement.style.marginBottom !== '0'
-
-          if (!hasMarginBottom) {
-            // SÓ adiciona <br> se NÃO houver margin-bottom original
-            const hasBrInside = pElement.querySelector('br')
-            if (!hasBrInside) {
-              const brInside = doc.createElement('br')
-              pElement.appendChild(brInside)
-            }
+          // Gmail REMOVE margins CSS, então SEMPRE adiciona <br>
+          // Preview mostra margins (fake), mas Gmail só preserva <br> (real)
+          const hasBrInside = pElement.querySelector('br')
+          if (!hasBrInside) {
+            const brInside = doc.createElement('br')
+            pElement.appendChild(brInside)
           }
-          // NÃO força margin/padding - preserva valores originais
         }
       })
 
