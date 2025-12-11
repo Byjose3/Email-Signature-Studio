@@ -1115,13 +1115,9 @@ export default function Home() {
             text.includes("SERVICE") ||
             text.toUpperCase() === text);
 
-        // Preserva margins explícitos
-        if (divElement.style.marginTop) {
-          divElement.style.marginTop = divElement.style.marginTop;
-        }
-        if (divElement.style.marginBottom) {
-          divElement.style.marginBottom = divElement.style.marginBottom;
-        }
+        // Remove TODOS os margins e paddings para evitar espaços em branco extras
+        divElement.style.margin = "0";
+        divElement.style.padding = "0";
         // Preserva line-height explícito (importante para texto não ficar colado)
         if (divElement.style.lineHeight) {
           divElement.style.lineHeight = divElement.style.lineHeight;
@@ -1731,27 +1727,9 @@ export default function Home() {
             text.includes("SERVICE") ||
             text.toUpperCase() === text);
 
-        // PRESERVA margin/padding original se existir (importante para espaçamento)
-        // Só define como '0' se NÃO tiver margin/padding definido
-        if (
-          !pElement.style.margin &&
-          !pElement.style.marginTop &&
-          !pElement.style.marginBottom &&
-          !pElement.style.marginLeft &&
-          !pElement.style.marginRight
-        ) {
-          pElement.style.margin = "0";
-        }
-
-        if (
-          !pElement.style.padding &&
-          !pElement.style.paddingTop &&
-          !pElement.style.paddingBottom &&
-          !pElement.style.paddingLeft &&
-          !pElement.style.paddingRight
-        ) {
-          pElement.style.padding = "0";
-        }
+        // Remove TODOS os margins e paddings para evitar espaços em branco extras
+        pElement.style.margin = "0";
+        pElement.style.padding = "0";
 
         // ADICIONA <br> após o subtítulo para espaçamento REAL em produção
         if (isProbablySubtitle) {
