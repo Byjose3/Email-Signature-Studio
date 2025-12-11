@@ -1879,20 +1879,24 @@ export default function Home() {
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
+    console.log("handleImageUpload called", { imageId, file });
     if (file && file.type.startsWith("image/")) {
       const reader = new FileReader();
       reader.onload = (e) => {
         const base64 = e.target?.result as string;
+        console.log("FileReader onload", { base64Length: base64?.length });
 
         // Carregar a imagem para obter dimensões naturais e calcular aspect ratio
         const imageElement = new Image();
         imageElement.onload = () => {
           const naturalWidth = imageElement.naturalWidth;
           const naturalHeight = imageElement.naturalHeight;
+          console.log("Image loaded", { naturalWidth, naturalHeight, imageId });
 
           // Calcular aspect ratio da nova imagem
           const aspectRatio = naturalWidth / naturalHeight;
           setOriginalAspectRatio(aspectRatio);
+          console.log("Aspect ratio set", { aspectRatio });
 
           // Se for o logo (img-0), atualizar dimensões mantendo aspect ratio
           if (imageId === "img-0") {
@@ -1908,6 +1912,7 @@ export default function Home() {
             const parser = new DOMParser();
             const doc = parser.parseFromString(processedHtml, "text/html");
             const img = doc.querySelector(`img[data-image-id="${imageId}"]`);
+            console.log("Looking for img with imageId", imageId, "found:", img);
 
             if (img) {
               img.setAttribute("src", base64);
@@ -1925,6 +1930,7 @@ export default function Home() {
               (img as HTMLElement).style.objectFit = "contain";
 
               const newHtml = doc.body.innerHTML;
+              console.log("Updating processedHtml for logo", { newWidth, newHeight });
               setProcessedHtml(newHtml);
 
               // Atualiza também a área de paste
