@@ -685,6 +685,15 @@ export default function Home() {
       divs.forEach(div => {
         const divElement = div as HTMLElement
 
+        // Detecta se é o subtítulo "IN BANK SERVICE®"
+        const text = divElement.textContent?.trim() || ''
+        const isBold = divElement.style.fontWeight === 'bold' ||
+                      divElement.style.fontWeight === '700' ||
+                      divElement.querySelector('strong, b') !== null
+        const isShort = text.length < 50
+        const isProbablySubtitle = isBold && isShort &&
+                                  (text.includes('®') || text.includes('SERVICE') || text.toUpperCase() === text)
+
         // Preserva margins explícitos
         if (divElement.style.marginTop) {
           divElement.style.marginTop = divElement.style.marginTop
@@ -695,6 +704,16 @@ export default function Home() {
         // Preserva line-height explícito (importante para texto não ficar colado)
         if (divElement.style.lineHeight) {
           divElement.style.lineHeight = divElement.style.lineHeight
+        }
+
+        // ADICIONA <br> após o subtítulo para criar espaço real em produção
+        if (isProbablySubtitle) {
+          // Verifica se já tem um <br> no final
+          const hasBr = divElement.querySelector('br')
+          if (!hasBr) {
+            const br = doc.createElement('br')
+            divElement.appendChild(br)
+          }
         }
       })
 
@@ -1118,6 +1137,15 @@ export default function Home() {
       paragraphs.forEach(p => {
         const pElement = p as HTMLElement
 
+        // Detecta se é o subtítulo "IN BANK SERVICE®"
+        const text = pElement.textContent?.trim() || ''
+        const isBold = pElement.style.fontWeight === 'bold' ||
+                      pElement.style.fontWeight === '700' ||
+                      pElement.querySelector('strong, b') !== null
+        const isShort = text.length < 50
+        const isProbablySubtitle = isBold && isShort &&
+                                  (text.includes('®') || text.includes('SERVICE') || text.toUpperCase() === text)
+
         // PRESERVA margin/padding original se existir (importante para espaçamento)
         // Só define como '0' se NÃO tiver margin/padding definido
         if (!pElement.style.margin && !pElement.style.marginTop && !pElement.style.marginBottom &&
@@ -1128,6 +1156,15 @@ export default function Home() {
         if (!pElement.style.padding && !pElement.style.paddingTop && !pElement.style.paddingBottom &&
             !pElement.style.paddingLeft && !pElement.style.paddingRight) {
           pElement.style.padding = '0'
+        }
+
+        // ADICIONA <br> após o subtítulo para criar espaço real em produção
+        if (isProbablySubtitle) {
+          const hasBr = pElement.querySelector('br')
+          if (!hasBr) {
+            const br = doc.createElement('br')
+            pElement.appendChild(br)
+          }
         }
       })
 
