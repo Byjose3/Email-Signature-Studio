@@ -1003,32 +1003,25 @@ export default function Home() {
 
           // Fallback para dimensões padrão
           if (!width) width = 160;
-          // Se height era auto, mantém 0 para indicar que deve ser auto
-          if (!height && !hasAutoHeight && width) {
-            height = Math.round(width * 0.5); // Apenas se não era auto
-          }
 
-          // Calcula e guarda aspect ratio original
-          if (width && height) {
-            const ratio = width / height;
+          // SEMPRE mantém height como auto para preservar aspect ratio
+          height = 0;
+
+          // Calcula e guarda aspect ratio original se a imagem estiver carregada
+          if (imgElement.complete && imgElement.naturalWidth && imgElement.naturalHeight) {
+            const ratio = imgElement.naturalWidth / imgElement.naturalHeight;
             setOriginalAspectRatio(ratio);
           }
 
           // Define dimensões iniciais no estado
           setLogoWidth(width);
-          setLogoHeight(height || 0);
+          setLogoHeight(0); // Sempre 0 = auto
 
-          // Aplica dimensões
+          // Aplica dimensões - sempre com height: auto
           img.setAttribute("width", String(width));
-          if (height && !hasAutoHeight) {
-            img.setAttribute("height", String(height));
-          }
+          img.removeAttribute("height"); // Remove qualquer height fixa
           img.style.width = `${width}px`;
-          if (hasAutoHeight) {
-            img.style.height = "auto";
-          } else if (height) {
-            img.style.height = `${height}px`;
-          }
+          img.style.height = "auto"; // SEMPRE auto
           img.style.objectFit = "contain";
           img.style.display = "block";
 
@@ -1891,30 +1884,107 @@ export default function Home() {
       reader.onload = (e) => {
         const base64 = e.target?.result as string;
 
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(processedHtml, "text/html");
-        const img = doc.querySelector(`img[data-image-id="${imageId}"]`);
+        // Carregar a imagem para obter dimensões naturais e calcular aspect ratio
+        const imageElement = new Image();
+        imageElement.onload = () => {
+          const naturalWidth = imageElement.naturalWidth;
+          const naturalHeight = imageElement.naturalHeight;
 
-        if (img) {
-          img.setAttribute("src", base64);
-          const newHtml = doc.body.innerHTML;
-          setProcessedHtml(newHtml);
+          // Calcular aspect ratio da nova imagem
+          const aspectRatio = naturalWidth / naturalHeight;
+          setOriginalAspectRatio(aspectRatio);
 
-          // Atualiza também a área de paste
-          if (pasteAreaRef.current) {
-            const pasteDoc = parser.parseFromString(
-              pasteAreaRef.current.innerHTML,
-              "text/html",
-            );
-            const pasteImg = pasteDoc.querySelector(
-              'img[data-image-id="' + imageId + '"]',
-            );
-            if (pasteImg) {
-              pasteImg.setAttribute("src", base64);
-              pasteAreaRef.current.innerHTML = pasteDoc.body.innerHTML;
+          // Se for o logo (img-0), atualizar dimensões mantendo aspect ratio
+          if (imageId === "img-0") {
+            // Manter a largura atual ou usar uma largura padrão
+            const newWidth = logoWidth > 0 ? logoWidth : 160;
+            // Sempre mantém height como 0 (auto) para preservar aspect ratio
+            const newHeight = 0;
+
+            setLogoWidth(newWidth);
+            setLogoHeight(newHeight);
+
+            // Atualizar o HTML com as novas dimensões
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(processedHtml, "text/html");
+            const img = doc.querySelector(`img[data-image-id="${imageId}"]`);
+
+            if (img) {
+              img.setAttribute("src", base64);
+              img.setAttribute("width", String(newWidth));
+
+              if (newHeight > 0) {
+                img.setAttribute("height", String(newHeight));
+                (img as HTMLElement).style.height = `${newHeight}px`;
+              } else {
+                img.removeAttribute("height");
+                (img as HTMLElement).style.height = "auto";
+              }
+
+              (img as HTMLElement).style.width = `${newWidth}px`;
+              (img as HTMLElement).style.objectFit = "contain";
+
+              const newHtml = doc.body.innerHTML;
+              setProcessedHtml(newHtml);
+
+              // Atualiza também a área de paste
+              if (pasteAreaRef.current) {
+                const pasteDoc = parser.parseFromString(
+                  pasteAreaRef.current.innerHTML,
+                  "text/html",
+                );
+                const pasteImg = pasteDoc.querySelector(
+                  'img[data-image-id="' + imageId + '"]',
+                );
+                if (pasteImg) {
+                  pasteImg.setAttribute("src", base64);
+                  pasteImg.setAttribute("width", String(newWidth));
+
+                  if (newHeight > 0) {
+                    pasteImg.setAttribute("height", String(newHeight));
+                    (pasteImg as HTMLElement).style.height = `${newHeight}px`;
+                  } else {
+                    pasteImg.removeAttribute("height");
+                    (pasteImg as HTMLElement).style.height = "auto";
+                  }
+
+                  (pasteImg as HTMLElement).style.width = `${newWidth}px`;
+                  (pasteImg as HTMLElement).style.objectFit = "contain";
+
+                  pasteAreaRef.current.innerHTML = pasteDoc.body.innerHTML;
+                }
+              }
+            }
+          } else {
+            // Para outras imagens (não logo), apenas atualizar src
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(processedHtml, "text/html");
+            const img = doc.querySelector(`img[data-image-id="${imageId}"]`);
+
+            if (img) {
+              img.setAttribute("src", base64);
+              const newHtml = doc.body.innerHTML;
+              setProcessedHtml(newHtml);
+
+              // Atualiza também a área de paste
+              if (pasteAreaRef.current) {
+                const pasteDoc = parser.parseFromString(
+                  pasteAreaRef.current.innerHTML,
+                  "text/html",
+                );
+                const pasteImg = pasteDoc.querySelector(
+                  'img[data-image-id="' + imageId + '"]',
+                );
+                if (pasteImg) {
+                  pasteImg.setAttribute("src", base64);
+                  pasteAreaRef.current.innerHTML = pasteDoc.body.innerHTML;
+                }
+              }
             }
           }
-        }
+        };
+
+        imageElement.src = base64;
       };
       reader.readAsDataURL(file);
     } else {
@@ -2040,9 +2110,14 @@ export default function Home() {
         const pasteLogo = pasteDoc.querySelector('img[data-image-id="img-0"]');
         if (pasteLogo) {
           pasteLogo.setAttribute("width", String(width));
-          pasteLogo.setAttribute("height", String(height));
+          if (height > 0) {
+            pasteLogo.setAttribute("height", String(height));
+            (pasteLogo as HTMLElement).style.height = `${height}px`;
+          } else {
+            pasteLogo.removeAttribute("height");
+            (pasteLogo as HTMLElement).style.height = "auto";
+          }
           (pasteLogo as HTMLElement).style.width = `${width}px`;
-          (pasteLogo as HTMLElement).style.height = `${height}px`;
           (pasteLogo as HTMLElement).style.objectFit = "contain";
 
           // Atualiza a célula da tabela no paste area
@@ -2089,13 +2164,9 @@ export default function Home() {
   const handleLogoWidthChange = (newWidth: number) => {
     setLogoWidth(newWidth);
 
-    if (aspectRatioLocked && originalAspectRatio && originalAspectRatio > 0) {
-      const newHeight = Math.round(newWidth / originalAspectRatio);
-      setLogoHeight(newHeight);
-      updateLogoSize(newWidth, newHeight);
-    } else {
-      updateLogoSize(newWidth, logoHeight);
-    }
+    // Sempre mantém height como 0 (auto) para preservar aspect ratio
+    setLogoHeight(0);
+    updateLogoSize(newWidth, 0);
   };
 
   const handleLogoHeightChange = (newHeight: number) => {
