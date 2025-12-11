@@ -565,6 +565,26 @@ export default function Home() {
         }
       })
 
+      // ADICIONA <br> antes do PRIMEIRO contacto (p:, m:, e:, w:, a:)
+      // Mesma solução que funciona para ícones das redes sociais
+      const allTextElements = doc.querySelectorAll('div, p, span')
+      let firstContactFound = false
+
+      allTextElements.forEach(element => {
+        const text = element.textContent?.trim() || ''
+
+        // Detecta se é um contacto (começa com p:, m:, e:, w:, a:, t:, f:)
+        const isContact = /^(p|m|e|w|a|t|f):/i.test(text)
+
+        if (isContact && !firstContactFound) {
+          firstContactFound = true
+
+          // Adiciona <br> ANTES do primeiro contacto
+          const br = doc.createElement('br')
+          element.parentNode?.insertBefore(br, element)
+        }
+      })
+
       // DEPOIS: Processa imagens (agora os links já têm display:inline-block aplicado)
       const images = doc.querySelectorAll('img')
       images.forEach((img, index) => {
