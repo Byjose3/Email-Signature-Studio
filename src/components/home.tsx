@@ -2417,7 +2417,7 @@ export default function Home() {
   };
 
   const applyColorToSelection = () => {
-    if (!pasteAreaRef.current || !textColor) return;
+    if (!previewRef.current || !textColor) return;
 
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) {
@@ -2428,9 +2428,9 @@ export default function Home() {
 
     const range = selection.getRangeAt(0);
 
-    // Verifica se a seleção está dentro da área editável
-    if (!pasteAreaRef.current.contains(range.commonAncestorContainer)) {
-      setError("Por favor, selecione texto dentro da área de edição.");
+    // Verifica se a seleção está dentro do canvas editável (preview)
+    if (!previewRef.current.contains(range.commonAncestorContainer)) {
+      setError("Por favor, selecione texto dentro do canvas editável (lado direito).");
       setTimeout(() => setError(""), 3000);
       return;
     }
@@ -2446,17 +2446,9 @@ export default function Home() {
       // Limpa seleção
       selection.removeAllRanges();
 
-      // Reprocessa o HTML para atualizar a pré-visualização
-      if (pasteAreaRef.current) {
-        const currentContent = pasteAreaRef.current.innerHTML;
-        const processed = processHtml(
-          currentContent,
-          textColor,
-          separatorColor,
-        );
-        if (processed) {
-          setProcessedHtml(processed);
-        }
+      // Atualiza o processedHtml com o conteúdo editado do preview
+      if (previewRef.current) {
+        setProcessedHtml(previewRef.current.innerHTML);
       }
     } catch (error) {
       // Se falhar (seleção complexa), tenta abordagem alternativa
@@ -2467,17 +2459,9 @@ export default function Home() {
 
         selection.removeAllRanges();
 
-        // Reprocessa o HTML para atualizar a pré-visualização
-        if (pasteAreaRef.current) {
-          const currentContent = pasteAreaRef.current.innerHTML;
-          const processed = processHtml(
-            currentContent,
-            textColor,
-            separatorColor,
-          );
-          if (processed) {
-            setProcessedHtml(processed);
-          }
+        // Atualiza o processedHtml com o conteúdo editado do preview
+        if (previewRef.current) {
+          setProcessedHtml(previewRef.current.innerHTML);
         }
       } catch (e) {
         setError(
@@ -3023,7 +3007,7 @@ export default function Home() {
                           <span>
                             <strong>Dica:</strong>{" "}
                             {textColor
-                              ? "Selecione o texto na pré-visualização e clique no botão acima para aplicar a cor"
+                              ? "Selecione o texto no CANVAS EDITÁVEL (lado direito) e clique no botão acima para aplicar a cor"
                               : "A cor da barra é aplicada automaticamente"}
                           </span>
                         </div>
