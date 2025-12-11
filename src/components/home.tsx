@@ -93,8 +93,20 @@ export default function Home() {
     allElements.forEach((el) => {
       const element = el as HTMLElement;
       // Só remove cor se NÃO for um link (links mantêm cor original)
-      if (element.tagName !== "A" && element.style.color) {
-        element.style.color = "";
+      if (element.tagName !== "A") {
+        // Remove style.color completamente
+        element.style.removeProperty("color");
+
+        // Remove atributo color (usado em elementos <font>)
+        if (element.hasAttribute("color")) {
+          element.removeAttribute("color");
+        }
+
+        // Limpa atributo style se ficou vazio
+        const styleAttr = element.getAttribute("style");
+        if (styleAttr && styleAttr.trim() === "") {
+          element.removeAttribute("style");
+        }
       }
     });
 
@@ -353,7 +365,11 @@ export default function Home() {
           class="copy-button"
           onclick="copySignature(${index})"
           title="Copiar assinatura para a área de transferência">
-          📋 Copiar Assinatura
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="copy-icon">
+            <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+            <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+          </svg>
+          <span>Copiar Assinatura</span>
         </button>
         <div class="copy-feedback" id="feedback-${index}"></div>
       </div>
@@ -457,6 +473,9 @@ export default function Home() {
             transition: all 0.3s;
             box-shadow: 0 2px 5px rgba(0, 123, 255, 0.3);
         }
+        .copy-button svg {
+            flex-shrink: 0;
+        }
         .copy-button:hover {
             background: #0056b3;
             transform: translateY(-2px);
@@ -519,13 +538,13 @@ export default function Home() {
                 // Mostra feedback de sucesso
                 feedbackElement.textContent = '✓ Copiado com sucesso!';
                 feedbackElement.className = 'copy-feedback success show';
-                button.textContent = '✓ Copiado!';
+                button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>Copiado!</span>';
                 button.style.background = '#28a745';
 
                 // Reset após 3 segundos
                 setTimeout(() => {
                     feedbackElement.className = 'copy-feedback';
-                    button.textContent = '📋 Copiar Assinatura';
+                    button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="copy-icon"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg><span>Copiar Assinatura</span>';
                     button.style.background = '#007bff';
                 }, 3000);
 
@@ -1867,7 +1886,16 @@ export default function Home() {
         currentContent !==
           '<span class="text-gray-400 select-none">Edite a sua assinatura, depois de a carregar</span>'
       ) {
-        processHtml(currentContent, undefined, separatorColor);
+        // Remove cores inline do conteúdo editado para manter original
+        const cleanedContent = removeInlineColors(currentContent);
+
+        // Atualiza o pasteArea apenas se o conteúdo mudou
+        if (cleanedContent !== currentContent) {
+          pasteAreaRef.current.innerHTML = cleanedContent;
+        }
+
+        // Processa para o preview
+        processHtml(cleanedContent, undefined, undefined);
       }
     }
   };
@@ -2707,7 +2735,7 @@ export default function Home() {
                       title="Exportar backup HTML de todas as assinaturas"
                     >
                       <Download className="w-4 h-4" />
-                      Exportar Assinatura
+                      Exportar Assinatura(s)
                     </button>
                   </div>
                 </div>
