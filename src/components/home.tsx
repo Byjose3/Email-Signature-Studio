@@ -503,7 +503,8 @@ export default function Home() {
         async function copySignature(index) {
             const signatureElement = document.getElementById('signature-' + index);
             const feedbackElement = document.getElementById('feedback-' + index);
-            const button = event.target;
+            // Garante que pegamos o botão, mesmo se clicar no SVG ou span
+            const button = event.target.closest('.copy-button');
 
             try {
                 // Cria um range para selecionar o conteúdo
