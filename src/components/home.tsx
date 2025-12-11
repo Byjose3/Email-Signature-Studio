@@ -121,11 +121,23 @@ export default function Home() {
       setShowSaveDialog(false);
       setError("");
 
-      // Limpa o preview e o input de edição após guardar
+      // LIMPA TODOS OS ESTADOS após guardar (para permitir carregar nova assinatura)
       setProcessedHtml("");
       if (pasteAreaRef.current) {
         pasteAreaRef.current.innerHTML = "";
       }
+
+      // Reset de cores
+      setTextColor("");
+      setSeparatorColor("");
+
+      // Reset de dimensões do logo
+      setLogoWidth(0);
+      setLogoHeight(0);
+      setOriginalAspectRatio(1);
+
+      // Reset dos links editáveis (limpa campos de links da UI)
+      setLinks([]);
 
       // Mostra mensagem de sucesso
       setSuccessMessage("Assinatura guardada com sucesso!");
