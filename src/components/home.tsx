@@ -614,17 +614,44 @@ export default function Home() {
         if (isContact && !firstContactFound) {
           firstContactFound = true
 
-          // Verifica se JÁ existe <br> antes (evita duplicados)
-          const prevSibling = element.previousSibling
-          const prevElement = element.previousElementSibling
-          const alreadyHasBr = (prevSibling && prevSibling.nodeName === 'BR') ||
-                              (prevElement && prevElement.tagName === 'BR')
+          // LIMPA elementos vazios/whitespace ANTES do primeiro contacto
+          let currentNode = element.previousSibling
+          const nodesToRemove: Node[] = []
 
-          // Só adiciona se NÃO houver <br> já
-          if (!alreadyHasBr) {
-            const br = doc.createElement('br')
-            element.parentNode?.insertBefore(br, element)
+          // Percorre todos os siblings anteriores e marca vazios para remoção
+          while (currentNode) {
+            let shouldRemove = false
+
+            if (currentNode.nodeType === Node.TEXT_NODE) {
+              // Remove text nodes que são só whitespace
+              if (currentNode.textContent?.trim() === '') {
+                shouldRemove = true
+              }
+            } else if (currentNode.nodeType === Node.ELEMENT_NODE) {
+              const el = currentNode as HTMLElement
+              // Remove elementos vazios (mas preserva <br>)
+              const isEmpty = !el.textContent?.trim() &&
+                             el.tagName !== 'BR' &&
+                             !el.querySelector('img') &&
+                             !el.querySelector('a')
+              if (isEmpty) {
+                shouldRemove = true
+              }
+            }
+
+            if (shouldRemove) {
+              nodesToRemove.push(currentNode)
+            }
+
+            currentNode = currentNode.previousSibling
           }
+
+          // Remove os nós vazios
+          nodesToRemove.forEach(node => node.remove())
+
+          // Adiciona um <br> antes do primeiro contacto para criar espaço vertical
+          const br = doc.createElement('br')
+          element.parentNode?.insertBefore(br, element)
         }
       })
 
@@ -787,11 +814,14 @@ export default function Home() {
         const divElement = div as HTMLElement
 
         // Remove espaços/tabs/whitespace no INÍCIO de text nodes
-        // Isto remove espaço invisível entre <br> e texto
-        divElement.childNodes.forEach(node => {
+        // MAS APENAS se for o primeiro filho do DIV (não há nada antes)
+        divElement.childNodes.forEach((node, index) => {
           if (node.nodeType === Node.TEXT_NODE && node.textContent) {
-            // Remove apenas espaços NO INÍCIO (preserva espaços internos e no fim)
-            node.textContent = node.textContent.replace(/^\s+/, '')
+            // Só remove espaços iniciais se for o PRIMEIRO child node
+            // Se houver um <strong> ou <b> antes, preserva o espaço (é o espaço após "p:", "m:", etc.)
+            if (index === 0) {
+              node.textContent = node.textContent.replace(/^\s+/, '')
+            }
           }
         })
 
