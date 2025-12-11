@@ -2860,13 +2860,29 @@ export default function Home() {
                     <div
                       ref={pasteAreaRef}
                       onPaste={handlePasteArea}
-                      onInput={handleContentChange}
                       contentEditable
                       suppressContentEditableWarning
                       className="relative w-full p-4 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-inner overflow-auto"
                       style={{ outline: "none", height: "532px" }}
                       data-placeholder="Edite a sua assinatura, depois de a carregar"
                     ></div>
+
+                    {/* Botão para atualizar preview quando edita manualmente */}
+                    <button
+                      onClick={() => {
+                        if (pasteAreaRef.current) {
+                          const currentContent = pasteAreaRef.current.innerHTML;
+                          setOriginalHtml(currentContent);
+                          processHtml(currentContent, textColor || undefined, separatorColor || undefined);
+                        }
+                      }}
+                      className="mt-2 w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                      </svg>
+                      Atualizar Preview
+                    </button>
                   </div>
 
                   {processedHtml && (
