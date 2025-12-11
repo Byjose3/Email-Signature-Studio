@@ -83,6 +83,24 @@ export default function Home() {
     }
   };
 
+  // Remove cores inline do HTML para manter o original sem customizações
+  const removeInlineColors = (html: string): string => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+
+    // Remove style.color de todos os elementos (exceto links que devem manter cor)
+    const allElements = doc.querySelectorAll("*");
+    allElements.forEach((el) => {
+      const element = el as HTMLElement;
+      // Só remove cor se NÃO for um link (links mantêm cor original)
+      if (element.tagName !== "A" && element.style.color) {
+        element.style.color = "";
+      }
+    });
+
+    return doc.body.innerHTML;
+  };
+
   // Guarda assinatura no localStorage
   const saveSignature = () => {
     if (!processedHtml) {
@@ -156,9 +174,12 @@ export default function Home() {
 
   // Carrega uma assinatura guardada
   const loadSignature = (signature: SavedSignature) => {
-    // Coloca o HTML original (sem cores customizadas) no pasteArea
+    // Remove cores inline do HTML antes de colocar no pasteArea
+    const cleanedHtml = removeInlineColors(signature.html);
+
+    // Coloca o HTML limpo (sem cores customizadas inline) no pasteArea
     if (pasteAreaRef.current) {
-      pasteAreaRef.current.innerHTML = signature.html;
+      pasteAreaRef.current.innerHTML = cleanedHtml;
     }
 
     // Carrega as cores guardadas
@@ -167,9 +188,9 @@ export default function Home() {
     setTextColor(signature.textColor);
     setSeparatorColor(signature.separatorColor);
 
-    // Processa o HTML com as cores guardadas para mostrar no preview
+    // Processa o HTML limpo com as cores guardadas para mostrar no preview
     const processed = processHtml(
-      signature.html,
+      cleanedHtml,
       signature.textColor,
       signature.separatorColor,
     );
@@ -325,9 +346,16 @@ export default function Home() {
           <strong>Guardada em:</strong> ${new Date(sig.savedAt).toLocaleDateString("pt-PT")} às ${new Date(sig.savedAt).toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}<br>
           <strong>Dimensões do Logo:</strong> ${sig.logoWidth}x${sig.logoHeight}px
         </div>
-        <div class="signature-container">
+        <div class="signature-container" id="signature-${index}">
           ${sig.html}
         </div>
+        <button
+          class="copy-button"
+          onclick="copySignature(${index})"
+          title="Copiar assinatura para a área de transferência">
+          📋 Copiar Assinatura
+        </button>
+        <div class="copy-feedback" id="feedback-${index}"></div>
       </div>
     `,
       )
@@ -413,7 +441,122 @@ export default function Home() {
             border-radius: 4px;
             font-size: 14px;
         }
+        .copy-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 15px;
+            padding: 12px 24px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0, 123, 255, 0.3);
+        }
+        .copy-button:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 123, 255, 0.4);
+        }
+        .copy-button:active {
+            transform: translateY(0);
+        }
+        .copy-feedback {
+            display: inline-block;
+            margin-left: 15px;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .copy-feedback.show {
+            opacity: 1;
+        }
+        .copy-feedback.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .copy-feedback.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
     </style>
+    <script>
+        async function copySignature(index) {
+            const signatureElement = document.getElementById('signature-' + index);
+            const feedbackElement = document.getElementById('feedback-' + index);
+            const button = event.target;
+
+            try {
+                // Cria um range para selecionar o conteúdo
+                const range = document.createRange();
+                range.selectNodeContents(signatureElement);
+
+                // Copia usando a API moderna do Clipboard
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+
+                // Copia o HTML
+                await navigator.clipboard.write([
+                    new ClipboardItem({
+                        'text/html': new Blob([signatureElement.innerHTML], { type: 'text/html' }),
+                        'text/plain': new Blob([signatureElement.innerText], { type: 'text/plain' })
+                    })
+                ]);
+
+                // Remove a seleção
+                selection.removeAllRanges();
+
+                // Mostra feedback de sucesso
+                feedbackElement.textContent = '✓ Copiado com sucesso!';
+                feedbackElement.className = 'copy-feedback success show';
+                button.textContent = '✓ Copiado!';
+                button.style.background = '#28a745';
+
+                // Reset após 3 segundos
+                setTimeout(() => {
+                    feedbackElement.className = 'copy-feedback';
+                    button.textContent = '📋 Copiar Assinatura';
+                    button.style.background = '#007bff';
+                }, 3000);
+
+            } catch (err) {
+                console.error('Erro ao copiar:', err);
+
+                // Fallback: tenta copiar usando execCommand
+                try {
+                    const range = document.createRange();
+                    range.selectNodeContents(signatureElement);
+                    const selection = window.getSelection();
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                    document.execCommand('copy');
+                    selection.removeAllRanges();
+
+                    feedbackElement.textContent = '✓ Copiado!';
+                    feedbackElement.className = 'copy-feedback success show';
+                    setTimeout(() => {
+                        feedbackElement.className = 'copy-feedback';
+                    }, 3000);
+                } catch (fallbackErr) {
+                    feedbackElement.textContent = '✗ Erro ao copiar. Por favor, selecione e copie manualmente (Ctrl+C).';
+                    feedbackElement.className = 'copy-feedback error show';
+                    setTimeout(() => {
+                        feedbackElement.className = 'copy-feedback';
+                    }, 5000);
+                }
+            }
+        }
+    </script>
 </head>
 <body>
     <div class="container">
@@ -427,10 +570,11 @@ export default function Home() {
 
         <div class="instructions">
             <strong>Como usar este backup:</strong><br>
-            1. Para usar uma assinatura, role até ela abaixo<br>
-            2. Selecione todo o conteúdo da assinatura (arraste o mouse ou use Ctrl+A dentro da caixa)<br>
-            3. Copie (Ctrl+C)<br>
-            4. Cole no Email Signature Studio ou diretamente no Gmail
+            1. Role até à assinatura que deseja usar<br>
+            2. Clique no botão <strong>"📋 Copiar Assinatura"</strong> abaixo da assinatura<br>
+            3. Cole no Email Signature Studio ou diretamente no Gmail (Ctrl+V)<br>
+            <br>
+            <em>Nota: Se o botão não funcionar, pode selecionar manualmente todo o conteúdo da assinatura e copiar com Ctrl+C</em>
         </div>
 
         ${signaturesHTML}
@@ -1698,11 +1842,14 @@ export default function Home() {
       setSeparatorColor("");
 
       if (htmlData) {
-        // Limpa a área de paste
+        // Remove cores inline do HTML original antes de colocar no pasteArea
+        const cleanedHtml = removeInlineColors(htmlData);
+
+        // Limpa a área de paste com HTML sem cores inline
         if (pasteAreaRef.current) {
-          pasteAreaRef.current.innerHTML = htmlData;
+          pasteAreaRef.current.innerHTML = cleanedHtml;
         }
-        processHtml(htmlData, undefined, undefined);
+        processHtml(cleanedHtml, undefined, undefined);
       } else if (textData) {
         if (pasteAreaRef.current) {
           pasteAreaRef.current.textContent = textData;
@@ -1740,10 +1887,14 @@ export default function Home() {
       const reader = new FileReader();
       reader.onload = (event) => {
         const content = event.target?.result as string;
+
+        // Remove cores inline do HTML antes de colocar no pasteArea
+        const cleanedHtml = removeInlineColors(content);
+
         if (pasteAreaRef.current) {
-          pasteAreaRef.current.innerHTML = content;
+          pasteAreaRef.current.innerHTML = cleanedHtml;
         }
-        processHtml(content, undefined, undefined);
+        processHtml(cleanedHtml, undefined, undefined);
       };
       reader.readAsText(file);
     } else {
