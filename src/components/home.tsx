@@ -733,7 +733,7 @@ export default function Home() {
       })
 
       // SOLUÇÃO UNIVERSAL: Converte espaçamento CSS (margin/padding) em <br> REAL
-      // Funciona para QUALQUER assinatura, independentemente do conteúdo
+      // Mas PRESERVA as duas primeiras linhas juntas (título + subtítulo colados)
       // Gmail remove CSS, mas preserva <br> tags
 
       const textContainers = doc.querySelectorAll('div, p, span, td, th')
@@ -742,9 +742,15 @@ export default function Home() {
 
         // Procura elementos filhos diretos que têm texto
         const children = Array.from(containerEl.children) as HTMLElement[]
+        let lineCount = 0 // Contador de linhas de texto
 
         children.forEach((child) => {
           const hasText = child.textContent?.trim().length || 0 > 0
+
+          if (hasText) {
+            lineCount++ // Incrementa contador de linhas
+          }
+
           const hasMarginBottom = child.style.marginBottom &&
                                  child.style.marginBottom !== '0px' &&
                                  child.style.marginBottom !== '0'
@@ -752,8 +758,12 @@ export default function Home() {
                                   child.style.paddingBottom !== '0px' &&
                                   child.style.paddingBottom !== '0'
 
-          // Se tem texto E espaçamento CSS inferior, converte para <br>
-          if (hasText && (hasMarginBottom || hasPaddingBottom)) {
+          // REGRA: NÃO adiciona <br> após a primeira linha (título "Departamento de Operações")
+          // Mantém título e subtítulo juntos, só adiciona <br> a partir da 2ª linha
+          const isFirstLine = lineCount === 1
+
+          // Se tem texto E espaçamento CSS inferior E NÃO é primeira linha
+          if (hasText && (hasMarginBottom || hasPaddingBottom) && !isFirstLine) {
             const nextSibling = child.nextSibling
             const nextElement = child.nextElementSibling
             const isNextBr = (nextSibling && nextSibling.nodeName === 'BR') ||
