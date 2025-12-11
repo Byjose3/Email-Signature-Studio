@@ -706,13 +706,20 @@ export default function Home() {
           divElement.style.lineHeight = divElement.style.lineHeight
         }
 
-        // ADICIONA <br> após o subtítulo para criar espaço real em produção
+        // ADICIONA <br> APÓS o subtítulo (como sibling) para criar espaço real em produção
         if (isProbablySubtitle) {
-          // Verifica se já tem um <br> no final
-          const hasBr = divElement.querySelector('br')
-          if (!hasBr) {
+          // Verifica se o próximo elemento já é um <br>
+          const nextSibling = divElement.nextSibling
+          const nextElement = divElement.nextElementSibling
+
+          // Se o próximo sibling não for um <br>, adiciona
+          const nextIsBr = (nextSibling && nextSibling.nodeName === 'BR') ||
+                          (nextElement && nextElement.tagName === 'BR')
+
+          if (!nextIsBr) {
+            // Adiciona <br> DEPOIS do elemento (não dentro)
             const br = doc.createElement('br')
-            divElement.appendChild(br)
+            divElement.parentNode?.insertBefore(br, divElement.nextSibling)
           }
         }
       })
@@ -1158,12 +1165,20 @@ export default function Home() {
           pElement.style.padding = '0'
         }
 
-        // ADICIONA <br> após o subtítulo para criar espaço real em produção
+        // ADICIONA <br> APÓS o subtítulo (como sibling) para criar espaço real em produção
         if (isProbablySubtitle) {
-          const hasBr = pElement.querySelector('br')
-          if (!hasBr) {
+          // Verifica se o próximo elemento já é um <br>
+          const nextSibling = pElement.nextSibling
+          const nextElement = pElement.nextElementSibling
+
+          // Se o próximo sibling não for um <br>, adiciona
+          const nextIsBr = (nextSibling && nextSibling.nodeName === 'BR') ||
+                          (nextElement && nextElement.tagName === 'BR')
+
+          if (!nextIsBr) {
+            // Adiciona <br> DEPOIS do elemento (não dentro)
             const br = doc.createElement('br')
-            pElement.appendChild(br)
+            pElement.parentNode?.insertBefore(br, pElement.nextSibling)
           }
         }
       })
