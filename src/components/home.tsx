@@ -3055,17 +3055,17 @@ export default function Home() {
 
                 {/* Coluna Direita - Preview */}
                 <div className="lg:sticky lg:top-12 lg:self-start">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
                     <Eye className="w-5 h-5 text-green-600" />
                     Canvas Editável (Edite e Visualize Aqui)
                   </label>
-                  <p className="text-xs text-gray-500 mb-3 flex items-center gap-1">
+                  <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
                     <Info className="w-3 h-3" />
                     Clique para editar texto. Use os controles para aplicar cores e ajustar o logo.
                   </p>
 
                   {/* Botões de ação lado a lado */}
-                  <div className="flex gap-3 mb-4">
+                  <div className="flex gap-3 mb-3">
                     <button
                       onClick={copyToClipboard}
                       disabled={!processedHtml}
