@@ -744,12 +744,8 @@ export default function Home() {
         const children = Array.from(containerEl.children) as HTMLElement[]
         let lineCount = 0 // Contador de linhas de texto
 
-        children.forEach((child) => {
+        children.forEach((child, index) => {
           const hasText = child.textContent?.trim().length || 0 > 0
-
-          if (hasText) {
-            lineCount++ // Incrementa contador de linhas
-          }
 
           const hasMarginBottom = child.style.marginBottom &&
                                  child.style.marginBottom !== '0px' &&
@@ -758,12 +754,20 @@ export default function Home() {
                                   child.style.paddingBottom !== '0px' &&
                                   child.style.paddingBottom !== '0'
 
-          // REGRA: NÃO adiciona <br> após a primeira linha (título "Departamento de Operações")
-          // Mantém título e subtítulo juntos, só adiciona <br> a partir da 2ª linha
-          const isFirstLine = lineCount === 1
+          // Conta apenas elementos com texto para identificar primeira linha
+          let textElementIndex = 0
+          for (let i = 0; i <= index; i++) {
+            if ((children[i].textContent?.trim().length || 0) > 0) {
+              textElementIndex++
+            }
+          }
 
-          // Se tem texto E espaçamento CSS inferior E NÃO é primeira linha
-          if (hasText && (hasMarginBottom || hasPaddingBottom) && !isFirstLine) {
+          // REGRA: NÃO adiciona <br> após a primeira linha de texto (título)
+          // Mantém título e subtítulo juntos
+          const isFirstTextLine = hasText && textElementIndex === 1
+
+          // Se tem texto E espaçamento CSS inferior E NÃO é primeira linha de texto
+          if (hasText && (hasMarginBottom || hasPaddingBottom) && !isFirstTextLine) {
             const nextSibling = child.nextSibling
             const nextElement = child.nextElementSibling
             const isNextBr = (nextSibling && nextSibling.nodeName === 'BR') ||
