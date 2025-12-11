@@ -706,21 +706,31 @@ export default function Home() {
           divElement.style.lineHeight = divElement.style.lineHeight
         }
 
-        // ADICIONA <br> APÓS o subtítulo (como sibling) para criar espaço real em produção
+        // ADICIONA <br> APÓS o subtítulo para criar espaço real em produção
         if (isProbablySubtitle) {
-          // Verifica se o próximo elemento já é um <br>
+          // SOLUÇÃO TRIPLA para garantir que funciona em qualquer estrutura HTML:
+
+          // 1. Adiciona <br> DENTRO do elemento (no final)
+          const hasBrInside = divElement.querySelector('br')
+          if (!hasBrInside) {
+            const brInside = doc.createElement('br')
+            divElement.appendChild(brInside)
+          }
+
+          // 2. Adiciona <br> como sibling (DEPOIS do elemento)
           const nextSibling = divElement.nextSibling
           const nextElement = divElement.nextElementSibling
-
-          // Se o próximo sibling não for um <br>, adiciona
           const nextIsBr = (nextSibling && nextSibling.nodeName === 'BR') ||
                           (nextElement && nextElement.tagName === 'BR')
 
-          if (!nextIsBr) {
-            // Adiciona <br> DEPOIS do elemento (não dentro)
-            const br = doc.createElement('br')
-            divElement.parentNode?.insertBefore(br, divElement.nextSibling)
+          if (!nextIsBr && divElement.parentNode) {
+            const brAfter = doc.createElement('br')
+            divElement.parentNode.insertBefore(brAfter, divElement.nextSibling)
           }
+
+          // 3. FORÇA margin-bottom + padding-bottom (backup CSS)
+          divElement.style.marginBottom = '10px'
+          divElement.style.paddingBottom = '5px'
         }
       })
 
@@ -1165,21 +1175,31 @@ export default function Home() {
           pElement.style.padding = '0'
         }
 
-        // ADICIONA <br> APÓS o subtítulo (como sibling) para criar espaço real em produção
+        // ADICIONA <br> APÓS o subtítulo para criar espaço real em produção
         if (isProbablySubtitle) {
-          // Verifica se o próximo elemento já é um <br>
+          // SOLUÇÃO TRIPLA para garantir que funciona em qualquer estrutura HTML:
+
+          // 1. Adiciona <br> DENTRO do elemento (no final)
+          const hasBrInside = pElement.querySelector('br')
+          if (!hasBrInside) {
+            const brInside = doc.createElement('br')
+            pElement.appendChild(brInside)
+          }
+
+          // 2. Adiciona <br> como sibling (DEPOIS do elemento)
           const nextSibling = pElement.nextSibling
           const nextElement = pElement.nextElementSibling
-
-          // Se o próximo sibling não for um <br>, adiciona
           const nextIsBr = (nextSibling && nextSibling.nodeName === 'BR') ||
                           (nextElement && nextElement.tagName === 'BR')
 
-          if (!nextIsBr) {
-            // Adiciona <br> DEPOIS do elemento (não dentro)
-            const br = doc.createElement('br')
-            pElement.parentNode?.insertBefore(br, pElement.nextSibling)
+          if (!nextIsBr && pElement.parentNode) {
+            const brAfter = doc.createElement('br')
+            pElement.parentNode.insertBefore(brAfter, pElement.nextSibling)
           }
+
+          // 3. FORÇA margin-bottom + padding-bottom (backup CSS)
+          pElement.style.marginBottom = '10px'
+          pElement.style.paddingBottom = '5px'
         }
       })
 
