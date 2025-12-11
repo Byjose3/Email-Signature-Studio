@@ -706,31 +706,23 @@ export default function Home() {
           divElement.style.lineHeight = divElement.style.lineHeight
         }
 
-        // ADICIONA <br> APÓS o subtítulo para criar espaço real em produção
+        // ADICIONA <br> APÓS o subtítulo (APENAS se não houver margin-bottom)
         if (isProbablySubtitle) {
-          // SOLUÇÃO TRIPLA para garantir que funciona em qualquer estrutura HTML:
+          // Se o subtítulo JÁ TEM margin-bottom original, NÃO adiciona <br>
+          // (o espaçamento original já funciona em produção)
+          const hasMarginBottom = divElement.style.marginBottom &&
+                                 divElement.style.marginBottom !== '0px' &&
+                                 divElement.style.marginBottom !== '0'
 
-          // 1. Adiciona <br> DENTRO do elemento (no final)
-          const hasBrInside = divElement.querySelector('br')
-          if (!hasBrInside) {
-            const brInside = doc.createElement('br')
-            divElement.appendChild(brInside)
+          if (!hasMarginBottom) {
+            // SÓ adiciona <br> se NÃO houver margin-bottom original
+            const hasBrInside = divElement.querySelector('br')
+            if (!hasBrInside) {
+              const brInside = doc.createElement('br')
+              divElement.appendChild(brInside)
+            }
           }
-
-          // 2. Adiciona <br> como sibling (DEPOIS do elemento)
-          const nextSibling = divElement.nextSibling
-          const nextElement = divElement.nextElementSibling
-          const nextIsBr = (nextSibling && nextSibling.nodeName === 'BR') ||
-                          (nextElement && nextElement.tagName === 'BR')
-
-          if (!nextIsBr && divElement.parentNode) {
-            const brAfter = doc.createElement('br')
-            divElement.parentNode.insertBefore(brAfter, divElement.nextSibling)
-          }
-
-          // 3. FORÇA margin-bottom + padding-bottom (backup CSS)
-          divElement.style.marginBottom = '10px'
-          divElement.style.paddingBottom = '5px'
+          // NÃO força margin/padding - preserva valores originais
         }
       })
 
@@ -1175,31 +1167,23 @@ export default function Home() {
           pElement.style.padding = '0'
         }
 
-        // ADICIONA <br> APÓS o subtítulo para criar espaço real em produção
+        // ADICIONA <br> APÓS o subtítulo (APENAS se não houver margin-bottom)
         if (isProbablySubtitle) {
-          // SOLUÇÃO TRIPLA para garantir que funciona em qualquer estrutura HTML:
+          // Se o subtítulo JÁ TEM margin-bottom original, NÃO adiciona <br>
+          // (o espaçamento original já funciona em produção)
+          const hasMarginBottom = pElement.style.marginBottom &&
+                                 pElement.style.marginBottom !== '0px' &&
+                                 pElement.style.marginBottom !== '0'
 
-          // 1. Adiciona <br> DENTRO do elemento (no final)
-          const hasBrInside = pElement.querySelector('br')
-          if (!hasBrInside) {
-            const brInside = doc.createElement('br')
-            pElement.appendChild(brInside)
+          if (!hasMarginBottom) {
+            // SÓ adiciona <br> se NÃO houver margin-bottom original
+            const hasBrInside = pElement.querySelector('br')
+            if (!hasBrInside) {
+              const brInside = doc.createElement('br')
+              pElement.appendChild(brInside)
+            }
           }
-
-          // 2. Adiciona <br> como sibling (DEPOIS do elemento)
-          const nextSibling = pElement.nextSibling
-          const nextElement = pElement.nextElementSibling
-          const nextIsBr = (nextSibling && nextSibling.nodeName === 'BR') ||
-                          (nextElement && nextElement.tagName === 'BR')
-
-          if (!nextIsBr && pElement.parentNode) {
-            const brAfter = doc.createElement('br')
-            pElement.parentNode.insertBefore(brAfter, pElement.nextSibling)
-          }
-
-          // 3. FORÇA margin-bottom + padding-bottom (backup CSS)
-          pElement.style.marginBottom = '10px'
-          pElement.style.paddingBottom = '5px'
+          // NÃO força margin/padding - preserva valores originais
         }
       })
 
