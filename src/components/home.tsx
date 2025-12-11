@@ -1004,24 +1004,32 @@ export default function Home() {
           // Fallback para dimensões padrão
           if (!width) width = 160;
 
-          // SEMPRE mantém height como auto para preservar aspect ratio
-          height = 0;
-
           // Calcula e guarda aspect ratio original se a imagem estiver carregada
           if (imgElement.complete && imgElement.naturalWidth && imgElement.naturalHeight) {
             const ratio = imgElement.naturalWidth / imgElement.naturalHeight;
             setOriginalAspectRatio(ratio);
+
+            // Calcula height baseado no aspect ratio para manter proporções
+            // Isso evita que o Gmail permita redimensionar o logo
+            if (!height || height === 0) {
+              height = Math.round(width / ratio);
+            }
+          }
+
+          // Se ainda não tiver height (imagem não carregada), usa fallback
+          if (!height || height === 0) {
+            height = Math.round(width * 0.5); // fallback temporário
           }
 
           // Define dimensões iniciais no estado
           setLogoWidth(width);
-          setLogoHeight(0); // Sempre 0 = auto
+          setLogoHeight(height);
 
-          // Aplica dimensões - sempre com height: auto
+          // Aplica AMBOS width e height para evitar redimensionamento no Gmail
           img.setAttribute("width", String(width));
-          img.removeAttribute("height"); // Remove qualquer height fixa
+          img.setAttribute("height", String(height));
           img.style.width = `${width}px`;
-          img.style.height = "auto"; // SEMPRE auto
+          img.style.height = `${height}px`;
           img.style.objectFit = "contain";
           img.style.display = "block";
 
@@ -1879,31 +1887,27 @@ export default function Home() {
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
-    console.log("handleImageUpload called", { imageId, file });
     if (file && file.type.startsWith("image/")) {
       const reader = new FileReader();
       reader.onload = (e) => {
         const base64 = e.target?.result as string;
-        console.log("FileReader onload", { base64Length: base64?.length });
 
         // Carregar a imagem para obter dimensões naturais e calcular aspect ratio
         const imageElement = document.createElement('img');
         imageElement.onload = () => {
           const naturalWidth = imageElement.naturalWidth;
           const naturalHeight = imageElement.naturalHeight;
-          console.log("Image loaded", { naturalWidth, naturalHeight, imageId });
 
           // Calcular aspect ratio da nova imagem
           const aspectRatio = naturalWidth / naturalHeight;
           setOriginalAspectRatio(aspectRatio);
-          console.log("Aspect ratio set", { aspectRatio });
 
           // Se for o logo (img-0), atualizar dimensões mantendo aspect ratio
           if (imageId === "img-0") {
             // Manter a largura atual ou usar uma largura padrão
             const newWidth = logoWidth > 0 ? logoWidth : 160;
-            // Sempre mantém height como 0 (auto) para preservar aspect ratio
-            const newHeight = 0;
+            // Calcula height baseado no aspect ratio para evitar redimensionamento no Gmail
+            const newHeight = Math.round(newWidth / aspectRatio);
 
             setLogoWidth(newWidth);
             setLogoHeight(newHeight);
@@ -1912,25 +1916,16 @@ export default function Home() {
             const parser = new DOMParser();
             const doc = parser.parseFromString(processedHtml, "text/html");
             const img = doc.querySelector(`img[data-image-id="${imageId}"]`);
-            console.log("Looking for img with imageId", imageId, "found:", img);
 
             if (img) {
               img.setAttribute("src", base64);
               img.setAttribute("width", String(newWidth));
-
-              if (newHeight > 0) {
-                img.setAttribute("height", String(newHeight));
-                (img as HTMLElement).style.height = `${newHeight}px`;
-              } else {
-                img.removeAttribute("height");
-                (img as HTMLElement).style.height = "auto";
-              }
-
+              img.setAttribute("height", String(newHeight));
               (img as HTMLElement).style.width = `${newWidth}px`;
+              (img as HTMLElement).style.height = `${newHeight}px`;
               (img as HTMLElement).style.objectFit = "contain";
 
               const newHtml = doc.body.innerHTML;
-              console.log("Updating processedHtml for logo", { newWidth, newHeight });
               setProcessedHtml(newHtml);
 
               // Atualiza também a área de paste
@@ -1945,16 +1940,9 @@ export default function Home() {
                 if (pasteImg) {
                   pasteImg.setAttribute("src", base64);
                   pasteImg.setAttribute("width", String(newWidth));
-
-                  if (newHeight > 0) {
-                    pasteImg.setAttribute("height", String(newHeight));
-                    (pasteImg as HTMLElement).style.height = `${newHeight}px`;
-                  } else {
-                    pasteImg.removeAttribute("height");
-                    (pasteImg as HTMLElement).style.height = "auto";
-                  }
-
+                  pasteImg.setAttribute("height", String(newHeight));
                   (pasteImg as HTMLElement).style.width = `${newWidth}px`;
+                  (pasteImg as HTMLElement).style.height = `${newHeight}px`;
                   (pasteImg as HTMLElement).style.objectFit = "contain";
 
                   pasteAreaRef.current.innerHTML = pasteDoc.body.innerHTML;
@@ -2170,9 +2158,17 @@ export default function Home() {
   const handleLogoWidthChange = (newWidth: number) => {
     setLogoWidth(newWidth);
 
-    // Sempre mantém height como 0 (auto) para preservar aspect ratio
-    setLogoHeight(0);
-    updateLogoSize(newWidth, 0);
+    // Calcula height baseado no aspect ratio para evitar redimensionamento no Gmail
+    if (originalAspectRatio && originalAspectRatio > 0) {
+      const newHeight = Math.round(newWidth / originalAspectRatio);
+      setLogoHeight(newHeight);
+      updateLogoSize(newWidth, newHeight);
+    } else {
+      // Fallback se não tiver aspect ratio
+      const newHeight = Math.round(newWidth * 0.5);
+      setLogoHeight(newHeight);
+      updateLogoSize(newWidth, newHeight);
+    }
   };
 
   const handleLogoHeightChange = (newHeight: number) => {
@@ -2549,7 +2545,10 @@ export default function Home() {
     try {
       if (previewRef.current) {
         // Usa o conteúdo atual do preview (pode ter sido editado pelo user)
-        const htmlToCopy = previewRef.current.innerHTML;
+        let htmlToCopy = previewRef.current.innerHTML;
+
+        // Otimiza para Gmail (garante width e height fixos no logo)
+        htmlToCopy = optimizeForGmail(htmlToCopy);
 
         // Usa método antigo confiável (API moderna tem problemas de compatibilidade)
         const tempDiv = document.createElement("div");
