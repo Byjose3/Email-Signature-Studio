@@ -708,13 +708,27 @@ export default function Home() {
 
         // ADICIONA <br> após o subtítulo para espaçamento REAL em produção
         if (isProbablySubtitle) {
-          // Gmail REMOVE margins CSS, então SEMPRE adiciona <br>
-          // Preview mostra margins (fake), mas Gmail só preserva <br> (real)
+          // SOLUÇÃO AGRESSIVA: Adiciona MÚLTIPLOS <br> em TODAS as posições possíveis
+
+          // 1. Adiciona <br> DENTRO do elemento (no final do conteúdo)
           const hasBrInside = divElement.querySelector('br')
           if (!hasBrInside) {
             const brInside = doc.createElement('br')
             divElement.appendChild(brInside)
           }
+
+          // 2. Adiciona <br> como SIBLING (imediatamente após o elemento)
+          const nextSibling = divElement.nextSibling
+          const isNextBr = nextSibling && (nextSibling.nodeName === 'BR' ||
+                                          (nextSibling.nodeType === 1 && (nextSibling as Element).tagName === 'BR'))
+
+          if (!isNextBr && divElement.parentNode) {
+            const brAfter = doc.createElement('br')
+            divElement.parentNode.insertBefore(brAfter, divElement.nextSibling)
+          }
+
+          // 3. FORÇA display:block no subtítulo (garante quebra de linha)
+          divElement.style.display = 'block'
         }
       })
 
@@ -1161,13 +1175,27 @@ export default function Home() {
 
         // ADICIONA <br> após o subtítulo para espaçamento REAL em produção
         if (isProbablySubtitle) {
-          // Gmail REMOVE margins CSS, então SEMPRE adiciona <br>
-          // Preview mostra margins (fake), mas Gmail só preserva <br> (real)
+          // SOLUÇÃO AGRESSIVA: Adiciona MÚLTIPLOS <br> em TODAS as posições possíveis
+
+          // 1. Adiciona <br> DENTRO do elemento (no final do conteúdo)
           const hasBrInside = pElement.querySelector('br')
           if (!hasBrInside) {
             const brInside = doc.createElement('br')
             pElement.appendChild(brInside)
           }
+
+          // 2. Adiciona <br> como SIBLING (imediatamente após o elemento)
+          const nextSibling = pElement.nextSibling
+          const isNextBr = nextSibling && (nextSibling.nodeName === 'BR' ||
+                                          (nextSibling.nodeType === 1 && (nextSibling as Element).tagName === 'BR'))
+
+          if (!isNextBr && pElement.parentNode) {
+            const brAfter = doc.createElement('br')
+            pElement.parentNode.insertBefore(brAfter, pElement.nextSibling)
+          }
+
+          // 3. FORÇA display:block no subtítulo (garante quebra de linha)
+          pElement.style.display = 'block'
         }
       })
 
