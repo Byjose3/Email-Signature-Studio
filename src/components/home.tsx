@@ -115,16 +115,16 @@ export default function Home() {
     }
 
     try {
-      // Guarda o HTML ORIGINAL (do pasteAreaRef) para permitir edição futura
-      const originalHtml = pasteAreaRef.current?.innerHTML || processedHtml;
+      // Guarda o HTML editado do preview (pode ter sido editado pelo user)
+      const editedHtml = previewRef.current?.innerHTML || processedHtml;
 
-      // Cria thumbnail usando o HTML processado para preview
-      const thumbnail = processedHtml;
+      // Cria thumbnail usando o mesmo HTML
+      const thumbnail = editedHtml;
 
       const newSignature: SavedSignature = {
         id: Date.now().toString(),
         name: signatureName.trim(),
-        html: originalHtml, // Guarda HTML original, não o processado
+        html: editedHtml, // Guarda HTML editado do preview
         thumbnail,
         savedAt: new Date().toISOString(),
         logoWidth,
@@ -143,8 +143,12 @@ export default function Home() {
 
       // LIMPA TODOS OS ESTADOS após guardar (para permitir carregar nova assinatura)
       setProcessedHtml("");
+      setOriginalHtml("");
       if (pasteAreaRef.current) {
         pasteAreaRef.current.innerHTML = "";
+      }
+      if (previewRef.current) {
+        previewRef.current.innerHTML = "";
       }
 
       // Reset de cores
@@ -609,10 +613,6 @@ export default function Home() {
 
   // Reprocessa HTML quando a cor de TEXTO mudar
   useEffect(() => {
-    console.log("🎨 [DEBUG] textColor changed:", textColor);
-    console.log("🎨 [DEBUG] originalHtml exists:", !!originalHtml);
-    console.log("🎨 [DEBUG] pasteArea innerHTML BEFORE:", pasteAreaRef.current?.innerHTML.substring(0, 200));
-
     if (originalHtml && originalHtml.trim() !== "") {
       // Reprocessa o HTML ORIGINAL (não o do pasteArea que pode ter sido editado)
       const processed = processHtml(
@@ -621,9 +621,7 @@ export default function Home() {
         separatorColor || undefined,
       );
       if (processed) {
-        console.log("🎨 [DEBUG] Setting processedHtml");
         setProcessedHtml(processed);
-        console.log("🎨 [DEBUG] pasteArea innerHTML AFTER:", pasteAreaRef.current?.innerHTML.substring(0, 200));
       }
     }
   }, [textColor]);
@@ -643,16 +641,21 @@ export default function Home() {
     }
   }, [separatorColor]);
 
+  // Atualiza o preview ref quando processedHtml muda (aplicação de cores)
+  useEffect(() => {
+    if (processedHtml && previewRef.current) {
+      // Só atualiza se o conteúdo for diferente (evita loop)
+      if (previewRef.current.innerHTML !== processedHtml) {
+        previewRef.current.innerHTML = processedHtml;
+      }
+    }
+  }, [processedHtml]);
+
   const processHtml = (
     html: string,
     customTextColor?: string,
     customSeparatorColor?: string,
   ) => {
-    console.log("📝 [DEBUG processHtml] Received html length:", html.length);
-    console.log("📝 [DEBUG processHtml] customTextColor:", customTextColor);
-    console.log("📝 [DEBUG processHtml] customSeparatorColor:", customSeparatorColor);
-    console.log("📝 [DEBUG processHtml] html preview:", html.substring(0, 200));
-
     try {
       setError("");
 
@@ -808,7 +811,7 @@ export default function Home() {
             }
 
             // Remove os nós vazios
-            nodesToRemove.forEach((node) => node.remove());
+            nodesToRemove.forEach((node) => node.parentNode?.removeChild(node));
 
             // Adiciona um <br> antes do primeiro ícone para criar espaço vertical
             // Gmail produção preserva <br> tags
@@ -909,7 +912,7 @@ export default function Home() {
           }
 
           // Remove os nós vazios
-          nodesToRemove.forEach((node) => node.remove());
+          nodesToRemove.forEach((node) => node.parentNode?.removeChild(node));
 
           // Adiciona um <br> antes do primeiro contacto para criar espaço vertical
           const br = doc.createElement("br");
@@ -1837,22 +1840,18 @@ export default function Home() {
       setSeparatorColor("");
 
       if (htmlData) {
-        console.log("📋 [DEBUG handlePasteArea] Pasting HTML, length:", htmlData.length);
         // Guarda HTML original
         setOriginalHtml(htmlData);
 
         // Limpa a área de paste com HTML original
         if (pasteAreaRef.current) {
-          console.log("📋 [DEBUG handlePasteArea] Setting pasteArea innerHTML");
           pasteAreaRef.current.innerHTML = htmlData;
         }
         processHtml(htmlData, undefined, undefined);
       } else if (textData) {
-        console.log("📋 [DEBUG handlePasteArea] Pasting text, length:", textData.length);
         setOriginalHtml(textData);
 
         if (pasteAreaRef.current) {
-          console.log("📋 [DEBUG handlePasteArea] Setting pasteArea textContent");
           pasteAreaRef.current.textContent = textData;
         }
         processHtml(textData, undefined, undefined);
@@ -2316,25 +2315,6 @@ export default function Home() {
     textElements.forEach((element) => {
       const htmlElement = element as HTMLElement;
 
-      // Aplica cor customizada do texto se fornecida
-      if (customTextColor) {
-        // Aplica cor a todos os elementos de texto, exceto links (que devem manter cor de link)
-        const isLink = htmlElement.tagName === "A";
-        if (
-          !isLink &&
-          htmlElement.textContent &&
-          htmlElement.textContent.trim() !== ""
-        ) {
-          // Remove cor existente primeiro para evitar conflitos
-          htmlElement.style.removeProperty("color");
-          // Aplica nova cor
-          htmlElement.style.color = customTextColor;
-        }
-      } else {
-        // Se NÃO há cor customizada, mantém cor original (não remove)
-        // Isto garante que o pasteArea mantém cores originais
-      }
-
       // Preserva e reforça bold
       if (
         htmlElement.style.fontWeight === "bold" ||
@@ -2532,9 +2512,9 @@ export default function Home() {
 
   const copyToClipboard = async () => {
     try {
-      if (previewRef.current && processedHtml) {
-        // USA O HTML PROCESSADO DIRETO - sem otimizações que Gmail produção rejeita!
-        const htmlToCopy = processedHtml;
+      if (previewRef.current) {
+        // Usa o conteúdo atual do preview (pode ter sido editado pelo user)
+        const htmlToCopy = previewRef.current.innerHTML;
 
         // Usa método antigo confiável (API moderna tem problemas de compatibilidade)
         const tempDiv = document.createElement("div");
@@ -2848,9 +2828,14 @@ export default function Home() {
                 {/* Coluna Esquerda - Input */}
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-3">
-                      Cole o HTML ou carregue um arquivo
+                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-blue-600" />
+                      HTML Original (Referência)
                     </label>
+                    <p className="text-xs text-gray-500 mb-3 flex items-center gap-1">
+                      <Info className="w-3 h-3" />
+                      Cole ou carregue sua assinatura aqui. Edite no canvas à direita.
+                    </p>
 
                     <input
                       type="file"
@@ -2873,9 +2858,9 @@ export default function Home() {
                       ref={pasteAreaRef}
                       onPaste={handlePasteArea}
                       contentEditable={false}
-                      className="relative w-full p-4 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 shadow-inner overflow-auto cursor-not-allowed"
+                      className="relative w-full p-4 border-2 border-blue-300 rounded-lg bg-white shadow-inner overflow-auto"
                       style={{ outline: "none", height: "532px" }}
-                      data-placeholder="Edite a sua assinatura, depois de a carregar"
+                      data-placeholder="HTML Original (apenas visualização)"
                     ></div>
                   </div>
 
@@ -3112,10 +3097,14 @@ export default function Home() {
 
                 {/* Coluna Direita - Preview */}
                 <div className="lg:sticky lg:top-12 lg:self-start">
-                  <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <Eye className="w-5 h-5" />
-                    Pré-visualização (Gmail)
+                  <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                    <Eye className="w-5 h-5 text-green-600" />
+                    Canvas Editável (Edite e Visualize Aqui)
                   </label>
+                  <p className="text-xs text-gray-500 mb-3 flex items-center gap-1">
+                    <Info className="w-3 h-3" />
+                    Clique para editar texto. Use os controles para aplicar cores e ajustar o logo.
+                  </p>
 
                   {/* Botões de ação lado a lado */}
                   <div className="flex gap-3 mb-4">
@@ -3184,16 +3173,24 @@ export default function Home() {
                     </div>
                   )}
 
-                  <div
-                    ref={previewRef}
-                    className="p-6 bg-white border-2 border-gray-300 rounded-lg shadow-inner overflow-auto"
-                    style={{ height: "532px" }}
-                  >
-                    {processedHtml ? (
-                      <div
-                        dangerouslySetInnerHTML={{ __html: processedHtml }}
-                      />
-                    ) : (
+                  {processedHtml ? (
+                    <div
+                      ref={previewRef}
+                      contentEditable={true}
+                      suppressContentEditableWarning={true}
+                      onInput={() => {
+                        if (previewRef.current) {
+                          setProcessedHtml(previewRef.current.innerHTML);
+                        }
+                      }}
+                      className="p-6 bg-white border-2 border-green-300 rounded-lg shadow-inner overflow-auto focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                      style={{ height: "532px", outline: "none" }}
+                    />
+                  ) : (
+                    <div
+                      className="p-6 bg-white border-2 border-gray-300 rounded-lg shadow-inner overflow-auto"
+                      style={{ height: "532px" }}
+                    >
                       <div className="flex flex-col items-center justify-center h-96 text-gray-400">
                         <Image className="w-16 h-16 mb-4 opacity-50" />
                         <p className="text-lg font-medium">
@@ -3203,8 +3200,8 @@ export default function Home() {
                           Cole sua assinatura para visualizar
                         </p>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </TabsContent>
