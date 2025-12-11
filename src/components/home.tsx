@@ -732,6 +732,42 @@ export default function Home() {
         }
       })
 
+      // SOLUÇÃO UNIVERSAL: Converte espaçamento CSS (margin/padding) em <br> REAL
+      // Funciona para QUALQUER assinatura, independentemente do conteúdo
+      // Gmail remove CSS, mas preserva <br> tags
+
+      const textContainers = doc.querySelectorAll('div, p, span, td, th')
+      textContainers.forEach(container => {
+        const containerEl = container as HTMLElement
+
+        // Procura elementos filhos diretos que têm texto
+        const children = Array.from(containerEl.children) as HTMLElement[]
+
+        children.forEach((child) => {
+          const hasText = child.textContent?.trim().length || 0 > 0
+          const hasMarginBottom = child.style.marginBottom &&
+                                 child.style.marginBottom !== '0px' &&
+                                 child.style.marginBottom !== '0'
+          const hasPaddingBottom = child.style.paddingBottom &&
+                                  child.style.paddingBottom !== '0px' &&
+                                  child.style.paddingBottom !== '0'
+
+          // Se tem texto E espaçamento CSS inferior, converte para <br>
+          if (hasText && (hasMarginBottom || hasPaddingBottom)) {
+            const nextSibling = child.nextSibling
+            const nextElement = child.nextElementSibling
+            const isNextBr = (nextSibling && nextSibling.nodeName === 'BR') ||
+                            (nextElement && nextElement.tagName === 'BR')
+
+            if (!isNextBr) {
+              // Adiciona <br> depois (converte espaçamento CSS em <br> real)
+              const br = doc.createElement('br')
+              child.parentNode?.insertBefore(br, child.nextSibling)
+            }
+          }
+        })
+      })
+
       // Preserva formatação de texto (bold, line-height, etc) e garante compatibilidade Gmail
       const allElements = doc.querySelectorAll('*')
       allElements.forEach(element => {
