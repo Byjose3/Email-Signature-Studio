@@ -88,11 +88,11 @@ export default function Home() {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
 
-    // Força cor preta em todos os elementos de texto (exceto links)
-    const allElements = doc.querySelectorAll("*");
-    allElements.forEach((el) => {
+    // Força cor preta APENAS em elementos de texto visível (não estruturais)
+    const textElements = doc.querySelectorAll("span, div, p, b, strong, i, em, h1, h2, h3, h4, h5, h6");
+    textElements.forEach((el) => {
       const element = el as HTMLElement;
-      // Só remove/força cor se NÃO for um link (links mantêm cor original)
+      // Só aplica cor se NÃO for um link e tiver texto
       if (element.tagName !== "A" && element.textContent && element.textContent.trim()) {
         // FORÇA cor preta para sobrescrever qualquer cor inline
         element.style.color = "#000000";
@@ -175,12 +175,9 @@ export default function Home() {
 
   // Carrega uma assinatura guardada
   const loadSignature = (signature: SavedSignature) => {
-    // Remove cores inline do HTML antes de colocar no pasteArea
-    const cleanedHtml = removeInlineColors(signature.html);
-
-    // Coloca o HTML limpo (sem cores customizadas inline) no pasteArea
+    // Coloca o HTML original no pasteArea
     if (pasteAreaRef.current) {
-      pasteAreaRef.current.innerHTML = cleanedHtml;
+      pasteAreaRef.current.innerHTML = signature.html;
     }
 
     // Carrega as cores guardadas
@@ -189,9 +186,9 @@ export default function Home() {
     setTextColor(signature.textColor);
     setSeparatorColor(signature.separatorColor);
 
-    // Processa o HTML limpo com as cores guardadas para mostrar no preview
+    // Processa o HTML com as cores guardadas para mostrar no preview
     const processed = processHtml(
-      cleanedHtml,
+      signature.html,
       signature.textColor,
       signature.separatorColor,
     );
@@ -1850,14 +1847,11 @@ export default function Home() {
       setSeparatorColor("");
 
       if (htmlData) {
-        // Remove cores inline do HTML original antes de colocar no pasteArea
-        const cleanedHtml = removeInlineColors(htmlData);
-
-        // Limpa a área de paste com HTML sem cores inline
+        // Limpa a área de paste com HTML original
         if (pasteAreaRef.current) {
-          pasteAreaRef.current.innerHTML = cleanedHtml;
+          pasteAreaRef.current.innerHTML = htmlData;
         }
-        processHtml(cleanedHtml, undefined, undefined);
+        processHtml(htmlData, undefined, undefined);
       } else if (textData) {
         if (pasteAreaRef.current) {
           pasteAreaRef.current.textContent = textData;
@@ -1897,13 +1891,10 @@ export default function Home() {
       reader.onload = (event) => {
         const content = event.target?.result as string;
 
-        // Remove cores inline do HTML antes de colocar no pasteArea
-        const cleanedHtml = removeInlineColors(content);
-
         if (pasteAreaRef.current) {
-          pasteAreaRef.current.innerHTML = cleanedHtml;
+          pasteAreaRef.current.innerHTML = content;
         }
-        processHtml(cleanedHtml, undefined, undefined);
+        processHtml(content, undefined, undefined);
       };
       reader.readAsText(file);
     } else {
