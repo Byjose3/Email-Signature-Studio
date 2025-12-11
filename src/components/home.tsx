@@ -612,27 +612,22 @@ export default function Home() {
     setTimeout(() => setSuccessMessage(""), 3000);
   };
 
-  // Reprocessa HTML quando a cor de TEXTO mudar
+  // Reprocessa HTML quando a cor de TEXTO ou BARRA mudar
   useEffect(() => {
     if (originalHtml && originalHtml.trim() !== "") {
-      // Reprocessa o HTML ORIGINAL (não o do pasteArea que pode ter sido editado)
-      const processed = processHtml(
-        originalHtml,
-        textColor || undefined,
-        separatorColor || undefined,
-      );
-      if (processed) {
-        setProcessedHtml(processed);
-      }
-    }
-  }, [textColor]);
+      // Se o preview foi editado manualmente, usa o conteúdo atual do preview
+      // Caso contrário, reprocessa a partir do original
+      const currentHtml = previewRef.current?.innerHTML || "";
+      const hasBeenManuallyEdited =
+        processedHtml &&
+        currentHtml &&
+        currentHtml !== processedHtml &&
+        currentHtml.trim() !== "";
 
-  // Reprocessa HTML quando a cor da BARRA mudar
-  useEffect(() => {
-    if (originalHtml && originalHtml.trim() !== "") {
-      // Reprocessa o HTML ORIGINAL (não o do pasteArea que pode ter sido editado)
+      const sourceHtml = hasBeenManuallyEdited ? currentHtml : originalHtml;
+
       const processed = processHtml(
-        originalHtml,
+        sourceHtml,
         textColor || undefined,
         separatorColor || undefined,
       );
@@ -640,7 +635,7 @@ export default function Home() {
         setProcessedHtml(processed);
       }
     }
-  }, [separatorColor]);
+  }, [textColor, separatorColor]);
 
   // Atualiza o preview ref quando processedHtml muda (aplicação de cores)
   useEffect(() => {
