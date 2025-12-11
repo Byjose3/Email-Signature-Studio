@@ -64,9 +64,6 @@ export default function Home() {
   const pasteAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (pasteAreaRef.current) {
-      pasteAreaRef.current.focus();
-    }
     // Carrega assinaturas guardadas do localStorage
     loadSavedSignatures();
   }, []);
@@ -612,6 +609,10 @@ export default function Home() {
 
   // Reprocessa HTML quando a cor de TEXTO mudar
   useEffect(() => {
+    console.log("🎨 [DEBUG] textColor changed:", textColor);
+    console.log("🎨 [DEBUG] originalHtml exists:", !!originalHtml);
+    console.log("🎨 [DEBUG] pasteArea innerHTML BEFORE:", pasteAreaRef.current?.innerHTML.substring(0, 200));
+
     if (originalHtml && originalHtml.trim() !== "") {
       // Reprocessa o HTML ORIGINAL (não o do pasteArea que pode ter sido editado)
       const processed = processHtml(
@@ -620,7 +621,9 @@ export default function Home() {
         separatorColor || undefined,
       );
       if (processed) {
+        console.log("🎨 [DEBUG] Setting processedHtml");
         setProcessedHtml(processed);
+        console.log("🎨 [DEBUG] pasteArea innerHTML AFTER:", pasteAreaRef.current?.innerHTML.substring(0, 200));
       }
     }
   }, [textColor]);
@@ -645,6 +648,11 @@ export default function Home() {
     customTextColor?: string,
     customSeparatorColor?: string,
   ) => {
+    console.log("📝 [DEBUG processHtml] Received html length:", html.length);
+    console.log("📝 [DEBUG processHtml] customTextColor:", customTextColor);
+    console.log("📝 [DEBUG processHtml] customSeparatorColor:", customSeparatorColor);
+    console.log("📝 [DEBUG processHtml] html preview:", html.substring(0, 200));
+
     try {
       setError("");
 
@@ -1829,18 +1837,22 @@ export default function Home() {
       setSeparatorColor("");
 
       if (htmlData) {
+        console.log("📋 [DEBUG handlePasteArea] Pasting HTML, length:", htmlData.length);
         // Guarda HTML original
         setOriginalHtml(htmlData);
 
         // Limpa a área de paste com HTML original
         if (pasteAreaRef.current) {
+          console.log("📋 [DEBUG handlePasteArea] Setting pasteArea innerHTML");
           pasteAreaRef.current.innerHTML = htmlData;
         }
         processHtml(htmlData, undefined, undefined);
       } else if (textData) {
+        console.log("📋 [DEBUG handlePasteArea] Pasting text, length:", textData.length);
         setOriginalHtml(textData);
 
         if (pasteAreaRef.current) {
+          console.log("📋 [DEBUG handlePasteArea] Setting pasteArea textContent");
           pasteAreaRef.current.textContent = textData;
         }
         processHtml(textData, undefined, undefined);
@@ -2860,6 +2872,7 @@ export default function Home() {
                     <div
                       ref={pasteAreaRef}
                       onPaste={handlePasteArea}
+                      contentEditable={false}
                       className="relative w-full p-4 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 shadow-inner overflow-auto cursor-not-allowed"
                       style={{ outline: "none", height: "532px" }}
                       data-placeholder="Edite a sua assinatura, depois de a carregar"
