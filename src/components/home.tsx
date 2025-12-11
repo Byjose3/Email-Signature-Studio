@@ -290,7 +290,7 @@ export default function Home() {
         }
         .signature-container {
             border: 1px solid #ddd;
-            padding: 0;
+            padding: 16px 0 16px 16px;
             background: white;
             margin-top: 20px;
         }
@@ -424,7 +424,7 @@ export default function Home() {
         }
         .signature-container {
             border: 2px solid #ddd;
-            padding: 0;
+            padding: 16px 0 16px 16px;
             background: white;
             margin-top: 15px;
             border-radius: 4px;
