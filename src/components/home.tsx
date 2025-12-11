@@ -518,7 +518,8 @@ export default function Home() {
 
       // PRIMEIRO: FORÇA display: inline-block em TODOS os links (para ícones ficarem horizontais)
       const socialLinks = doc.querySelectorAll('a')
-      socialLinks.forEach(link => {
+      let firstSocialLinkFound = false
+      socialLinks.forEach((link, index) => {
         const linkElement = link as HTMLElement
         // FORÇA inline-block em todos os links (ícones sociais precisam disso)
         linkElement.style.display = 'inline-block'
@@ -526,6 +527,17 @@ export default function Home() {
         const hasImage = linkElement.querySelector('img')
         if (hasImage) {
           // É um link com imagem (ícone social)
+
+          // ADICIONA espaçamento vertical antes do PRIMEIRO ícone social
+          if (!firstSocialLinkFound) {
+            firstSocialLinkFound = true
+
+            // Adiciona um <br> antes do primeiro ícone para criar espaço vertical
+            // Gmail produção preserva <br> tags
+            const br = doc.createElement('br')
+            linkElement.parentNode?.insertBefore(br, linkElement)
+          }
+
           // Preserva margin-right original, ou define padrão se não existir
           if (!linkElement.style.marginRight || linkElement.style.marginRight === '0px') {
             linkElement.style.marginRight = '6px'
@@ -673,72 +685,16 @@ export default function Home() {
       divs.forEach(div => {
         const divElement = div as HTMLElement
 
-        // Detecta se é o subtítulo (normalmente tem texto curto e está no topo)
-        // Subtítulo geralmente é "IN BANK SERVICE®" ou similar
-        const text = divElement.textContent?.trim() || ''
-        const isBold = divElement.style.fontWeight === 'bold' ||
-                      divElement.style.fontWeight === '700' ||
-                      divElement.querySelector('strong, b') !== null
-        const isShort = text.length < 50 // Subtítulos são geralmente curtos
-        const isProbablySubtitle = isBold && isShort &&
-                                  (text.includes('®') || text.includes('SERVICE') || text.toUpperCase() === text)
-
-        // Detecta se é o primeiro contacto (linha logo após o subtítulo)
-        // Geralmente começa com "p:", "m:", "e:", "w:", "a:" etc
-        const startsWithContactLabel = /^(p|m|e|w|a|t|f):/i.test(text)
-        const isFirstContact = startsWithContactLabel && text.includes('+351')
-
         // Preserva margins explícitos
         if (divElement.style.marginTop) {
-          // Se for primeiro contacto, remove margin-top para colar ao subtítulo
-          if (isFirstContact) {
-            divElement.style.marginTop = '0'
-            divElement.style.paddingTop = '0'
-          } else {
-            divElement.style.marginTop = divElement.style.marginTop
-          }
+          divElement.style.marginTop = divElement.style.marginTop
         }
         if (divElement.style.marginBottom) {
-          // Se for subtítulo, remove completamente o margin-bottom
-          if (isProbablySubtitle) {
-            divElement.style.marginBottom = '0' // SEM espaçamento extra
-            divElement.style.paddingBottom = '0' // Remove padding também
-          } else {
-            divElement.style.marginBottom = divElement.style.marginBottom
-          }
-        }
-        // Se for subtítulo e tiver margin geral (não específico), também zera
-        if (isProbablySubtitle) {
-          divElement.style.marginBottom = '0'
-          divElement.style.paddingBottom = '0'
-          // FORÇA line-height compacto no subtítulo para evitar espaço extra
-          divElement.style.lineHeight = '1.0'
-        }
-        // Se for primeiro contacto, FORÇA remoção de espaçamento superior
-        if (isFirstContact) {
-          divElement.style.marginTop = '0'
-          divElement.style.paddingTop = '0'
+          divElement.style.marginBottom = divElement.style.marginBottom
         }
         // Preserva line-height explícito (importante para texto não ficar colado)
-        if (divElement.style.lineHeight && !isProbablySubtitle) {
+        if (divElement.style.lineHeight) {
           divElement.style.lineHeight = divElement.style.lineHeight
-        }
-
-        // BACKUP para Gmail produção: adiciona <br> apenas quando há margin explícito
-        // NÃO adiciona <br> para subtítulos (para evitar espaçamento excessivo)
-        const hasText = divElement.textContent?.trim()
-        const nextSibling = divElement.nextElementSibling
-        const isLastDiv = !nextSibling || nextSibling.tagName !== 'DIV'
-
-        // Apenas adiciona <br> se houver margin-bottom explícito e significativo
-        // E NÃO for o subtítulo
-        const hasExplicitMargin = divElement.style.marginBottom &&
-                                  parseInt(divElement.style.marginBottom) > 5
-
-        if (hasText && !isLastDiv && hasExplicitMargin && !isProbablySubtitle) {
-          // Adiciona <br> invisível apenas quando há margin explícito
-          const br = doc.createElement('br')
-          divElement.appendChild(br)
         }
       })
 
@@ -1162,34 +1118,11 @@ export default function Home() {
       paragraphs.forEach(p => {
         const pElement = p as HTMLElement
 
-        // Detecta se é o subtítulo (mesma lógica dos DIVs)
-        const text = pElement.textContent?.trim() || ''
-        const isBold = pElement.style.fontWeight === 'bold' ||
-                      pElement.style.fontWeight === '700' ||
-                      pElement.querySelector('strong, b') !== null
-        const isShort = text.length < 50
-        const isProbablySubtitle = isBold && isShort &&
-                                  (text.includes('®') || text.includes('SERVICE') || text.toUpperCase() === text)
-
-        // Detecta se é o primeiro contacto
-        const startsWithContactLabel = /^(p|m|e|w|a|t|f):/i.test(text)
-        const isFirstContact = startsWithContactLabel && text.includes('+351')
-
         // PRESERVA margin/padding original se existir (importante para espaçamento)
         // Só define como '0' se NÃO tiver margin/padding definido
         if (!pElement.style.margin && !pElement.style.marginTop && !pElement.style.marginBottom &&
             !pElement.style.marginLeft && !pElement.style.marginRight) {
           pElement.style.margin = '0'
-        } else if (isProbablySubtitle && pElement.style.marginBottom) {
-          // Se for subtítulo, remove completamente o margin-bottom
-          pElement.style.marginBottom = '0' // SEM espaçamento extra
-        }
-        // Se for subtítulo, FORÇA remoção completa de espaçamento
-        if (isProbablySubtitle) {
-          pElement.style.marginBottom = '0'
-          pElement.style.paddingBottom = '0'
-          // FORÇA line-height compacto no subtítulo
-          pElement.style.lineHeight = '1.0'
         }
 
         if (!pElement.style.padding && !pElement.style.paddingTop && !pElement.style.paddingBottom &&
