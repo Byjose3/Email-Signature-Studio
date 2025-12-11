@@ -87,11 +87,17 @@ export default function Home() {
     const doc = parser.parseFromString(html, "text/html");
 
     // Força cor preta APENAS em elementos de texto visível (não estruturais)
-    const textElements = doc.querySelectorAll("span, div, p, b, strong, i, em, h1, h2, h3, h4, h5, h6");
+    const textElements = doc.querySelectorAll(
+      "span, div, p, b, strong, i, em, h1, h2, h3, h4, h5, h6",
+    );
     textElements.forEach((el) => {
       const element = el as HTMLElement;
       // Só aplica cor se NÃO for um link e tiver texto
-      if (element.tagName !== "A" && element.textContent && element.textContent.trim()) {
+      if (
+        element.tagName !== "A" &&
+        element.textContent &&
+        element.textContent.trim()
+      ) {
         // FORÇA cor preta para sobrescrever qualquer cor inline
         element.style.color = "#000000";
       }
@@ -1005,7 +1011,11 @@ export default function Home() {
           if (!width) width = 160;
 
           // Calcula e guarda aspect ratio original se a imagem estiver carregada
-          if (imgElement.complete && imgElement.naturalWidth && imgElement.naturalHeight) {
+          if (
+            imgElement.complete &&
+            imgElement.naturalWidth &&
+            imgElement.naturalHeight
+          ) {
             const ratio = imgElement.naturalWidth / imgElement.naturalHeight;
             setOriginalAspectRatio(ratio);
 
@@ -1894,7 +1904,7 @@ export default function Home() {
         const base64 = e.target?.result as string;
 
         // Carregar a imagem para obter dimensões naturais e calcular aspect ratio
-        const imageElement = document.createElement('img');
+        const imageElement = document.createElement("img");
         imageElement.onload = () => {
           const naturalWidth = imageElement.naturalWidth;
           const naturalHeight = imageElement.naturalHeight;
@@ -2514,7 +2524,9 @@ export default function Home() {
 
     // Verifica se a seleção está dentro do canvas editável (preview)
     if (!previewRef.current.contains(range.commonAncestorContainer)) {
-      setError("Por favor, selecione texto dentro do canvas editável (lado direito).");
+      setError(
+        "Por favor, selecione texto dentro do canvas editável (lado direito).",
+      );
       setTimeout(() => setError(""), 3000);
       return;
     }
@@ -2670,7 +2682,6 @@ export default function Home() {
               </div>
             </label>
           </div>
-
           {hasSocialLink && (
             <div className="pl-3">
               <label className="block text-xs font-medium text-gray-600 mb-1">
@@ -2903,9 +2914,13 @@ export default function Home() {
                       <FileText className="w-5 h-5 text-blue-600" />
                       HTML Original (Referência)
                     </label>
-                    <p className="text-gray-500 mb-3 flex items-center gap-1" style={{ fontSize: "14px" }}>
+                    <p
+                      className="text-gray-500 mb-3 flex items-center gap-1"
+                      style={{ fontSize: "14px" }}
+                    >
                       <Info className="w-3 h-3" />
-                      Cole ou carregue sua assinatura aqui. Edite no canvas à direita.
+                      Cole ou carregue sua assinatura aqui. Edite no canvas à
+                      direita.
                     </p>
 
                     <input
@@ -3172,9 +3187,13 @@ export default function Home() {
                     <Eye className="w-5 h-5 text-green-600" />
                     Canvas Editável (Edite e Visualize Aqui)
                   </label>
-                  <p className="text-gray-500 mb-3 flex items-center gap-1" style={{ fontSize: "14px" }}>
+                  <p
+                    className="text-gray-500 mb-3 flex items-center gap-1"
+                    style={{ fontSize: "14px" }}
+                  >
                     <Info className="w-3 h-3" />
-                    Clique para editar texto. Use os controles para aplicar cores e ajustar o logo.
+                    Clique para editar texto. Use os controles para aplicar
+                    cores e ajustar o logo.
                   </p>
 
                   {/* Botões de ação lado a lado */}
@@ -3268,7 +3287,7 @@ export default function Home() {
                           A aguardar assinatura
                         </p>
                         <p className="text-sm mt-2">
-                          Cole sua assinatura para visualizar
+                          Carregue a sua assinatura, para a poder visualizar
                         </p>
                       </div>
                     </div>
