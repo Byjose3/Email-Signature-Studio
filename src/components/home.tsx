@@ -98,13 +98,16 @@ export default function Home() {
     }
 
     try {
-      // Cria thumbnail usando o HTML completo para preview
+      // Guarda o HTML ORIGINAL (do pasteAreaRef) para permitir edição futura
+      const originalHtml = pasteAreaRef.current?.innerHTML || processedHtml;
+
+      // Cria thumbnail usando o HTML processado para preview
       const thumbnail = processedHtml;
 
       const newSignature: SavedSignature = {
         id: Date.now().toString(),
         name: signatureName.trim(),
-        html: processedHtml,
+        html: originalHtml, // Guarda HTML original, não o processado
         thumbnail,
         savedAt: new Date().toISOString(),
         logoWidth,
@@ -153,16 +156,26 @@ export default function Home() {
 
   // Carrega uma assinatura guardada
   const loadSignature = (signature: SavedSignature) => {
+    // Coloca o HTML original (sem cores customizadas) no pasteArea
     if (pasteAreaRef.current) {
       pasteAreaRef.current.innerHTML = signature.html;
     }
-    setProcessedHtml(signature.html);
+
+    // Carrega as cores guardadas
     setLogoWidth(signature.logoWidth);
     setLogoHeight(signature.logoHeight);
     setTextColor(signature.textColor);
     setSeparatorColor(signature.separatorColor);
-    // Não reprocessa o HTML - usa o HTML guardado tal como está
-    // para manter os espaçamentos originais intactos
+
+    // Processa o HTML com as cores guardadas para mostrar no preview
+    const processed = processHtml(
+      signature.html,
+      signature.textColor,
+      signature.separatorColor,
+    );
+    if (processed) {
+      setProcessedHtml(processed);
+    }
   };
 
   // Confirma a eliminação de uma assinatura
