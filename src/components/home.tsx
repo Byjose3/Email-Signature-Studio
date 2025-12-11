@@ -1030,8 +1030,9 @@ export default function Home() {
           img.setAttribute("height", String(height));
           img.style.width = `${width}px`;
           img.style.height = `${height}px`;
-          img.style.objectFit = "contain";
           img.style.display = "block";
+          img.style.border = "0";
+          img.style.outline = "none";
 
           // Encontra a célula da tabela que contém o logo
           let parentCell = img.parentElement;
@@ -1923,7 +1924,9 @@ export default function Home() {
               img.setAttribute("height", String(newHeight));
               (img as HTMLElement).style.width = `${newWidth}px`;
               (img as HTMLElement).style.height = `${newHeight}px`;
-              (img as HTMLElement).style.objectFit = "contain";
+              (img as HTMLElement).style.display = "block";
+              (img as HTMLElement).style.border = "0";
+              (img as HTMLElement).style.outline = "none";
 
               const newHtml = doc.body.innerHTML;
               setProcessedHtml(newHtml);
@@ -1943,7 +1946,9 @@ export default function Home() {
                   pasteImg.setAttribute("height", String(newHeight));
                   (pasteImg as HTMLElement).style.width = `${newWidth}px`;
                   (pasteImg as HTMLElement).style.height = `${newHeight}px`;
-                  (pasteImg as HTMLElement).style.objectFit = "contain";
+                  (pasteImg as HTMLElement).style.display = "block";
+                  (pasteImg as HTMLElement).style.border = "0";
+                  (pasteImg as HTMLElement).style.outline = "none";
 
                   pasteAreaRef.current.innerHTML = pasteDoc.body.innerHTML;
                 }
@@ -2057,7 +2062,9 @@ export default function Home() {
         (logo as HTMLElement).style.height = "auto";
       }
       (logo as HTMLElement).style.width = `${width}px`;
-      (logo as HTMLElement).style.objectFit = "contain";
+      (logo as HTMLElement).style.display = "block";
+      (logo as HTMLElement).style.border = "0";
+      (logo as HTMLElement).style.outline = "none";
 
       // Atualiza a célula da tabela que contém o logo
       let parentCell = logo.parentElement;
@@ -2112,7 +2119,9 @@ export default function Home() {
             (pasteLogo as HTMLElement).style.height = "auto";
           }
           (pasteLogo as HTMLElement).style.width = `${width}px`;
-          (pasteLogo as HTMLElement).style.objectFit = "contain";
+          (pasteLogo as HTMLElement).style.display = "block";
+          (pasteLogo as HTMLElement).style.border = "0";
+          (pasteLogo as HTMLElement).style.outline = "none";
 
           // Atualiza a célula da tabela no paste area
           let pasteParentCell = pasteLogo.parentElement;
@@ -2325,10 +2334,38 @@ export default function Home() {
         }
       }
 
+      // Para o logo (img-0), adiciona atributos especiais para bloquear redimensionamento no Gmail
+      const imageId = imgElement.getAttribute("data-image-id");
+      if (imageId === "img-0") {
+        // Display block força o Gmail a respeitar as dimensões
+        imgElement.style.display = "block";
+
+        // Border e outline removem qualquer borda que possa afetar dimensões
+        imgElement.style.border = "0";
+        imgElement.style.outline = "none";
+
+        // Garante que margin e padding não afetam o tamanho
+        imgElement.style.margin = "0";
+        imgElement.style.padding = "0";
+
+        // Remove TODOS os atributos que permitem redimensionamento
+        imgElement.removeAttribute("data-gce-editing");
+        imgElement.removeAttribute("contenteditable");
+
+        // Adiciona atributos para prevenir redimensionamento
+        imgElement.setAttribute("data-gce-editing", "false");
+
+        // Atributos adicionais que alguns clientes de email respeitam
+        imgElement.setAttribute("border", "0");
+      }
+
       // Remove propriedades problemáticas
       imgElement.style.removeProperty("max-width");
       imgElement.style.removeProperty("max-height");
+      imgElement.style.removeProperty("min-width");
+      imgElement.style.removeProperty("min-height");
       imgElement.style.removeProperty("object-fit");
+      imgElement.style.removeProperty("object-position");
     });
 
     // Otimiza links
