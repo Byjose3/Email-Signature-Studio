@@ -43,6 +43,7 @@ interface SavedSignature {
 
 export default function Home() {
   const [processedHtml, setProcessedHtml] = useState("");
+  const [originalHtml, setOriginalHtml] = useState(""); // HTML original sem processamento
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -175,6 +176,9 @@ export default function Home() {
 
   // Carrega uma assinatura guardada
   const loadSignature = (signature: SavedSignature) => {
+    // Guarda HTML original
+    setOriginalHtml(signature.html);
+
     // Coloca o HTML original no pasteArea
     if (pasteAreaRef.current) {
       pasteAreaRef.current.innerHTML = signature.html;
@@ -608,46 +612,30 @@ export default function Home() {
 
   // Reprocessa HTML quando a cor de TEXTO mudar
   useEffect(() => {
-    if (pasteAreaRef.current && pasteAreaRef.current.innerHTML) {
-      const currentContent = pasteAreaRef.current.innerHTML;
-      // Verifica se não é o placeholder e se tem conteúdo válido
-      if (
-        currentContent !==
-          '<span class="text-gray-400 select-none">Edite a sua assinatura, depois de a carregar</span>' &&
-        currentContent.trim() !== ""
-      ) {
-        // Reprocessa com a cor atual (pode ser undefined se não escolheu ainda)
-        const processed = processHtml(
-          currentContent,
-          textColor || undefined,
-          separatorColor || undefined,
-        );
-        if (processed) {
-          setProcessedHtml(processed);
-        }
+    if (originalHtml && originalHtml.trim() !== "") {
+      // Reprocessa o HTML ORIGINAL (não o do pasteArea que pode ter sido editado)
+      const processed = processHtml(
+        originalHtml,
+        textColor || undefined,
+        separatorColor || undefined,
+      );
+      if (processed) {
+        setProcessedHtml(processed);
       }
     }
   }, [textColor]);
 
   // Reprocessa HTML quando a cor da BARRA mudar
   useEffect(() => {
-    if (pasteAreaRef.current && pasteAreaRef.current.innerHTML) {
-      const currentContent = pasteAreaRef.current.innerHTML;
-      // Verifica se não é o placeholder e se tem conteúdo válido
-      if (
-        currentContent !==
-          '<span class="text-gray-400 select-none">Edite a sua assinatura, depois de a carregar</span>' &&
-        currentContent.trim() !== ""
-      ) {
-        // Reprocessa com a cor atual (pode ser undefined se não escolheu ainda)
-        const processed = processHtml(
-          currentContent,
-          textColor || undefined,
-          separatorColor || undefined,
-        );
-        if (processed) {
-          setProcessedHtml(processed);
-        }
+    if (originalHtml && originalHtml.trim() !== "") {
+      // Reprocessa o HTML ORIGINAL (não o do pasteArea que pode ter sido editado)
+      const processed = processHtml(
+        originalHtml,
+        textColor || undefined,
+        separatorColor || undefined,
+      );
+      if (processed) {
+        setProcessedHtml(processed);
       }
     }
   }, [separatorColor]);
@@ -1841,12 +1829,17 @@ export default function Home() {
       setSeparatorColor("");
 
       if (htmlData) {
+        // Guarda HTML original
+        setOriginalHtml(htmlData);
+
         // Limpa a área de paste com HTML original
         if (pasteAreaRef.current) {
           pasteAreaRef.current.innerHTML = htmlData;
         }
         processHtml(htmlData, undefined, undefined);
       } else if (textData) {
+        setOriginalHtml(textData);
+
         if (pasteAreaRef.current) {
           pasteAreaRef.current.textContent = textData;
         }
@@ -1884,6 +1877,9 @@ export default function Home() {
       const reader = new FileReader();
       reader.onload = (event) => {
         const content = event.target?.result as string;
+
+        // Guarda HTML original
+        setOriginalHtml(content);
 
         if (pasteAreaRef.current) {
           pasteAreaRef.current.innerHTML = content;
