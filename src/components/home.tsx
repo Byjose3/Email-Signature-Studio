@@ -2790,7 +2790,7 @@ export default function Home() {
                       <FileText className="w-5 h-5 text-blue-600" />
                       HTML Original (Referência)
                     </label>
-                    <p className="text-xs text-gray-500 mb-3 flex items-center gap-1">
+                    <p className="text-gray-500 mb-3 flex items-center gap-1" style={{ fontSize: "14px" }}>
                       <Info className="w-3 h-3" />
                       Cole ou carregue sua assinatura aqui. Edite no canvas à direita.
                     </p>
@@ -3054,18 +3054,18 @@ export default function Home() {
                 </div>
 
                 {/* Coluna Direita - Preview */}
-                <div className="lg:sticky lg:top-12 lg:self-start">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
+                <div className="lg:sticky lg:top-6 lg:self-start">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                     <Eye className="w-5 h-5 text-green-600" />
                     Canvas Editável (Edite e Visualize Aqui)
                   </label>
-                  <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+                  <p className="text-gray-500 mb-3 flex items-center gap-1" style={{ fontSize: "14px" }}>
                     <Info className="w-3 h-3" />
                     Clique para editar texto. Use os controles para aplicar cores e ajustar o logo.
                   </p>
 
                   {/* Botões de ação lado a lado */}
-                  <div className="flex gap-3 mb-3">
+                  <div className="flex gap-3 mb-4">
                     <button
                       onClick={copyToClipboard}
                       disabled={!processedHtml}
