@@ -88,25 +88,14 @@ export default function Home() {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
 
-    // Remove style.color de todos os elementos (exceto links que devem manter cor)
+    // Força cor preta em todos os elementos de texto (exceto links)
     const allElements = doc.querySelectorAll("*");
     allElements.forEach((el) => {
       const element = el as HTMLElement;
-      // Só remove cor se NÃO for um link (links mantêm cor original)
-      if (element.tagName !== "A") {
-        // Remove style.color completamente
-        element.style.removeProperty("color");
-
-        // Remove atributo color (usado em elementos <font>)
-        if (element.hasAttribute("color")) {
-          element.removeAttribute("color");
-        }
-
-        // Limpa atributo style se ficou vazio
-        const styleAttr = element.getAttribute("style");
-        if (styleAttr && styleAttr.trim() === "") {
-          element.removeAttribute("style");
-        }
+      // Só remove/força cor se NÃO for um link (links mantêm cor original)
+      if (element.tagName !== "A" && element.textContent && element.textContent.trim()) {
+        // FORÇA cor preta para sobrescrever qualquer cor inline
+        element.style.color = "#000000";
       }
     });
 
@@ -1886,16 +1875,8 @@ export default function Home() {
         currentContent !==
           '<span class="text-gray-400 select-none">Edite a sua assinatura, depois de a carregar</span>'
       ) {
-        // Remove cores inline do conteúdo editado para manter original
-        const cleanedContent = removeInlineColors(currentContent);
-
-        // Atualiza o pasteArea apenas se o conteúdo mudou
-        if (cleanedContent !== currentContent) {
-          pasteAreaRef.current.innerHTML = cleanedContent;
-        }
-
-        // Processa para o preview
-        processHtml(cleanedContent, undefined, undefined);
+        // Processa para o preview SEM aplicar cores customizadas
+        processHtml(currentContent, undefined, undefined);
       }
     }
   };
