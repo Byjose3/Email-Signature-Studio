@@ -532,6 +532,41 @@ export default function Home() {
           if (!firstSocialLinkFound) {
             firstSocialLinkFound = true
 
+            // LIMPA elementos vazios/whitespace ANTES do primeiro ícone
+            let currentNode = linkElement.previousSibling
+            const nodesToRemove: Node[] = []
+
+            // Percorre todos os siblings anteriores e marca vazios para remoção
+            while (currentNode) {
+              let shouldRemove = false
+
+              if (currentNode.nodeType === Node.TEXT_NODE) {
+                // Remove text nodes que são só whitespace
+                if (currentNode.textContent?.trim() === '') {
+                  shouldRemove = true
+                }
+              } else if (currentNode.nodeType === Node.ELEMENT_NODE) {
+                const el = currentNode as HTMLElement
+                // Remove elementos vazios (mas preserva <br>)
+                const isEmpty = !el.textContent?.trim() &&
+                               el.tagName !== 'BR' &&
+                               !el.querySelector('img') &&
+                               !el.querySelector('a')
+                if (isEmpty) {
+                  shouldRemove = true
+                }
+              }
+
+              if (shouldRemove) {
+                nodesToRemove.push(currentNode)
+              }
+
+              currentNode = currentNode.previousSibling
+            }
+
+            // Remove os nós vazios
+            nodesToRemove.forEach(node => node.remove())
+
             // Adiciona um <br> antes do primeiro ícone para criar espaço vertical
             // Gmail produção preserva <br> tags
             const br = doc.createElement('br')
@@ -601,6 +636,34 @@ export default function Home() {
         if (nextSibling && nextSibling.nodeName === 'BR') {
           br.remove()
         }
+      })
+
+      // LIMPEZA AGRESSIVA: Remove elementos vazios e text nodes só com whitespace
+      const allElsToClean = doc.querySelectorAll('*')
+      allElsToClean.forEach(el => {
+        const element = el as HTMLElement
+
+        // Remove elementos COMPLETAMENTE vazios (sem texto, sem imagens, sem links)
+        const hasNoText = !element.textContent || element.textContent.trim() === ''
+        const hasNoImages = !element.querySelector('img')
+        const hasNoLinks = !element.querySelector('a')
+        const isNotBr = element.tagName !== 'BR'
+        const isNotTable = element.tagName !== 'TABLE' && element.tagName !== 'TR' &&
+                          element.tagName !== 'TD' && element.tagName !== 'TBODY'
+
+        if (hasNoText && hasNoImages && hasNoLinks && isNotBr && isNotTable) {
+          element.remove()
+        }
+
+        // Remove text nodes que só têm whitespace (espaços vazios entre elementos)
+        Array.from(element.childNodes).forEach(node => {
+          if (node.nodeType === Node.TEXT_NODE && node.textContent) {
+            // Se for SÓ whitespace, remove completamente
+            if (node.textContent.trim() === '') {
+              node.remove()
+            }
+          }
+        })
       })
 
       // DEPOIS: Processa imagens (agora os links já têm display:inline-block aplicado)
