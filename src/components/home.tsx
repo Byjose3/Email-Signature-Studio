@@ -579,9 +579,27 @@ export default function Home() {
         if (isContact && !firstContactFound) {
           firstContactFound = true
 
-          // Adiciona <br> ANTES do primeiro contacto
-          const br = doc.createElement('br')
-          element.parentNode?.insertBefore(br, element)
+          // Verifica se JÁ existe <br> antes (evita duplicados)
+          const prevSibling = element.previousSibling
+          const prevElement = element.previousElementSibling
+          const alreadyHasBr = (prevSibling && prevSibling.nodeName === 'BR') ||
+                              (prevElement && prevElement.tagName === 'BR')
+
+          // Só adiciona se NÃO houver <br> já
+          if (!alreadyHasBr) {
+            const br = doc.createElement('br')
+            element.parentNode?.insertBefore(br, element)
+          }
+        }
+      })
+
+      // REMOVE <br> duplicados/consecutivos (causa espaços vazios extras)
+      const allBrs = doc.querySelectorAll('br')
+      allBrs.forEach(br => {
+        const nextSibling = br.nextSibling
+        // Se próximo elemento também é <br>, remove um deles
+        if (nextSibling && nextSibling.nodeName === 'BR') {
+          br.remove()
         }
       })
 
