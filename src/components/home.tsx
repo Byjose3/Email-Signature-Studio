@@ -665,7 +665,8 @@ export default function Home() {
         }
       })
 
-      // LIMPEZA AGRESSIVA: Remove elementos vazios e text nodes só com whitespace
+      // LIMPEZA AGRESSIVA: Remove elementos vazios
+      // MAS NÃO remove text nodes com whitespace (podem ser espaços após p:, m:, etc.)
       const allElsToClean = doc.querySelectorAll('*')
       allElsToClean.forEach(el => {
         const element = el as HTMLElement
@@ -675,22 +676,16 @@ export default function Home() {
         const hasNoImages = !element.querySelector('img')
         const hasNoLinks = !element.querySelector('a')
         const isNotBr = element.tagName !== 'BR'
+        const isNotImg = element.tagName !== 'IMG'
         const isNotTable = element.tagName !== 'TABLE' && element.tagName !== 'TR' &&
                           element.tagName !== 'TD' && element.tagName !== 'TBODY'
 
-        if (hasNoText && hasNoImages && hasNoLinks && isNotBr && isNotTable) {
+        if (hasNoText && hasNoImages && hasNoLinks && isNotBr && isNotImg && isNotTable) {
           element.remove()
         }
 
-        // Remove text nodes que só têm whitespace (espaços vazios entre elementos)
-        Array.from(element.childNodes).forEach(node => {
-          if (node.nodeType === Node.TEXT_NODE && node.textContent) {
-            // Se for SÓ whitespace, remove completamente
-            if (node.textContent.trim() === '') {
-              node.remove()
-            }
-          }
-        })
+        // NÃO remove text nodes com whitespace - eles podem ser espaços importantes
+        // como o espaço após "p:", "m:", "w:", etc.
       })
 
       // DEPOIS: Processa imagens (agora os links já têm display:inline-block aplicado)
@@ -813,17 +808,8 @@ export default function Home() {
       divs.forEach(div => {
         const divElement = div as HTMLElement
 
-        // Remove espaços/tabs/whitespace no INÍCIO de text nodes
-        // MAS APENAS se for o primeiro filho do DIV (não há nada antes)
-        divElement.childNodes.forEach((node, index) => {
-          if (node.nodeType === Node.TEXT_NODE && node.textContent) {
-            // Só remove espaços iniciais se for o PRIMEIRO child node
-            // Se houver um <strong> ou <b> antes, preserva o espaço (é o espaço após "p:", "m:", etc.)
-            if (index === 0) {
-              node.textContent = node.textContent.replace(/^\s+/, '')
-            }
-          }
-        })
+        // NÃO remove espaços dos text nodes - pode remover espaços importantes
+        // como o espaço após "p:", "m:", "w:", "e:", "a:"
 
         // Detecta se é o subtítulo "IN BANK SERVICE®"
         const text = divElement.textContent?.trim() || ''
