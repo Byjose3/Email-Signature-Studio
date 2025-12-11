@@ -608,20 +608,19 @@ export default function Home() {
 
   // Reprocessa HTML quando a cor de TEXTO mudar
   useEffect(() => {
-    if (textColor && pasteAreaRef.current && pasteAreaRef.current.innerHTML) {
+    if (pasteAreaRef.current && pasteAreaRef.current.innerHTML) {
       const currentContent = pasteAreaRef.current.innerHTML;
       // Verifica se não é o placeholder e se tem conteúdo válido
       if (
         currentContent !==
           '<span class="text-gray-400 select-none">Edite a sua assinatura, depois de a carregar</span>' &&
-        currentContent.trim() !== "" &&
-        processedHtml
+        currentContent.trim() !== ""
       ) {
-        // Só reprocessa se já existe HTML processado
+        // Reprocessa com a cor atual (pode ser undefined se não escolheu ainda)
         const processed = processHtml(
           currentContent,
-          textColor,
-          separatorColor,
+          textColor || undefined,
+          separatorColor || undefined,
         );
         if (processed) {
           setProcessedHtml(processed);
@@ -632,24 +631,19 @@ export default function Home() {
 
   // Reprocessa HTML quando a cor da BARRA mudar
   useEffect(() => {
-    if (
-      separatorColor &&
-      pasteAreaRef.current &&
-      pasteAreaRef.current.innerHTML
-    ) {
+    if (pasteAreaRef.current && pasteAreaRef.current.innerHTML) {
       const currentContent = pasteAreaRef.current.innerHTML;
       // Verifica se não é o placeholder e se tem conteúdo válido
       if (
         currentContent !==
           '<span class="text-gray-400 select-none">Edite a sua assinatura, depois de a carregar</span>' &&
-        currentContent.trim() !== "" &&
-        processedHtml
+        currentContent.trim() !== ""
       ) {
-        // Só reprocessa se já existe HTML processado
+        // Reprocessa com a cor atual (pode ser undefined se não escolheu ainda)
         const processed = processHtml(
           currentContent,
-          textColor,
-          separatorColor,
+          textColor || undefined,
+          separatorColor || undefined,
         );
         if (processed) {
           setProcessedHtml(processed);
