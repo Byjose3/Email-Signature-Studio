@@ -705,6 +705,15 @@ export default function Home() {
       divs.forEach(div => {
         const divElement = div as HTMLElement
 
+        // Remove espaços/tabs/whitespace no INÍCIO de text nodes
+        // Isto remove espaço invisível entre <br> e texto
+        divElement.childNodes.forEach(node => {
+          if (node.nodeType === Node.TEXT_NODE && node.textContent) {
+            // Remove apenas espaços NO INÍCIO (preserva espaços internos e no fim)
+            node.textContent = node.textContent.replace(/^\s+/, '')
+          }
+        })
+
         // Detecta se é o subtítulo "IN BANK SERVICE®"
         const text = divElement.textContent?.trim() || ''
         const isBold = divElement.style.fontWeight === 'bold' ||
@@ -1221,6 +1230,13 @@ export default function Home() {
       const paragraphs = doc.querySelectorAll('p')
       paragraphs.forEach(p => {
         const pElement = p as HTMLElement
+
+        // Remove espaços/tabs/whitespace no INÍCIO de text nodes
+        pElement.childNodes.forEach(node => {
+          if (node.nodeType === Node.TEXT_NODE && node.textContent) {
+            node.textContent = node.textContent.replace(/^\s+/, '')
+          }
+        })
 
         // Detecta se é o subtítulo "IN BANK SERVICE®"
         const text = pElement.textContent?.trim() || ''
