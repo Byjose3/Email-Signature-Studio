@@ -1887,7 +1887,7 @@ export default function Home() {
         console.log("FileReader onload", { base64Length: base64?.length });
 
         // Carregar a imagem para obter dimensões naturais e calcular aspect ratio
-        const imageElement = new Image();
+        const imageElement = document.createElement('img');
         imageElement.onload = () => {
           const naturalWidth = imageElement.naturalWidth;
           const naturalHeight = imageElement.naturalHeight;
