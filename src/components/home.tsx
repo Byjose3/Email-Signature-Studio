@@ -1856,6 +1856,9 @@ export default function Home() {
         currentContent !==
           '<span class="text-gray-400 select-none">Edite a sua assinatura, depois de a carregar</span>'
       ) {
+        // Atualiza o HTML original com a versão editada
+        setOriginalHtml(currentContent);
+
         // Processa para o preview SEM aplicar cores customizadas
         processHtml(currentContent, undefined, undefined);
       }
@@ -2310,8 +2313,14 @@ export default function Home() {
           htmlElement.textContent &&
           htmlElement.textContent.trim() !== ""
         ) {
+          // Remove cor existente primeiro para evitar conflitos
+          htmlElement.style.removeProperty("color");
+          // Aplica nova cor
           htmlElement.style.color = customTextColor;
         }
+      } else {
+        // Se NÃO há cor customizada, mantém cor original (não remove)
+        // Isto garante que o pasteArea mantém cores originais
       }
 
       // Preserva e reforça bold
