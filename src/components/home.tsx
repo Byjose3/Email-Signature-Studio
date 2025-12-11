@@ -94,7 +94,7 @@ export default function Home() {
       const element = el as HTMLElement;
       // Só remove cor se NÃO for um link (links mantêm cor original)
       if (element.tagName !== "A") {
-        // Remove style.color completamente
+        // Remove style.color completamente usando removeProperty
         element.style.removeProperty("color");
 
         // Remove atributo color (usado em elementos <font>)
@@ -102,10 +102,31 @@ export default function Home() {
           element.removeAttribute("color");
         }
 
-        // Limpa atributo style se ficou vazio
+        // Remove elementos <font> problemáticos
+        if (element.tagName === "FONT") {
+          // Preserva apenas o conteúdo, remove o <font>
+          const parent = element.parentNode;
+          while (element.firstChild) {
+            parent?.insertBefore(element.firstChild, element);
+          }
+          parent?.removeChild(element);
+        }
+
+        // Limpa atributo style completamente se ficou vazio ou só tem espaços
         const styleAttr = element.getAttribute("style");
-        if (styleAttr && styleAttr.trim() === "") {
-          element.removeAttribute("style");
+        if (!styleAttr || styleAttr.trim() === "" || styleAttr.trim() === ";" || styleAttr.includes("color:")) {
+          // Se ainda tem color no style, força remoção manual
+          if (styleAttr && styleAttr.includes("color:")) {
+            // Remove propriedade color do atributo style usando regex
+            const newStyle = styleAttr.replace(/color\s*:\s*[^;]+;?/gi, "").trim();
+            if (newStyle === "" || newStyle === ";") {
+              element.removeAttribute("style");
+            } else {
+              element.setAttribute("style", newStyle);
+            }
+          } else if (!styleAttr || styleAttr.trim() === "" || styleAttr.trim() === ";") {
+            element.removeAttribute("style");
+          }
         }
       }
     });
