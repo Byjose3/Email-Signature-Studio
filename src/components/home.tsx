@@ -618,31 +618,29 @@ export default function Home() {
     setTimeout(() => setSuccessMessage(""), 3000);
   };
 
-  // Reprocessa HTML quando a cor de TEXTO ou BARRA mudar
-  useEffect(() => {
-    if (originalHtml && originalHtml.trim() !== "") {
-      // Se o preview foi editado manualmente, usa o conteúdo atual do preview
-      // Caso contrário, reprocessa a partir do original
-      const currentHtml = previewRef.current?.innerHTML || "";
-      const hasBeenManuallyEdited =
-        processedHtml &&
-        currentHtml &&
-        currentHtml !== processedHtml &&
-        currentHtml.trim() !== "";
-
-      const sourceHtml = hasBeenManuallyEdited ? currentHtml : originalHtml;
-
-      const processed = processHtml(
-        sourceHtml,
-        textColor || undefined,
-        separatorColor || undefined,
-      );
-      if (processed && processed !== processedHtml) {
-        setProcessedHtml(processed);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [textColor, separatorColor, originalHtml]);
+  // DESATIVADO: Este useEffect reprocessava o HTML destruindo cores aplicadas manualmente
+  // A aplicação de cores agora é feita via applyColorToSelection sem reprocessar
+  // useEffect(() => {
+  //   if (originalHtml && originalHtml.trim() !== "") {
+  //     const currentHtml = previewRef.current?.innerHTML || "";
+  //     const hasBeenManuallyEdited =
+  //       processedHtml &&
+  //       currentHtml &&
+  //       currentHtml !== processedHtml &&
+  //       currentHtml.trim() !== "";
+  //
+  //     const sourceHtml = hasBeenManuallyEdited ? currentHtml : originalHtml;
+  //
+  //     const processed = processHtml(
+  //       sourceHtml,
+  //       textColor || undefined,
+  //       separatorColor || undefined,
+  //     );
+  //     if (processed && processed !== processedHtml) {
+  //       setProcessedHtml(processed);
+  //     }
+  //   }
+  // }, [textColor, separatorColor, originalHtml]);
 
   // Atualiza o preview ref quando processedHtml muda (aplicação de cores)
   useEffect(() => {
