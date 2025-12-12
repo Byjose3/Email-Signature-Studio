@@ -636,12 +636,15 @@ export default function Home() {
       return;
     }
 
-    // Cria um span com a cor
-    const span = document.createElement("span");
-    span.style.color = textColor;
+    // Usa tag <font> com atributo color para máxima compatibilidade com Gmail
+    // Gmail preserva melhor <font color=""> do que <span style="color:">
+    const font = document.createElement("font");
+    font.setAttribute("color", textColor);
+    // Também define style.color como fallback
+    font.style.color = textColor;
 
     try {
-      range.surroundContents(span);
+      range.surroundContents(font);
 
       // Atualiza o processedHtml com o novo conteúdo
       if (previewRef.current) {
