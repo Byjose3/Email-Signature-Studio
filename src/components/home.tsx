@@ -2739,16 +2739,16 @@ export default function Home() {
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+            <div className="fixed top-4 right-4 z-50 p-4 bg-red-50 border-2 border-red-300 rounded-lg shadow-xl flex items-start gap-3 max-w-md animate-in slide-in-from-top-5">
               <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-red-800 text-sm">{error}</p>
+              <p className="text-red-800 text-sm font-medium">{error}</p>
             </div>
           )}
 
           {successMessage && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3">
+            <div className="fixed top-4 right-4 z-50 p-4 bg-green-50 border-2 border-green-300 rounded-lg shadow-xl flex items-start gap-3 max-w-md animate-in slide-in-from-top-5">
               <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-              <p className="text-green-800 text-sm">{successMessage}</p>
+              <p className="text-green-800 text-sm font-medium">{successMessage}</p>
             </div>
           )}
 
@@ -3210,37 +3210,36 @@ export default function Home() {
                     cores e ajustar o logo.
                   </p>
 
-                  {/* Botões de ação lado a lado */}
-                  <div className="flex gap-3 mb-4">
-                    <button
-                      onClick={copyToClipboard}
-                      disabled={!processedHtml}
-                      className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg font-medium"
-                    >
-                      {copied ? (
-                        <>
-                          <Check className="w-5 h-5" />
-                          Copiado!
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-5 h-5" />
-                          Copiar
-                        </>
-                      )}
-                    </button>
+                  {/* Aviso importante sobre cópia */}
+                  {processedHtml && (
+                    <div className="mb-4 p-4 bg-amber-50 border-2 border-amber-300 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <div className="text-sm text-amber-800">
+                          <p className="font-semibold mb-1">⚠️ Importante: Como copiar para o Gmail</p>
+                          <p className="mb-2">Para garantir que as cores aparecem no Gmail:</p>
+                          <ol className="list-decimal list-inside space-y-1 ml-2">
+                            <li><strong>Guarde</strong> a assinatura usando o botão abaixo</li>
+                            <li>Vá à aba <strong>"Assinaturas Guardadas"</strong></li>
+                            <li><strong>Copie</strong> a partir da assinatura guardada</li>
+                          </ol>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
-                    {/* Botão para guardar assinatura atual */}
-                    {processedHtml && !showSaveDialog && (
+                  {/* Botão para guardar assinatura atual */}
+                  {processedHtml && !showSaveDialog && (
+                    <div className="mb-4">
                       <button
                         onClick={() => setShowSaveDialog(true)}
-                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md font-medium"
+                        className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md font-medium"
                       >
                         <Save className="w-5 h-5" />
-                        Guardar
+                        Guardar Assinatura
                       </button>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
                   {/* Dialog para guardar assinatura */}
                   {processedHtml && showSaveDialog && (
