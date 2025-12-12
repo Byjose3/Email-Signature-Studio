@@ -636,20 +636,19 @@ export default function Home() {
       return;
     }
 
-    // Cria um span com a cor (método original que funcionava)
-    const span = document.createElement("span");
-    span.style.color = textColor;
-
     try {
-      range.surroundContents(span);
+      // Cria um span com a cor (mesma metodologia da barra)
+      const span = document.createElement("span");
+      span.style.color = textColor;
 
-      // Atualiza o processedHtml com o novo conteúdo
-      if (previewRef.current) {
-        setProcessedHtml(previewRef.current.innerHTML);
-      }
+      // Tenta envolver o conteúdo selecionado
+      range.surroundContents(span);
 
       // Limpa a seleção
       selection.removeAllRanges();
+
+      // Atualiza o processedHtml com o novo conteúdo (mesma lógica da barra)
+      setProcessedHtml(previewRef.current.innerHTML);
 
       setSuccessMessage("Cor aplicada ao texto selecionado!");
       setTimeout(() => setSuccessMessage(""), 2000);
