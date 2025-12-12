@@ -2696,6 +2696,52 @@ export default function Home() {
           }
         });
 
+        // CRÍTICO: Divide tags <font> que contêm <br> para preservar quebras de linha no Gmail
+        const fontTags = doc.querySelectorAll('font[color]');
+        fontTags.forEach((fontEl) => {
+          const font = fontEl as HTMLElement;
+          const color = font.getAttribute('color');
+          if (!color) return;
+
+          // Verifica se contém <br>
+          const hasBR = font.querySelector('br');
+          if (!hasBR) return;
+
+          // Tem <br> - divide em múltiplas tags <font>
+          const parent = font.parentNode;
+          if (!parent) return;
+
+          const fragment = doc.createDocumentFragment();
+          const children = Array.from(font.childNodes);
+
+          children.forEach((child) => {
+            if (child.nodeName === 'BR') {
+              // BR fica fora das tags <font>
+              fragment.appendChild(child.cloneNode());
+            } else if (child.nodeType === Node.TEXT_NODE) {
+              // Texto simples - envolve em <font>
+              const text = child.textContent || '';
+              if (text.trim()) {
+                const newFont = doc.createElement('font');
+                newFont.setAttribute('color', color);
+                newFont.textContent = text;
+                fragment.appendChild(newFont);
+              } else if (text) {
+                // Espaços em branco - mantém fora
+                fragment.appendChild(child.cloneNode());
+              }
+            } else {
+              // Outro elemento - envolve em <font>
+              const newFont = doc.createElement('font');
+              newFont.setAttribute('color', color);
+              newFont.appendChild(child.cloneNode(true));
+              fragment.appendChild(newFont);
+            }
+          });
+
+          parent.replaceChild(fragment, font);
+        });
+
         htmlToCopy = doc.body.innerHTML;
 
         // Otimiza para Gmail (garante width e height fixos no logo)
