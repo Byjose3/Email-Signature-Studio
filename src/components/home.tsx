@@ -637,37 +637,13 @@ export default function Home() {
     }
 
     try {
-      // Cria tag <font> com atributo color (mesma abordagem da barra)
-      const font = document.createElement('font');
-      font.setAttribute('color', textColor);
+      // Usa apenas execCommand - é o método mais seguro que preserva estrutura
+      // Define para usar tags HTML (<font>) em vez de CSS
+      document.execCommand('styleWithCSS', false, 'false');
+      document.execCommand('foreColor', false, textColor);
 
-      // Extrai o conteúdo selecionado
-      const contents = range.extractContents();
-
-      // Verifica se há elementos de quebra de linha (BR) ou blocos no conteúdo extraído
-      const blockElements = contents.querySelectorAll('br, div, p');
-
-      if (blockElements.length > 0) {
-        // Se há elementos de bloco, precisamos de ser mais cuidadosos
-        // Coloca o conteúdo de volta e aplica cor elemento por elemento
-        range.insertNode(contents);
-
-        // Re-seleciona para aplicar cor via execCommand (mais seguro para conteúdo complexo)
-        const newRange = document.createRange();
-        newRange.setStart(range.startContainer, range.startOffset);
-        newRange.setEnd(range.endContainer, range.endOffset);
-        selection.removeAllRanges();
-        selection.addRange(newRange);
-
-        document.execCommand('styleWithCSS', false, 'false');
-        document.execCommand('foreColor', false, textColor);
-        selection.removeAllRanges();
-      } else {
-        // Sem elementos de bloco - pode envolver tudo numa tag <font> com segurança
-        font.appendChild(contents);
-        range.insertNode(font);
-        selection.removeAllRanges();
-      }
+      // Limpa a seleção
+      selection.removeAllRanges();
 
       // Atualiza o processedHtml com o novo conteúdo
       setProcessedHtml(previewRef.current.innerHTML);
