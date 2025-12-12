@@ -1032,10 +1032,11 @@ export default function Home() {
           setLogoHeight(0); // 0 = auto
 
           // Aplica APENAS width - height será calculado automaticamente pelo navegador
-          // Isso faz o Gmail tratar como "tamanho original" desde o início
+          // Define max-width para prevenir Gmail de aplicar "tamanho médio"
           img.setAttribute("width", String(width));
           img.removeAttribute("height"); // Remove height para forçar aspect ratio natural
           img.style.width = `${width}px`;
+          img.style.maxWidth = `${width}px`; // Bloqueia redimensionamento automático do Gmail
           // NÃO define style.height - deixa o navegador calcular
           img.style.removeProperty("height");
           img.style.display = "block";
@@ -1929,6 +1930,7 @@ export default function Home() {
               img.setAttribute("width", String(newWidth));
               img.removeAttribute("height"); // Remove height - deixa navegador calcular
               (img as HTMLElement).style.width = `${newWidth}px`;
+              (img as HTMLElement).style.maxWidth = `${newWidth}px`; // Previne Gmail aplicar tamanho médio
               (img as HTMLElement).style.removeProperty("height"); // Remove style.height
               (img as HTMLElement).style.display = "block";
               (img as HTMLElement).style.border = "0";
@@ -1951,6 +1953,7 @@ export default function Home() {
                   pasteImg.setAttribute("width", String(newWidth));
                   pasteImg.removeAttribute("height"); // Remove height - deixa navegador calcular
                   (pasteImg as HTMLElement).style.width = `${newWidth}px`;
+                  (pasteImg as HTMLElement).style.maxWidth = `${newWidth}px`; // Previne Gmail aplicar tamanho médio
                   (pasteImg as HTMLElement).style.removeProperty("height"); // Remove style.height
                   (pasteImg as HTMLElement).style.display = "block";
                   (pasteImg as HTMLElement).style.border = "0";
@@ -2065,9 +2068,10 @@ export default function Home() {
       } else {
         // Se height é 0, usa auto
         logo.removeAttribute("height");
-        (logo as HTMLElement).style.height = "auto";
+        (logo as HTMLElement).style.removeProperty("height");
       }
       (logo as HTMLElement).style.width = `${width}px`;
+      (logo as HTMLElement).style.maxWidth = `${width}px`; // Previne Gmail aplicar tamanho médio
       (logo as HTMLElement).style.display = "block";
       (logo as HTMLElement).style.border = "0";
       (logo as HTMLElement).style.outline = "none";
@@ -2122,9 +2126,10 @@ export default function Home() {
             (pasteLogo as HTMLElement).style.height = `${height}px`;
           } else {
             pasteLogo.removeAttribute("height");
-            (pasteLogo as HTMLElement).style.height = "auto";
+            (pasteLogo as HTMLElement).style.removeProperty("height");
           }
           (pasteLogo as HTMLElement).style.width = `${width}px`;
+          (pasteLogo as HTMLElement).style.maxWidth = `${width}px`; // Previne Gmail aplicar tamanho médio
           (pasteLogo as HTMLElement).style.display = "block";
           (pasteLogo as HTMLElement).style.border = "0";
           (pasteLogo as HTMLElement).style.outline = "none";
@@ -2323,10 +2328,17 @@ export default function Home() {
         }
       }
 
-      // Para o LOGO: NÃO define height - deixa o navegador calcular baseado no aspect ratio
-      // Para OUTRAS IMAGENS: define height se existir
+      // Para o LOGO: Estratégia especial para Gmail aceitar o tamanho original
       if (isLogo) {
-        // Remove qualquer height do logo para forçar aspect ratio natural
+        // Gmail precisa de max-width definido para NÃO aplicar "tamanho médio" automaticamente
+        // Define max-width igual ao width para bloquear redimensionamento
+        const widthValue = parseInt(width.toString().replace("px", ""));
+        if (!isNaN(widthValue)) {
+          imgElement.style.maxWidth = `${widthValue}px`;
+          imgElement.style.width = `${widthValue}px`;
+        }
+
+        // Remove height para manter aspect ratio natural
         imgElement.removeAttribute("height");
         imgElement.style.removeProperty("height");
 
@@ -2360,7 +2372,10 @@ export default function Home() {
       }
 
       // Remove propriedades problemáticas
-      imgElement.style.removeProperty("max-width");
+      // NÃO remove max-width do logo (necessário para Gmail)
+      if (!isLogo) {
+        imgElement.style.removeProperty("max-width");
+      }
       imgElement.style.removeProperty("max-height");
       imgElement.style.removeProperty("min-width");
       imgElement.style.removeProperty("min-height");
