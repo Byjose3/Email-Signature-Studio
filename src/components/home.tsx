@@ -671,7 +671,19 @@ export default function Home() {
       const cellElement = cell as HTMLElement;
       const style = cellElement.style;
 
-      // Verifica se o elemento tem uma borda esquerda definida
+      // Caso 1: Células separadoras com bgcolor (células estreitas com cor de fundo)
+      const isSeparatorCell = cellElement.getAttribute('data-separator-cell') === 'true';
+      if (isSeparatorCell) {
+        foundBorder = true;
+        // Aplica cor ao background da célula separadora
+        cellElement.style.backgroundColor = separatorColor;
+        // Também atualiza o atributo bgcolor se existir
+        if (cellElement.hasAttribute('bgcolor')) {
+          cellElement.setAttribute('bgcolor', separatorColor);
+        }
+      }
+
+      // Caso 2: Células com border-left
       if (style.borderLeft || style.borderLeftWidth || style.borderLeftColor) {
         foundBorder = true;
 
