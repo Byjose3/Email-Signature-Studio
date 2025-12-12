@@ -618,101 +618,31 @@ export default function Home() {
     setTimeout(() => setSuccessMessage(""), 3000);
   };
 
-  // Função para aplicar cor apenas ao texto selecionado
-  const applyColorToSelection = () => {
-    if (!previewRef.current) return;
+  // Reprocessa HTML quando a cor de TEXTO ou BARRA mudar
+  useEffect(() => {
+    if (originalHtml && originalHtml.trim() !== "") {
+      // Se o preview foi editado manualmente, usa o conteúdo atual do preview
+      // Caso contrário, reprocessa a partir do original
+      const currentHtml = previewRef.current?.innerHTML || "";
+      const hasBeenManuallyEdited =
+        processedHtml &&
+        currentHtml &&
+        currentHtml !== processedHtml &&
+        currentHtml.trim() !== "";
 
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) {
-      setError("Por favor, selecione o texto que deseja colorir.");
-      setTimeout(() => setError(""), 3000);
-      return;
-    }
+      const sourceHtml = hasBeenManuallyEdited ? currentHtml : originalHtml;
 
-    const range = selection.getRangeAt(0);
-    if (range.collapsed) {
-      setError("Por favor, selecione o texto que deseja colorir.");
-      setTimeout(() => setError(""), 3000);
-      return;
-    }
-
-    try {
-      // Usa document.execCommand que preserva melhor a estrutura HTML
-      // Este método é usado nativamente pelos editores de email
-      document.execCommand('styleWithCSS', false, 'false');
-      document.execCommand('foreColor', false, textColor);
-
-      // Atualiza o processedHtml com o novo conteúdo
-      if (previewRef.current) {
-        setProcessedHtml(previewRef.current.innerHTML);
+      const processed = processHtml(
+        sourceHtml,
+        textColor || undefined,
+        separatorColor || undefined,
+      );
+      if (processed && processed !== processedHtml) {
+        setProcessedHtml(processed);
       }
-
-      setSuccessMessage("Cor aplicada ao texto selecionado!");
-      setTimeout(() => setSuccessMessage(""), 2000);
-    } catch (error) {
-      console.error("Erro ao aplicar cor:", error);
-      setError("Erro ao aplicar cor. Por favor, tente novamente.");
-      setTimeout(() => setError(""), 3000);
     }
-  };
-
-  // Função para aplicar cor à barra
-  const applySeparatorColor = () => {
-    if (!previewRef.current || !separatorColor) return;
-
-    // Procura todos os elementos td na assinatura
-    const allCells = previewRef.current.querySelectorAll('td');
-    let foundBorder = false;
-
-    allCells.forEach((cell) => {
-      const cellElement = cell as HTMLElement;
-      const style = cellElement.style;
-
-      // Caso 1: Células separadoras com bgcolor (células estreitas com cor de fundo)
-      const isSeparatorCell = cellElement.getAttribute('data-separator-cell') === 'true';
-      if (isSeparatorCell) {
-        foundBorder = true;
-        // Aplica cor ao background da célula separadora
-        cellElement.style.backgroundColor = separatorColor;
-        // Também atualiza o atributo bgcolor se existir
-        if (cellElement.hasAttribute('bgcolor')) {
-          cellElement.setAttribute('bgcolor', separatorColor);
-        }
-      }
-
-      // Caso 2: Células com border-left
-      if (style.borderLeft || style.borderLeftWidth || style.borderLeftColor) {
-        foundBorder = true;
-
-        // Extrai a largura atual da borda (ou usa 3px como padrão)
-        let borderWidth = '3px';
-        if (style.borderLeftWidth) {
-          borderWidth = style.borderLeftWidth;
-        } else if (style.borderLeft) {
-          const widthMatch = style.borderLeft.match(/(\d+(?:\.\d+)?px)/);
-          if (widthMatch) borderWidth = widthMatch[1];
-        }
-
-        // Aplica a nova cor mantendo a largura
-        cellElement.style.borderLeft = `${borderWidth} solid ${separatorColor}`;
-        cellElement.style.borderLeftWidth = borderWidth;
-        cellElement.style.borderLeftStyle = 'solid';
-        cellElement.style.borderLeftColor = separatorColor;
-      }
-    });
-
-    if (!foundBorder) {
-      setError("Nenhuma barra separadora encontrada na assinatura.");
-      setTimeout(() => setError(""), 3000);
-      return;
-    }
-
-    // Atualiza o processedHtml com o novo conteúdo
-    setProcessedHtml(previewRef.current.innerHTML);
-
-    setSuccessMessage("Cor da barra aplicada!");
-    setTimeout(() => setSuccessMessage(""), 2000);
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [textColor, separatorColor, originalHtml]);
 
   // Atualiza o preview ref quando processedHtml muda (aplicação de cores)
   useEffect(() => {
@@ -720,15 +650,6 @@ export default function Home() {
       // Só atualiza se o conteúdo for diferente (evita loop)
       if (previewRef.current.innerHTML !== processedHtml) {
         previewRef.current.innerHTML = processedHtml;
-      }
-    }
-
-    // CRÍTICO: Também atualiza pasteAreaRef para que as cores aplicadas sejam copiadas
-    if (processedHtml && pasteAreaRef.current) {
-      if (pasteAreaRef.current.innerHTML !== processedHtml) {
-        // Aplica otimização para Gmail antes de colocar no pasteArea
-        const optimizedHtml = optimizeForGmail(processedHtml);
-        pasteAreaRef.current.innerHTML = optimizedHtml;
       }
     }
   }, [processedHtml]);
@@ -1498,8 +1419,10 @@ export default function Home() {
               // Se tem cor customizada do usuário, usa essa
               if (customSeparatorColor) {
                 bgColorHex = customSeparatorColor;
+              } else if (!separatorColor) {
+                // Salva cor original detectada no state (apenas primeira vez)
+                setSeparatorColor(bgColorHex);
               }
-              // NÃO define separatorColor automaticamente para manter botão oculto até user selecionar cor
 
               // Define bgcolor em AMBOS formatos
               cellElement.setAttribute("bgcolor", bgColorHex);
@@ -2488,21 +2411,10 @@ export default function Home() {
 
     // Otimiza elementos de texto para Gmail
     const textElements = doc.querySelectorAll(
-      "p, div, span, td, b, strong, i, em, font",
+      "p, div, span, td, b, strong, i, em",
     );
     textElements.forEach((element) => {
       const htmlElement = element as HTMLElement;
-
-      // CRÍTICO: Preserva tags <font> com atributo color para Gmail
-      if (htmlElement.tagName === "FONT") {
-        const colorAttr = htmlElement.getAttribute("color");
-        if (colorAttr) {
-          // Garante que o atributo color está presente
-          htmlElement.setAttribute("color", colorAttr);
-          // Também reforça no style.color
-          htmlElement.style.color = colorAttr;
-        }
-      }
 
       // Preserva e reforça bold
       if (
@@ -2605,6 +2517,64 @@ export default function Home() {
     return doc.body.innerHTML.trim();
   };
 
+  const applyColorToSelection = () => {
+    if (!previewRef.current || !textColor) return;
+
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      setError("Por favor, selecione o texto que deseja colorir.");
+      setTimeout(() => setError(""), 3000);
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+
+    // Verifica se a seleção está dentro do canvas editável (preview)
+    if (!previewRef.current.contains(range.commonAncestorContainer)) {
+      setError(
+        "Por favor, selecione texto dentro do canvas editável (lado direito).",
+      );
+      setTimeout(() => setError(""), 3000);
+      return;
+    }
+
+    // Cria um span com a cor
+    const span = document.createElement("span");
+    span.style.color = textColor;
+
+    try {
+      // Envolve o conteúdo selecionado no span
+      range.surroundContents(span);
+
+      // Limpa seleção
+      selection.removeAllRanges();
+
+      // Atualiza o processedHtml com o conteúdo editado do preview
+      if (previewRef.current) {
+        setProcessedHtml(previewRef.current.innerHTML);
+      }
+    } catch (error) {
+      // Se falhar (seleção complexa), tenta abordagem alternativa
+      try {
+        const fragment = range.extractContents();
+        span.appendChild(fragment);
+        range.insertNode(span);
+
+        selection.removeAllRanges();
+
+        // Atualiza o processedHtml com o conteúdo editado do preview
+        if (previewRef.current) {
+          setProcessedHtml(previewRef.current.innerHTML);
+        }
+      } catch (e) {
+        setError(
+          "Não foi possível aplicar cor a esta seleção. Tente selecionar apenas texto simples.",
+        );
+        setTimeout(() => setError(""), 3000);
+      }
+    }
+  };
+
   const updateLink = (index: number, newUrl: string) => {
     if (!previewRef.current) return;
 
@@ -2633,36 +2603,7 @@ export default function Home() {
         // Usa o conteúdo atual do preview (pode ter sido editado pelo user)
         let htmlToCopy = previewRef.current.innerHTML;
 
-        // PASSO 1: Converte TODOS elementos com cor para <font> ANTES do optimize
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(htmlToCopy, "text/html");
-
-        // Procura TODOS os elementos (font, span, etc) com cor
-        const allElements = doc.querySelectorAll('[style*="color"]');
-        allElements.forEach((el) => {
-          const element = el as HTMLElement;
-          const color = element.style.color;
-
-          // Ignora TD e TABLE para não quebrar estrutura
-          if (color && element.tagName !== 'TD' && element.tagName !== 'TABLE' && element.tagName !== 'TR') {
-            // Se já é FONT, garante ambos atributos
-            if (element.tagName === 'FONT') {
-              element.setAttribute('color', color);
-              element.style.color = color;
-            } else {
-              // Converte para FONT (span, div, etc)
-              const font = doc.createElement('font');
-              font.setAttribute('color', color);
-              font.style.color = color;
-              font.innerHTML = element.innerHTML;
-              element.parentNode?.replaceChild(font, element);
-            }
-          }
-        });
-
-        htmlToCopy = doc.body.innerHTML;
-
-        // PASSO 2: Otimiza para Gmail (garante width e height fixos no logo)
+        // Otimiza para Gmail (garante width e height fixos no logo)
         htmlToCopy = optimizeForGmail(htmlToCopy);
 
         // Usa método antigo confiável (API moderna tem problemas de compatibilidade)
@@ -3151,27 +3092,15 @@ export default function Home() {
                           </div>
                         </div>
 
-                        <div className="flex gap-2">
-                          {textColor && (
-                            <button
-                              onClick={applyColorToSelection}
-                              className="flex-1 px-4 py-2 bg-purple-600 text-white font-medium rounded-md hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
-                            >
-                              <Palette className="w-4 h-4" />
-                              Aplicar Cor ao Texto
-                            </button>
-                          )}
-
-                          {separatorColor && (
-                            <button
-                              onClick={applySeparatorColor}
-                              className="flex-1 px-4 py-2 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                            >
-                              <Ruler className="w-4 h-4" />
-                              Aplicar Cor à Barra
-                            </button>
-                          )}
-                        </div>
+                        {textColor && (
+                          <button
+                            onClick={applyColorToSelection}
+                            className="w-full px-4 py-2 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                          >
+                            <Sparkles className="w-4 h-4" />
+                            Aplicar Cor ao Texto Selecionado
+                          </button>
+                        )}
 
                         <div
                           className="text-green-700 bg-white/50 p-2 rounded flex items-start gap-2"
@@ -3179,7 +3108,10 @@ export default function Home() {
                         >
                           <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5" />
                           <span>
-                            <strong>Dica:</strong> Selecione o texto no CANVAS EDITÁVEL (lado direito) e clique no botão "Aplicar Cor ao Texto Selecionado". Para a barra, clique em "Aplicar Cor à Barra".
+                            <strong>Dica:</strong>{" "}
+                            {textColor
+                              ? "Selecione o texto no CANVAS EDITÁVEL (lado direito) e clique no botão acima para aplicar a cor"
+                              : "A cor da barra é aplicada automaticamente"}
                           </span>
                         </div>
                       </div>
