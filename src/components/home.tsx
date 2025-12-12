@@ -661,13 +661,17 @@ export default function Home() {
 
   // Função para aplicar cor à barra
   const applySeparatorColor = () => {
-    if (!processedHtml || !separatorColor) return;
+    if (!previewRef.current || !separatorColor) return;
 
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(processedHtml, "text/html");
+    // Aplica cor à barra vertical diretamente no canvas editável
+    const cellsWithBorder = previewRef.current.querySelectorAll('[style*="border-left"]');
 
-    // Aplica cor à barra vertical (elementos com border-left)
-    const cellsWithBorder = doc.querySelectorAll('[style*="border-left"]');
+    if (cellsWithBorder.length === 0) {
+      setError("Nenhuma barra separadora encontrada na assinatura.");
+      setTimeout(() => setError(""), 3000);
+      return;
+    }
+
     cellsWithBorder.forEach((cell) => {
       const cellElement = cell as HTMLElement;
       const currentStyle = cellElement.getAttribute("style") || "";
@@ -679,8 +683,8 @@ export default function Home() {
       cellElement.setAttribute("style", newStyle);
     });
 
-    const updatedHtml = doc.body.innerHTML;
-    setProcessedHtml(updatedHtml);
+    // Atualiza o processedHtml com o novo conteúdo
+    setProcessedHtml(previewRef.current.innerHTML);
 
     setSuccessMessage("Cor da barra aplicada!");
     setTimeout(() => setSuccessMessage(""), 2000);
