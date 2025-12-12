@@ -1492,10 +1492,8 @@ export default function Home() {
               // Se tem cor customizada do usuário, usa essa
               if (customSeparatorColor) {
                 bgColorHex = customSeparatorColor;
-              } else if (!separatorColor) {
-                // Salva cor original detectada no state (apenas primeira vez)
-                setSeparatorColor(bgColorHex);
               }
+              // NÃO define separatorColor automaticamente para manter botão oculto até user selecionar cor
 
               // Define bgcolor em AMBOS formatos
               cellElement.setAttribute("bgcolor", bgColorHex);
