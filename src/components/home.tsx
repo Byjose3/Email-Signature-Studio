@@ -636,15 +636,23 @@ export default function Home() {
       return;
     }
 
-    // Usa tag <font> com atributo color para máxima compatibilidade com Gmail
-    // Gmail preserva melhor <font color=""> do que <span style="color:">
-    const font = document.createElement("font");
-    font.setAttribute("color", textColor);
-    // Também define style.color como fallback
-    font.style.color = textColor;
-
     try {
-      range.surroundContents(font);
+      // Usa tag <font> com atributo color para máxima compatibilidade com Gmail
+      // Gmail preserva melhor <font color=""> do que <span style="color:">
+      const font = document.createElement("font");
+      font.setAttribute("color", textColor);
+      // Também define style.color como fallback
+      font.style.color = textColor;
+
+      // Método mais robusto que funciona com qualquer conteúdo (links, spans, etc)
+      // Extrai o conteúdo selecionado
+      const fragment = range.extractContents();
+
+      // Coloca o conteúdo dentro da tag <font>
+      font.appendChild(fragment);
+
+      // Insere a tag <font> com o conteúdo de volta no range
+      range.insertNode(font);
 
       // Atualiza o processedHtml com o novo conteúdo
       if (previewRef.current) {
@@ -657,7 +665,8 @@ export default function Home() {
       setSuccessMessage("Cor aplicada ao texto selecionado!");
       setTimeout(() => setSuccessMessage(""), 2000);
     } catch (error) {
-      setError("Erro ao aplicar cor. Tente selecionar apenas texto simples.");
+      console.error("Erro ao aplicar cor:", error);
+      setError("Erro ao aplicar cor. Por favor, tente novamente.");
       setTimeout(() => setError(""), 3000);
     }
   };
