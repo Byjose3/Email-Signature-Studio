@@ -1216,7 +1216,8 @@ export default function Home() {
               htmlElement.textContent.trim()
             ) {
               const strong = doc.createElement("strong");
-              strong.style.fontWeight = "bold";
+              // Copia TODOS os estilos inline do elemento pai (incluindo cor!)
+              strong.style.cssText = htmlElement.style.cssText;
               strong.innerHTML = htmlElement.innerHTML;
               htmlElement.innerHTML = "";
               htmlElement.appendChild(strong);
@@ -1283,6 +1284,31 @@ export default function Home() {
         // Garante que color está definido
         if (htmlElement.style.color) {
           htmlElement.style.color = htmlElement.style.color;
+        }
+
+        // Aplica customTextColor aos elementos de texto se fornecido
+        if (customTextColor) {
+          const isTextElement =
+            htmlElement.tagName === "SPAN" ||
+            htmlElement.tagName === "DIV" ||
+            htmlElement.tagName === "P" ||
+            htmlElement.tagName === "B" ||
+            htmlElement.tagName === "STRONG" ||
+            htmlElement.tagName === "I" ||
+            htmlElement.tagName === "EM";
+
+          // Aplica cor apenas se for elemento de texto e não for link
+          if (
+            isTextElement &&
+            htmlElement.tagName !== "A" &&
+            htmlElement.textContent &&
+            htmlElement.textContent.trim()
+          ) {
+            // NÃO sobrescreve cores inline já existentes (preserva formatação manual)
+            if (!htmlElement.style.color) {
+              htmlElement.style.color = customTextColor;
+            }
+          }
         }
 
         // Remove estilos problemáticos para Gmail
