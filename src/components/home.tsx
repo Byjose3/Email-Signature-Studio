@@ -636,23 +636,25 @@ export default function Home() {
       return;
     }
 
+    // Cria um span com a cor (método original que funcionava)
+    const span = document.createElement("span");
+    span.style.color = textColor;
+
     try {
-      // Usa apenas execCommand - é o método mais seguro que preserva estrutura
-      // Define para usar tags HTML (<font>) em vez de CSS
-      document.execCommand('styleWithCSS', false, 'false');
-      document.execCommand('foreColor', false, textColor);
+      range.surroundContents(span);
+
+      // Atualiza o processedHtml com o novo conteúdo
+      if (previewRef.current) {
+        setProcessedHtml(previewRef.current.innerHTML);
+      }
 
       // Limpa a seleção
       selection.removeAllRanges();
 
-      // Atualiza o processedHtml com o novo conteúdo
-      setProcessedHtml(previewRef.current.innerHTML);
-
       setSuccessMessage("Cor aplicada ao texto selecionado!");
       setTimeout(() => setSuccessMessage(""), 2000);
     } catch (error) {
-      console.error("Erro ao aplicar cor:", error);
-      setError("Erro ao aplicar cor. Por favor, tente novamente.");
+      setError("Erro ao aplicar cor. Tente selecionar apenas texto simples.");
       setTimeout(() => setError(""), 3000);
     }
   };
@@ -2633,116 +2635,6 @@ export default function Home() {
       if (previewRef.current) {
         // Usa o conteúdo atual do preview (pode ter sido editado pelo user)
         let htmlToCopy = previewRef.current.innerHTML;
-
-        // CRÍTICO: Normaliza tags de cor antes de otimizar
-        // Converte qualquer elemento com cor (span, font com style.color) em <font color="">
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(htmlToCopy, "text/html");
-
-        // Procura TODOS os elementos que podem ter cor de texto
-        const allElements = doc.querySelectorAll('*');
-        allElements.forEach((el) => {
-          const element = el as HTMLElement;
-
-          // Ignora elementos de estrutura que não devem ter cor de texto
-          if (['TD', 'TABLE', 'TR', 'TBODY', 'THEAD', 'HTML', 'BODY', 'HEAD'].includes(element.tagName)) {
-            return;
-          }
-
-          // Verifica se tem cor no style.color (não background-color)
-          let color = '';
-
-          // Método 1: Lê do style.color
-          if (element.style.color) {
-            color = element.style.color;
-          }
-
-          // Método 2: Lê do atributo color (tags <font>)
-          if (!color && element.hasAttribute('color')) {
-            color = element.getAttribute('color') || '';
-          }
-
-          // Se não tem cor, ignora
-          if (!color) return;
-
-          // Converte RGB para hexadecimal se necessário
-          if (color.startsWith('rgb')) {
-            const rgbMatch = color.match(/\d+/g);
-            if (rgbMatch && rgbMatch.length >= 3) {
-              const r = parseInt(rgbMatch[0]);
-              const g = parseInt(rgbMatch[1]);
-              const b = parseInt(rgbMatch[2]);
-              color = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-            }
-          }
-
-          // Se já é uma tag <font>, apenas garante o atributo color correto
-          if (element.tagName === 'FONT') {
-            element.setAttribute('color', color);
-            // Remove style.color para usar apenas o atributo
-            element.style.removeProperty('color');
-          } else if (color) {
-            // Não é <font> mas tem cor - converte para <font color="">
-            const fontTag = doc.createElement('font');
-            fontTag.setAttribute('color', color);
-
-            // Move todo o conteúdo para dentro da tag <font>
-            while (element.firstChild) {
-              fontTag.appendChild(element.firstChild);
-            }
-
-            // Substitui o elemento original pela tag <font>
-            element.parentNode?.replaceChild(fontTag, element);
-          }
-        });
-
-        // CRÍTICO: Divide tags <font> que contêm <br> para preservar quebras de linha no Gmail
-        const fontTags = doc.querySelectorAll('font[color]');
-        fontTags.forEach((fontEl) => {
-          const font = fontEl as HTMLElement;
-          const color = font.getAttribute('color');
-          if (!color) return;
-
-          // Verifica se contém <br>
-          const hasBR = font.querySelector('br');
-          if (!hasBR) return;
-
-          // Tem <br> - divide em múltiplas tags <font>
-          const parent = font.parentNode;
-          if (!parent) return;
-
-          const fragment = doc.createDocumentFragment();
-          const children = Array.from(font.childNodes);
-
-          children.forEach((child) => {
-            if (child.nodeName === 'BR') {
-              // BR fica fora das tags <font>
-              fragment.appendChild(child.cloneNode());
-            } else if (child.nodeType === Node.TEXT_NODE) {
-              // Texto simples - envolve em <font>
-              const text = child.textContent || '';
-              if (text.trim()) {
-                const newFont = doc.createElement('font');
-                newFont.setAttribute('color', color);
-                newFont.textContent = text;
-                fragment.appendChild(newFont);
-              } else if (text) {
-                // Espaços em branco - mantém fora
-                fragment.appendChild(child.cloneNode());
-              }
-            } else {
-              // Outro elemento - envolve em <font>
-              const newFont = doc.createElement('font');
-              newFont.setAttribute('color', color);
-              newFont.appendChild(child.cloneNode(true));
-              fragment.appendChild(newFont);
-            }
-          });
-
-          parent.replaceChild(fragment, font);
-        });
-
-        htmlToCopy = doc.body.innerHTML;
 
         // Otimiza para Gmail (garante width e height fixos no logo)
         htmlToCopy = optimizeForGmail(htmlToCopy);
