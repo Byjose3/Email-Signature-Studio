@@ -618,47 +618,73 @@ export default function Home() {
     setTimeout(() => setSuccessMessage(""), 3000);
   };
 
-  // Aplica cores APENAS quando textColor ou separatorColor mudam
-  // SEM reprocessar todo o HTML (evita quebrar o layout)
-  useEffect(() => {
-    if (processedHtml && (textColor || separatorColor)) {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(processedHtml, "text/html");
+  // Função para aplicar cor apenas ao texto selecionado
+  const applyColorToSelection = () => {
+    if (!previewRef.current) return;
 
-      // Aplica cor ao texto (apenas aos elementos de texto, não aos links)
-      if (textColor) {
-        const textElements = doc.querySelectorAll("p, div, span, td, b, strong, i, em");
-        textElements.forEach((element) => {
-          const htmlElement = element as HTMLElement;
-          // Não aplica cor a links
-          if (htmlElement.tagName !== "A" && !htmlElement.closest("a")) {
-            htmlElement.style.color = textColor;
-          }
-        });
-      }
-
-      // Aplica cor à barra vertical (elementos com border-left)
-      if (separatorColor) {
-        const cellsWithBorder = doc.querySelectorAll('[style*="border-left"]');
-        cellsWithBorder.forEach((cell) => {
-          const cellElement = cell as HTMLElement;
-          const currentStyle = cellElement.getAttribute("style") || "";
-          // Substitui a cor da borda mantendo o resto do estilo
-          const newStyle = currentStyle.replace(
-            /border-left:\s*[^;]+;/g,
-            `border-left: 3px solid ${separatorColor};`
-          );
-          cellElement.setAttribute("style", newStyle);
-        });
-      }
-
-      const updatedHtml = doc.body.innerHTML;
-      if (updatedHtml !== processedHtml) {
-        setProcessedHtml(updatedHtml);
-      }
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      setError("Por favor, selecione o texto que deseja colorir.");
+      setTimeout(() => setError(""), 3000);
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [textColor, separatorColor]);
+
+    const range = selection.getRangeAt(0);
+    if (range.collapsed) {
+      setError("Por favor, selecione o texto que deseja colorir.");
+      setTimeout(() => setError(""), 3000);
+      return;
+    }
+
+    // Cria um span com a cor
+    const span = document.createElement("span");
+    span.style.color = textColor;
+
+    try {
+      range.surroundContents(span);
+
+      // Atualiza o processedHtml com o novo conteúdo
+      if (previewRef.current) {
+        setProcessedHtml(previewRef.current.innerHTML);
+      }
+
+      // Limpa a seleção
+      selection.removeAllRanges();
+
+      setSuccessMessage("Cor aplicada ao texto selecionado!");
+      setTimeout(() => setSuccessMessage(""), 2000);
+    } catch (error) {
+      setError("Erro ao aplicar cor. Tente selecionar apenas texto simples.");
+      setTimeout(() => setError(""), 3000);
+    }
+  };
+
+  // Função para aplicar cor à barra
+  const applySeparatorColor = () => {
+    if (!processedHtml || !separatorColor) return;
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(processedHtml, "text/html");
+
+    // Aplica cor à barra vertical (elementos com border-left)
+    const cellsWithBorder = doc.querySelectorAll('[style*="border-left"]');
+    cellsWithBorder.forEach((cell) => {
+      const cellElement = cell as HTMLElement;
+      const currentStyle = cellElement.getAttribute("style") || "";
+      // Substitui a cor da borda mantendo o resto do estilo
+      const newStyle = currentStyle.replace(
+        /border-left:\s*[^;]+;/g,
+        `border-left: 3px solid ${separatorColor};`
+      );
+      cellElement.setAttribute("style", newStyle);
+    });
+
+    const updatedHtml = doc.body.innerHTML;
+    setProcessedHtml(updatedHtml);
+
+    setSuccessMessage("Cor da barra aplicada!");
+    setTimeout(() => setSuccessMessage(""), 2000);
+  };
 
   // Atualiza o preview ref quando processedHtml muda (aplicação de cores)
   useEffect(() => {
@@ -2533,64 +2559,6 @@ export default function Home() {
     return doc.body.innerHTML.trim();
   };
 
-  const applyColorToSelection = () => {
-    if (!previewRef.current || !textColor) return;
-
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) {
-      setError("Por favor, selecione o texto que deseja colorir.");
-      setTimeout(() => setError(""), 3000);
-      return;
-    }
-
-    const range = selection.getRangeAt(0);
-
-    // Verifica se a seleção está dentro do canvas editável (preview)
-    if (!previewRef.current.contains(range.commonAncestorContainer)) {
-      setError(
-        "Por favor, selecione texto dentro do canvas editável (lado direito).",
-      );
-      setTimeout(() => setError(""), 3000);
-      return;
-    }
-
-    // Cria um span com a cor
-    const span = document.createElement("span");
-    span.style.color = textColor;
-
-    try {
-      // Envolve o conteúdo selecionado no span
-      range.surroundContents(span);
-
-      // Limpa seleção
-      selection.removeAllRanges();
-
-      // Atualiza o processedHtml com o conteúdo editado do preview
-      if (previewRef.current) {
-        setProcessedHtml(previewRef.current.innerHTML);
-      }
-    } catch (error) {
-      // Se falhar (seleção complexa), tenta abordagem alternativa
-      try {
-        const fragment = range.extractContents();
-        span.appendChild(fragment);
-        range.insertNode(span);
-
-        selection.removeAllRanges();
-
-        // Atualiza o processedHtml com o conteúdo editado do preview
-        if (previewRef.current) {
-          setProcessedHtml(previewRef.current.innerHTML);
-        }
-      } catch (e) {
-        setError(
-          "Não foi possível aplicar cor a esta seleção. Tente selecionar apenas texto simples.",
-        );
-        setTimeout(() => setError(""), 3000);
-      }
-    }
-  };
-
   const updateLink = (index: number, newUrl: string) => {
     if (!previewRef.current) return;
 
@@ -3108,15 +3076,27 @@ export default function Home() {
                           </div>
                         </div>
 
-                        {textColor && (
-                          <button
-                            onClick={applyColorToSelection}
-                            className="w-full px-4 py-2 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                          >
-                            <Sparkles className="w-4 h-4" />
-                            Aplicar Cor ao Texto Selecionado
-                          </button>
-                        )}
+                        <div className="flex gap-2">
+                          {textColor && (
+                            <button
+                              onClick={applyColorToSelection}
+                              className="flex-1 px-4 py-2 bg-purple-600 text-white font-medium rounded-md hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
+                            >
+                              <Palette className="w-4 h-4" />
+                              Aplicar Cor ao Texto Selecionado
+                            </button>
+                          )}
+
+                          {separatorColor && (
+                            <button
+                              onClick={applySeparatorColor}
+                              className="flex-1 px-4 py-2 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                            >
+                              <Ruler className="w-4 h-4" />
+                              Aplicar Cor à Barra
+                            </button>
+                          )}
+                        </div>
 
                         <div
                           className="text-green-700 bg-white/50 p-2 rounded flex items-start gap-2"
@@ -3124,10 +3104,7 @@ export default function Home() {
                         >
                           <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5" />
                           <span>
-                            <strong>Dica:</strong>{" "}
-                            {textColor
-                              ? "Selecione o texto no CANVAS EDITÁVEL (lado direito) e clique no botão acima para aplicar a cor"
-                              : "A cor da barra é aplicada automaticamente"}
+                            <strong>Dica:</strong> Selecione o texto no CANVAS EDITÁVEL (lado direito) e clique no botão "Aplicar Cor ao Texto Selecionado". Para a barra, clique em "Aplicar Cor à Barra".
                           </span>
                         </div>
                       </div>
