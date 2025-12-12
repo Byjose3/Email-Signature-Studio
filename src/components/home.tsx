@@ -636,12 +636,19 @@ export default function Home() {
       return;
     }
 
-    // Cria um span com a cor (método do commit "Tudo ok")
+    // Cria um span com a cor
     const span = document.createElement("span");
     span.style.color = textColor;
 
     try {
-      range.surroundContents(span);
+      // Extrai o conteúdo da seleção
+      const contents = range.extractContents();
+
+      // Adiciona o conteúdo dentro do span
+      span.appendChild(contents);
+
+      // Insere o span no lugar da seleção
+      range.insertNode(span);
 
       console.log('=== APPLY COLOR DEBUG ===');
       console.log('Span criado com cor:', textColor);
