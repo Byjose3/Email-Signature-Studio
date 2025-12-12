@@ -2512,6 +2512,21 @@ export default function Home() {
       }
     });
 
+    // CRÍTICO: Preserva e normaliza tags <font> com cores para Gmail
+    const fontElements = doc.querySelectorAll("font");
+    fontElements.forEach((fontEl) => {
+      const fontElement = fontEl as HTMLElement;
+      const colorAttr = fontElement.getAttribute("color");
+      const styleColor = fontElement.style.color;
+
+      // Se tem color OU style.color, garante que AMBOS estão presentes
+      if (colorAttr || styleColor) {
+        const color = colorAttr || styleColor;
+        fontElement.setAttribute("color", color);
+        fontElement.style.color = color;
+      }
+    });
+
     return doc.body.innerHTML.trim();
   };
 
