@@ -641,6 +641,8 @@ export default function Home() {
     isApplyingColorRef.current = true;
 
     try {
+      // CRÍTICO: Força uso de <font> em vez de <span style> (compatível com Gmail)
+      document.execCommand('styleWithCSS', false, 'false');
       // Usa execCommand que preserva a estrutura HTML
       document.execCommand('foreColor', false, textColor);
 
