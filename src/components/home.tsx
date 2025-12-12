@@ -728,6 +728,15 @@ export default function Home() {
         previewRef.current.innerHTML = processedHtml;
       }
     }
+
+    // CRÍTICO: Também atualiza pasteAreaRef para que as cores aplicadas sejam copiadas
+    if (processedHtml && pasteAreaRef.current) {
+      if (pasteAreaRef.current.innerHTML !== processedHtml) {
+        // Aplica otimização para Gmail antes de colocar no pasteArea
+        const optimizedHtml = optimizeForGmail(processedHtml);
+        pasteAreaRef.current.innerHTML = optimizedHtml;
+      }
+    }
   }, [processedHtml]);
 
   const processHtml = (
