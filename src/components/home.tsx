@@ -2533,13 +2533,30 @@ export default function Home() {
         return;
       }
 
-      // CRÍTICO: Preserva tags <font> com atributo color para Gmail
+      // CRÍTICO: Preserva e normaliza tags <font> com atributo color para Gmail
       if (htmlElement.tagName === "FONT") {
-        const colorAttr = htmlElement.getAttribute("color");
+        let colorAttr = htmlElement.getAttribute("color");
+
+        // Se tem style.color mas não tem atributo color, adiciona
+        if (!colorAttr && htmlElement.style.color) {
+          const color = htmlElement.style.color;
+          // Converte RGB para hex se necessário
+          if (color.startsWith('rgb')) {
+            const rgbMatch = color.match(/\d+/g);
+            if (rgbMatch && rgbMatch.length >= 3) {
+              const r = parseInt(rgbMatch[0]);
+              const g = parseInt(rgbMatch[1]);
+              const b = parseInt(rgbMatch[2]);
+              colorAttr = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+            }
+          } else {
+            colorAttr = color;
+          }
+        }
+
         if (colorAttr) {
-          // Garante que o atributo color está presente
+          // Garante que AMBOS estão presentes (como no backup)
           htmlElement.setAttribute("color", colorAttr);
-          // Também reforça no style.color
           htmlElement.style.color = colorAttr;
         }
       }
