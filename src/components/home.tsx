@@ -2629,16 +2629,10 @@ export default function Home() {
 
   const copyToClipboard = async () => {
     try {
-      if (previewRef.current) {
-        // Usa o conteúdo atual do preview (pode ter sido editado pelo user)
-        let htmlToCopy = previewRef.current.innerHTML;
-
-        // Otimiza para Gmail (garante width e height fixos no logo)
-        htmlToCopy = optimizeForGmail(htmlToCopy);
-
-        // Usa método antigo confiável (API moderna tem problemas de compatibilidade)
+      if (pasteAreaRef.current) {
+        // Usa o pasteAreaRef que já está otimizado para Gmail (atualizado pelo useEffect)
         const tempDiv = document.createElement("div");
-        tempDiv.innerHTML = htmlToCopy;
+        tempDiv.innerHTML = pasteAreaRef.current.innerHTML;
         tempDiv.style.position = "absolute";
         tempDiv.style.left = "-9999px";
         document.body.appendChild(tempDiv);
