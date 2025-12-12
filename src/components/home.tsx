@@ -2636,7 +2636,15 @@ export default function Home() {
       }
     });
 
-    return doc.body.innerHTML.trim();
+    const finalHtml = doc.body.innerHTML.trim();
+
+    // DEBUG: Ver se a conversão está funcionando
+    console.log('=== OPTIMIZE FOR GMAIL ===');
+    console.log('Spans com cor encontrados:', doc.querySelectorAll('span[style*="color"]').length);
+    console.log('Fonts criados:', doc.querySelectorAll('font[color]').length);
+    console.log('HTML final (primeiros 500 chars):', finalHtml.substring(0, 500));
+
+    return finalHtml;
   };
 
   const updateLink = (index: number, newUrl: string) => {
