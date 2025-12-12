@@ -637,39 +637,28 @@ export default function Home() {
       return;
     }
 
-    // Cria um span com a cor
-    const span = document.createElement("span");
-    span.style.color = textColor;
+    // Marca que estamos aplicando cor (previne useEffect de sobrescrever)
+    isApplyingColorRef.current = true;
 
     try {
-      // Marca que estamos aplicando cor (previne useEffect de sobrescrever)
-      isApplyingColorRef.current = true;
-
-      // Extrai o conteúdo da seleção
-      const contents = range.extractContents();
-
-      // Adiciona o conteúdo dentro do span
-      span.appendChild(contents);
-
-      // Insere o span no lugar da seleção
-      range.insertNode(span);
+      // Usa execCommand que preserva a estrutura HTML
+      document.execCommand('foreColor', false, textColor);
 
       console.log('=== APPLY COLOR DEBUG ===');
-      console.log('Span criado com cor:', textColor);
-      console.log('Span no DOM:', span);
+      console.log('Cor aplicada:', textColor);
 
-      // Atualiza o processedHtml com o novo conteúdo
-      if (previewRef.current) {
-        const newHtml = previewRef.current.innerHTML;
-        console.log('HTML após aplicar cor (primeiros 500 chars):', newHtml.substring(0, 500));
-        console.log('Spans com cor no preview:', previewRef.current.querySelectorAll('span[style*="color"]').length);
-        setProcessedHtml(newHtml);
-      }
-
-      // Aguarda o React processar e depois libera o useEffect
+      // Aguarda um tick para o DOM atualizar
       setTimeout(() => {
+        if (previewRef.current) {
+          const newHtml = previewRef.current.innerHTML;
+          console.log('HTML após aplicar cor (primeiros 500 chars):', newHtml.substring(0, 500));
+          console.log('Spans/fonts com cor no preview:', previewRef.current.querySelectorAll('[style*="color"], font[color]').length);
+          setProcessedHtml(newHtml);
+        }
+
+        // Libera o useEffect
         isApplyingColorRef.current = false;
-      }, 100);
+      }, 50);
 
       // Limpa a seleção
       selection.removeAllRanges();
