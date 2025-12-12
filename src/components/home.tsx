@@ -637,11 +637,12 @@ export default function Home() {
         textColor || undefined,
         separatorColor || undefined,
       );
-      if (processed) {
+      if (processed && processed !== processedHtml) {
         setProcessedHtml(processed);
       }
     }
-  }, [textColor, separatorColor]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [textColor, separatorColor, originalHtml]);
 
   // Atualiza o preview ref quando processedHtml muda (aplicação de cores)
   useEffect(() => {
@@ -2361,7 +2362,8 @@ export default function Home() {
         imgElement.setAttribute("border", "0");
       } else {
         // Para outras imagens (não logo), mantém height se existir
-        const height = imgElement.style.height || imgElement.getAttribute("height");
+        const height =
+          imgElement.style.height || imgElement.getAttribute("height");
         if (height) {
           const heightValue = parseInt(height.toString().replace("px", ""));
           if (!isNaN(heightValue)) {
@@ -3312,23 +3314,58 @@ export default function Home() {
                   <ul className="space-y-2 text-blue-800">
                     <li className="flex items-start gap-2">
                       <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-blue-600" />
-                      <span><strong>Cole o HTML</strong> da sua assinatura na área de entrada</span>
+                      <span>
+                        <strong>Cole o HTML</strong> da sua assinatura na área
+                        de entrada
+                      </span>
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-blue-600" />
-                      <span><strong>Faça upload do logo</strong> clicando no botão "Alterar Imagem"</span>
+                      <span>
+                        <strong>Faça upload do logo</strong> clicando no botão
+                        "Alterar Imagem"
+                      </span>
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-blue-600" />
-                      <span><strong>Ajuste as cores e espaçamentos</strong> usando os controlos disponíveis</span>
+                      <span>
+                        <strong>Faça upload dos logos</strong> e defina os links
+                        de cada uma das suas redes sociais
+                      </span>
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-blue-600" />
-                      <span><strong>Copie a assinatura</strong> usando o botão "Copiar Assinatura"</span>
+                      <span>
+                        <strong>Edite os links e os textos</strong> dos links
+                      </span>
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-blue-600" />
-                      <span><strong>Cole no Gmail</strong> nas configurações de assinatura</span>
+                      <span>
+                        <strong>Ajuste as cores e espaçamentos</strong> usando
+                        os controlos disponíveis
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-blue-600" />
+                      <span>
+                        <strong>Copie a assinatura</strong> usando o botão
+                        "Copiar Assinatura"
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-blue-600" />
+                      <span>
+                        <strong>Cole no Gmail</strong> nas configurações de
+                        assinatura
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-blue-600" />
+                      <span>
+                        <strong>Guarde a sua assinatura</strong> para poder
+                        reutilizá-la ou editá-la mais tarde
+                      </span>
                     </li>
                   </ul>
                 </div>
@@ -3344,19 +3381,39 @@ export default function Home() {
                       Depois de copiar a assinatura, siga estes passos:
                     </p>
                     <ol className="list-decimal list-inside space-y-2 ml-2">
-                      <li><strong>Abra o Gmail</strong> no seu navegador</li>
-                      <li>Clique no <strong>ícone de engrenagem</strong> (⚙️) no canto superior direito</li>
-                      <li>Selecione <strong>"Ver todas as configurações"</strong></li>
-                      <li>No separador <strong>"Geral"</strong>, desça até à secção <strong>"Assinatura"</strong></li>
-                      <li>Clique em <strong>"Criar nova"</strong> ou selecione uma assinatura existente</li>
-                      <li><strong>Cole a assinatura</strong> copiada (Ctrl+V ou Cmd+V)</li>
-                      <li>Desça até ao final da página e clique em <strong>"Guardar alterações"</strong></li>
+                      <li>
+                        <strong>Abra o Gmail</strong> no seu navegador
+                      </li>
+                      <li>
+                        Clique no <strong>ícone de engrenagem</strong> (⚙️) no
+                        canto superior direito
+                      </li>
+                      <li>
+                        Selecione <strong>"Ver todas as configurações"</strong>
+                      </li>
+                      <li>
+                        No separador <strong>"Geral"</strong>, desça até à
+                        secção <strong>"Assinatura"</strong>
+                      </li>
+                      <li>
+                        Clique em <strong>"Criar nova"</strong> ou selecione uma
+                        assinatura existente
+                      </li>
+                      <li>
+                        <strong>Cole a assinatura</strong> copiada (Ctrl+V ou
+                        Cmd+V)
+                      </li>
+                      <li>
+                        Desça até ao final da página e clique em{" "}
+                        <strong>"Guardar alterações"</strong>
+                      </li>
                     </ol>
                     <div className="mt-4 p-3 bg-indigo-100 rounded-md">
                       <p className="text-sm flex items-start gap-2">
                         <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
                         <span>
-                          <strong>Dica:</strong> Pode definir se a assinatura aparece em novos emails, respostas ou ambos.
+                          <strong>Dica:</strong> Pode definir se a assinatura
+                          aparece em novos emails, respostas ou ambos.
                         </span>
                       </p>
                     </div>
@@ -3373,19 +3430,15 @@ export default function Home() {
                     <p className="flex items-start gap-2">
                       <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-purple-600" />
                       <span>
-                        <strong>Aspect Ratio Protegido:</strong> O logo mantém sempre as proporções corretas automaticamente.
+                        <strong>Dimensões do logo protegidas:</strong> O logo
+                        mantém sempre as proporções corretas automaticamente.
                       </span>
                     </p>
                     <p className="flex items-start gap-2">
                       <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-purple-600" />
                       <span>
-                        <strong>Tamanho no Gmail:</strong> O logo entra no Gmail com o tamanho correto como "tamanho original".
-                      </span>
-                    </p>
-                    <p className="flex items-start gap-2">
-                      <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-purple-600" />
-                      <span>
-                        <strong>Alterar Largura:</strong> Ajuste apenas a largura - a altura é calculada automaticamente.
+                        <strong>Tamanho no Gmail:</strong> O logo entra no Gmail
+                        com o tamanho correto.
                       </span>
                     </p>
                   </div>
@@ -3398,23 +3451,32 @@ export default function Home() {
                     Avisos Importantes
                   </h3>
                   <div className="space-y-3 text-yellow-800">
-                    <p className="flex items-start gap-2">
-                      <span className="text-2xl mt-0.5 flex-shrink-0">⚠️</span>
+                    <p className="flex items-center gap-2">
+                      <span className="text-2xl flex-shrink-0">⚠️</span>
                       <span>
-                        <strong>Não altere o tamanho do logo no editor do Gmail:</strong> O Gmail permite selecionar "Pequeno", "Médio", "Grande" ou "Original".
-                        Mantenha sempre em <strong>"Original"</strong> para preservar o tamanho correto.
+                        <strong>
+                          Não altere o tamanho do logo no editor do Gmail:
+                        </strong>{" "}
+                        O Gmail permite selecionar "Pequeno", "Médio", "Grande"
+                        ou "Original". Mantenha sempre em{" "}
+                        <strong>"Original"</strong> para preservar o tamanho
+                        correto.
                       </span>
                     </p>
-                    <p className="flex items-start gap-2">
-                      <span className="text-2xl mt-0.5 flex-shrink-0">⚠️</span>
+                    <p className="flex items-center gap-2">
+                      <span className="text-2xl flex-shrink-0">⚠️</span>
                       <span>
-                        <strong>Se alterar por engano:</strong> Selecione o logo no Gmail e escolha "Tamanho original" para voltar ao correto.
+                        <strong>Se alterar por engano:</strong> Selecione o logo
+                        no Gmail e escolha "Tamanho original" para voltar ao
+                        correto.
                       </span>
                     </p>
-                    <p className="flex items-start gap-2">
-                      <span className="text-2xl mt-0.5 flex-shrink-0">💡</span>
+                    <p className="flex items-center gap-2">
+                      <span className="text-2xl flex-shrink-0">💡</span>
                       <span>
-                        <strong>Compatibilidade:</strong> A assinatura é otimizada para Gmail, mas pode funcionar noutros clientes de email.
+                        <strong>Compatibilidade:</strong> A assinatura é
+                        otimizada para Gmail, mas pode funcionar noutros
+                        clientes de email.
                       </span>
                     </p>
                   </div>
@@ -3427,21 +3489,34 @@ export default function Home() {
                     Dicas de Utilização
                   </h3>
                   <ul className="space-y-2 text-green-800">
-                    <li className="flex items-start gap-2">
-                      <span className="text-xl mt-0.5 flex-shrink-0">✅</span>
-                      <span><strong>Guarde as suas assinaturas:</strong> Use o botão "Guardar Assinatura" para não perder o seu trabalho.</span>
+                    <li className="flex items-center gap-2">
+                      <span className="text-xl flex-shrink-0">✅</span>
+                      <span>
+                        <strong>Guarde as suas assinaturas:</strong> Use o botão
+                        "Guardar Assinatura" para não perder o seu trabalho.
+                      </span>
                     </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-xl mt-0.5 flex-shrink-0">✅</span>
-                      <span><strong>Teste antes de usar:</strong> Envie um email de teste para si próprio para verificar a formatação.</span>
+                    <li className="flex items-center gap-2">
+                      <span className="text-xl flex-shrink-0">✅</span>
+                      <span>
+                        <strong>Teste antes de usar:</strong> Envie um email de
+                        teste para si próprio para verificar a formatação.
+                      </span>
                     </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-xl mt-0.5 flex-shrink-0">✅</span>
-                      <span><strong>Espaçamento da barra:</strong> Ajuste o espaçamento antes da barra vertical para melhor alinhamento.</span>
+                    <li className="flex items-center gap-2">
+                      <span className="text-xl flex-shrink-0">✅</span>
+                      <span>
+                        <strong>Espaçamento da barra:</strong> Ajuste o
+                        espaçamento antes da barra vertical para melhor
+                        alinhamento.
+                      </span>
                     </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-xl mt-0.5 flex-shrink-0">✅</span>
-                      <span><strong>Cores personalizadas:</strong> Use os seletores de cor para combinar com a identidade visual da empresa.</span>
+                    <li className="flex items-center gap-2">
+                      <span className="text-xl flex-shrink-0">✅</span>
+                      <span>
+                        <strong>Cores personalizadas:</strong> Use os seletores
+                        de cor para combinar com a identidade visual da empresa.
+                      </span>
                     </li>
                   </ul>
                 </div>
@@ -3453,8 +3528,9 @@ export default function Home() {
                     Precisa de Ajuda?
                   </h3>
                   <p className="text-gray-700">
-                    Se encontrar algum problema ou tiver dúvidas sobre a utilização desta aplicação,
-                    entre em contacto com o suporte técnico.
+                    Se encontrar algum problema ou tiver dúvidas sobre a
+                    utilização desta aplicação, entre em contacto com o suporte
+                    técnico.
                   </p>
                 </div>
               </div>
