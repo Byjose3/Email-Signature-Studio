@@ -2503,10 +2503,21 @@ export default function Home() {
 
     // Otimiza elementos de texto para Gmail
     const textElements = doc.querySelectorAll(
-      "p, div, span, td, b, strong, i, em",
+      "p, div, span, td, b, strong, i, em, font",
     );
     textElements.forEach((element) => {
       const htmlElement = element as HTMLElement;
+
+      // CRÍTICO: Preserva tags <font> com atributo color para Gmail
+      if (htmlElement.tagName === "FONT") {
+        const colorAttr = htmlElement.getAttribute("color");
+        if (colorAttr) {
+          // Garante que o atributo color está presente
+          htmlElement.setAttribute("color", colorAttr);
+          // Também reforça no style.color
+          htmlElement.style.color = colorAttr;
+        }
+      }
 
       // Preserva e reforça bold
       if (
