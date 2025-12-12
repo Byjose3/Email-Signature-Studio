@@ -643,9 +643,16 @@ export default function Home() {
     try {
       range.surroundContents(span);
 
+      console.log('=== APPLY COLOR DEBUG ===');
+      console.log('Span criado com cor:', textColor);
+      console.log('Span no DOM:', span);
+
       // Atualiza o processedHtml com o novo conteúdo
       if (previewRef.current) {
-        setProcessedHtml(previewRef.current.innerHTML);
+        const newHtml = previewRef.current.innerHTML;
+        console.log('HTML após aplicar cor (primeiros 500 chars):', newHtml.substring(0, 500));
+        console.log('Spans com cor no preview:', previewRef.current.querySelectorAll('span[style*="color"]').length);
+        setProcessedHtml(newHtml);
       }
 
       // Limpa a seleção
@@ -654,6 +661,7 @@ export default function Home() {
       setSuccessMessage("Cor aplicada ao texto selecionado!");
       setTimeout(() => setSuccessMessage(""), 2000);
     } catch (error) {
+      console.error('Erro ao aplicar cor:', error);
       setError("Erro ao aplicar cor. Tente selecionar apenas texto simples.");
       setTimeout(() => setError(""), 3000);
     }
@@ -2674,6 +2682,10 @@ export default function Home() {
       if (previewRef.current) {
         // Usa o conteúdo atual do preview (pode ter sido editado pelo user)
         let htmlToCopy = previewRef.current.innerHTML;
+
+        console.log('=== COPY TO CLIPBOARD DEBUG ===');
+        console.log('HTML ANTES do optimizeForGmail (primeiros 500 chars):', htmlToCopy.substring(0, 500));
+        console.log('Spans com cor no previewRef ANTES do optimize:', previewRef.current.querySelectorAll('span[style*="color"]').length);
 
         // Otimiza para Gmail (garante width e height fixos no logo)
         htmlToCopy = optimizeForGmail(htmlToCopy);
