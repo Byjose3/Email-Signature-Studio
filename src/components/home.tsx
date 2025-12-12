@@ -637,7 +637,7 @@ export default function Home() {
       return;
     }
 
-    // Marca que estamos aplicando cor (previne useEffect de sobrescrever)
+    // Bloqueia onInput e useEffect durante aplicação de cor
     isApplyingColorRef.current = true;
 
     try {
@@ -650,15 +650,12 @@ export default function Home() {
       // Aguarda um tick para o DOM atualizar
       setTimeout(() => {
         if (previewRef.current) {
-          const newHtml = previewRef.current.innerHTML;
-          console.log('HTML após aplicar cor (primeiros 500 chars):', newHtml.substring(0, 500));
+          console.log('HTML após aplicar cor (primeiros 500 chars):', previewRef.current.innerHTML.substring(0, 500));
           console.log('Spans/fonts com cor no preview:', previewRef.current.querySelectorAll('[style*="color"], font[color]').length);
-          setProcessedHtml(newHtml);
         }
-
-        // Libera o useEffect
+        // Libera após aplicar
         isApplyingColorRef.current = false;
-      }, 50);
+      }, 100);
 
       // Limpa a seleção
       selection.removeAllRanges();
@@ -3378,7 +3375,7 @@ export default function Home() {
                       contentEditable={true}
                       suppressContentEditableWarning={true}
                       onInput={() => {
-                        if (previewRef.current) {
+                        if (previewRef.current && !isApplyingColorRef.current) {
                           setProcessedHtml(previewRef.current.innerHTML);
                         }
                       }}
