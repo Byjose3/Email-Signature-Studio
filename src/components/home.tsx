@@ -636,22 +636,25 @@ export default function Home() {
       return;
     }
 
+    // Cria um span com a cor (método do commit "Tudo ok")
+    const span = document.createElement("span");
+    span.style.color = textColor;
+
     try {
-      // Usa document.execCommand que preserva melhor a estrutura HTML
-      // Este método é usado nativamente pelos editores de email
-      document.execCommand('styleWithCSS', false, 'false');
-      document.execCommand('foreColor', false, textColor);
+      range.surroundContents(span);
 
       // Atualiza o processedHtml com o novo conteúdo
       if (previewRef.current) {
         setProcessedHtml(previewRef.current.innerHTML);
       }
 
+      // Limpa a seleção
+      selection.removeAllRanges();
+
       setSuccessMessage("Cor aplicada ao texto selecionado!");
       setTimeout(() => setSuccessMessage(""), 2000);
     } catch (error) {
-      console.error("Erro ao aplicar cor:", error);
-      setError("Erro ao aplicar cor. Por favor, tente novamente.");
+      setError("Erro ao aplicar cor. Tente selecionar apenas texto simples.");
       setTimeout(() => setError(""), 3000);
     }
   };
@@ -2493,6 +2496,37 @@ export default function Home() {
     textElements.forEach((element) => {
       const htmlElement = element as HTMLElement;
 
+      // CRÍTICO: Converte <span style="color"> em <font color=""> para Gmail
+      if (htmlElement.tagName === "SPAN" && htmlElement.style.color) {
+        const color = htmlElement.style.color;
+
+        // Converte RGB para hex se necessário
+        let hexColor = color;
+        if (color.startsWith('rgb')) {
+          const rgbMatch = color.match(/\d+/g);
+          if (rgbMatch && rgbMatch.length >= 3) {
+            const r = parseInt(rgbMatch[0]);
+            const g = parseInt(rgbMatch[1]);
+            const b = parseInt(rgbMatch[2]);
+            hexColor = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+          }
+        }
+
+        // Cria tag <font> para substituir o <span>
+        const font = doc.createElement('font');
+        font.setAttribute('color', hexColor);
+        font.style.color = color;
+
+        // Move todos os filhos do span para o font
+        while (htmlElement.firstChild) {
+          font.appendChild(htmlElement.firstChild);
+        }
+
+        // Substitui o span pelo font
+        htmlElement.parentNode?.replaceChild(font, htmlElement);
+        return;
+      }
+
       // CRÍTICO: Preserva tags <font> com atributo color para Gmail
       if (htmlElement.tagName === "FONT") {
         const colorAttr = htmlElement.getAttribute("color");
@@ -2629,10 +2663,16 @@ export default function Home() {
 
   const copyToClipboard = async () => {
     try {
-      if (pasteAreaRef.current) {
-        // Usa o pasteAreaRef que já está otimizado para Gmail (atualizado pelo useEffect)
+      if (previewRef.current) {
+        // Usa o conteúdo atual do preview (pode ter sido editado pelo user)
+        let htmlToCopy = previewRef.current.innerHTML;
+
+        // Otimiza para Gmail (garante width e height fixos no logo)
+        htmlToCopy = optimizeForGmail(htmlToCopy);
+
+        // Usa método antigo confiável (API moderna tem problemas de compatibilidade)
         const tempDiv = document.createElement("div");
-        tempDiv.innerHTML = pasteAreaRef.current.innerHTML;
+        tempDiv.innerHTML = htmlToCopy;
         tempDiv.style.position = "absolute";
         tempDiv.style.left = "-9999px";
         document.body.appendChild(tempDiv);
