@@ -2633,7 +2633,36 @@ export default function Home() {
         // Usa o conteúdo atual do preview (pode ter sido editado pelo user)
         let htmlToCopy = previewRef.current.innerHTML;
 
-        // Otimiza para Gmail (garante width e height fixos no logo)
+        // PASSO 1: Converte TODOS elementos com cor para <font> ANTES do optimize
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlToCopy, "text/html");
+
+        // Procura TODOS os elementos (font, span, etc) com cor
+        const allElements = doc.querySelectorAll('[style*="color"]');
+        allElements.forEach((el) => {
+          const element = el as HTMLElement;
+          const color = element.style.color;
+
+          // Ignora TD e TABLE para não quebrar estrutura
+          if (color && element.tagName !== 'TD' && element.tagName !== 'TABLE' && element.tagName !== 'TR') {
+            // Se já é FONT, garante ambos atributos
+            if (element.tagName === 'FONT') {
+              element.setAttribute('color', color);
+              element.style.color = color;
+            } else {
+              // Converte para FONT (span, div, etc)
+              const font = doc.createElement('font');
+              font.setAttribute('color', color);
+              font.style.color = color;
+              font.innerHTML = element.innerHTML;
+              element.parentNode?.replaceChild(font, element);
+            }
+          }
+        });
+
+        htmlToCopy = doc.body.innerHTML;
+
+        // PASSO 2: Otimiza para Gmail (garante width e height fixos no logo)
         htmlToCopy = optimizeForGmail(htmlToCopy);
 
         // Usa método antigo confiável (API moderna tem problemas de compatibilidade)
