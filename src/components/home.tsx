@@ -1026,20 +1026,18 @@ export default function Home() {
             }
           }
 
-          // Se ainda não tiver height (imagem não carregada), usa fallback
-          if (!height || height === 0) {
-            height = Math.round(width * 0.5); // fallback temporário
-          }
-
           // Define dimensões iniciais no estado
+          // NÃO calculamos height fixo - deixamos o navegador calcular baseado no aspect ratio da imagem
           setLogoWidth(width);
-          setLogoHeight(height);
+          setLogoHeight(0); // 0 = auto
 
-          // Aplica AMBOS width e height para evitar redimensionamento no Gmail
+          // Aplica APENAS width - height será calculado automaticamente pelo navegador
+          // Isso faz o Gmail tratar como "tamanho original" desde o início
           img.setAttribute("width", String(width));
-          img.setAttribute("height", String(height));
+          img.removeAttribute("height"); // Remove height para forçar aspect ratio natural
           img.style.width = `${width}px`;
-          img.style.height = `${height}px`;
+          // NÃO define style.height - deixa o navegador calcular
+          img.style.removeProperty("height");
           img.style.display = "block";
           img.style.border = "0";
           img.style.outline = "none";
@@ -1917,11 +1915,9 @@ export default function Home() {
           if (imageId === "img-0") {
             // Manter a largura atual ou usar uma largura padrão
             const newWidth = logoWidth > 0 ? logoWidth : 160;
-            // Calcula height baseado no aspect ratio para evitar redimensionamento no Gmail
-            const newHeight = Math.round(newWidth / aspectRatio);
 
             setLogoWidth(newWidth);
-            setLogoHeight(newHeight);
+            setLogoHeight(0); // Sempre 0 = auto para manter aspect ratio natural
 
             // Atualizar o HTML com as novas dimensões
             const parser = new DOMParser();
@@ -1931,9 +1927,9 @@ export default function Home() {
             if (img) {
               img.setAttribute("src", base64);
               img.setAttribute("width", String(newWidth));
-              img.setAttribute("height", String(newHeight));
+              img.removeAttribute("height"); // Remove height - deixa navegador calcular
               (img as HTMLElement).style.width = `${newWidth}px`;
-              (img as HTMLElement).style.height = `${newHeight}px`;
+              (img as HTMLElement).style.removeProperty("height"); // Remove style.height
               (img as HTMLElement).style.display = "block";
               (img as HTMLElement).style.border = "0";
               (img as HTMLElement).style.outline = "none";
@@ -1953,9 +1949,9 @@ export default function Home() {
                 if (pasteImg) {
                   pasteImg.setAttribute("src", base64);
                   pasteImg.setAttribute("width", String(newWidth));
-                  pasteImg.setAttribute("height", String(newHeight));
+                  pasteImg.removeAttribute("height"); // Remove height - deixa navegador calcular
                   (pasteImg as HTMLElement).style.width = `${newWidth}px`;
-                  (pasteImg as HTMLElement).style.height = `${newHeight}px`;
+                  (pasteImg as HTMLElement).style.removeProperty("height"); // Remove style.height
                   (pasteImg as HTMLElement).style.display = "block";
                   (pasteImg as HTMLElement).style.border = "0";
                   (pasteImg as HTMLElement).style.outline = "none";
@@ -2177,17 +2173,10 @@ export default function Home() {
   const handleLogoWidthChange = (newWidth: number) => {
     setLogoWidth(newWidth);
 
-    // Calcula height baseado no aspect ratio para evitar redimensionamento no Gmail
-    if (originalAspectRatio && originalAspectRatio > 0) {
-      const newHeight = Math.round(newWidth / originalAspectRatio);
-      setLogoHeight(newHeight);
-      updateLogoSize(newWidth, newHeight);
-    } else {
-      // Fallback se não tiver aspect ratio
-      const newHeight = Math.round(newWidth * 0.5);
-      setLogoHeight(newHeight);
-      updateLogoSize(newWidth, newHeight);
-    }
+    // Sempre usa height = 0 (auto) para manter aspect ratio natural
+    // Isso faz o Gmail tratar como "tamanho original"
+    setLogoHeight(0);
+    updateLogoSize(newWidth, 0);
   };
 
   const handleLogoHeightChange = (newHeight: number) => {
@@ -2323,10 +2312,8 @@ export default function Home() {
       // Remove line-height que pode afetar espaçamento
       imgElement.style.removeProperty("line-height");
 
-      // Garante width e height em AMBOS formatos (atributo + CSS)
+      // Garante width em AMBOS formatos (atributo + CSS)
       const width = imgElement.style.width || imgElement.getAttribute("width");
-      const height =
-        imgElement.style.height || imgElement.getAttribute("height");
 
       if (width) {
         const widthValue = parseInt(width.toString().replace("px", ""));
@@ -2336,17 +2323,13 @@ export default function Home() {
         }
       }
 
-      if (height) {
-        const heightValue = parseInt(height.toString().replace("px", ""));
-        if (!isNaN(heightValue)) {
-          imgElement.setAttribute("height", heightValue.toString());
-          imgElement.style.height = `${heightValue}px`;
-        }
-      }
+      // Para o LOGO: NÃO define height - deixa o navegador calcular baseado no aspect ratio
+      // Para OUTRAS IMAGENS: define height se existir
+      if (isLogo) {
+        // Remove qualquer height do logo para forçar aspect ratio natural
+        imgElement.removeAttribute("height");
+        imgElement.style.removeProperty("height");
 
-      // Para o logo (img-0), adiciona atributos especiais para bloquear redimensionamento no Gmail
-      const imageId = imgElement.getAttribute("data-image-id");
-      if (imageId === "img-0") {
         // Display block força o Gmail a respeitar as dimensões
         imgElement.style.display = "block";
 
@@ -2362,11 +2345,18 @@ export default function Home() {
         imgElement.removeAttribute("data-gce-editing");
         imgElement.removeAttribute("contenteditable");
 
-        // Adiciona atributos para prevenir redimensionamento
-        imgElement.setAttribute("data-gce-editing", "false");
-
         // Atributos adicionais que alguns clientes de email respeitam
         imgElement.setAttribute("border", "0");
+      } else {
+        // Para outras imagens (não logo), mantém height se existir
+        const height = imgElement.style.height || imgElement.getAttribute("height");
+        if (height) {
+          const heightValue = parseInt(height.toString().replace("px", ""));
+          if (!isNaN(heightValue)) {
+            imgElement.setAttribute("height", heightValue.toString());
+            imgElement.style.height = `${heightValue}px`;
+          }
+        }
       }
 
       // Remove propriedades problemáticas
