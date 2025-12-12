@@ -618,31 +618,47 @@ export default function Home() {
     setTimeout(() => setSuccessMessage(""), 3000);
   };
 
-  // Reprocessa HTML quando a cor de TEXTO ou BARRA mudar
+  // Aplica cores APENAS quando textColor ou separatorColor mudam
+  // SEM reprocessar todo o HTML (evita quebrar o layout)
   useEffect(() => {
-    if (originalHtml && originalHtml.trim() !== "") {
-      // Se o preview foi editado manualmente, usa o conteúdo atual do preview
-      // Caso contrário, reprocessa a partir do original
-      const currentHtml = previewRef.current?.innerHTML || "";
-      const hasBeenManuallyEdited =
-        processedHtml &&
-        currentHtml &&
-        currentHtml !== processedHtml &&
-        currentHtml.trim() !== "";
+    if (processedHtml && (textColor || separatorColor)) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(processedHtml, "text/html");
 
-      const sourceHtml = hasBeenManuallyEdited ? currentHtml : originalHtml;
+      // Aplica cor ao texto (apenas aos elementos de texto, não aos links)
+      if (textColor) {
+        const textElements = doc.querySelectorAll("p, div, span, td, b, strong, i, em");
+        textElements.forEach((element) => {
+          const htmlElement = element as HTMLElement;
+          // Não aplica cor a links
+          if (htmlElement.tagName !== "A" && !htmlElement.closest("a")) {
+            htmlElement.style.color = textColor;
+          }
+        });
+      }
 
-      const processed = processHtml(
-        sourceHtml,
-        textColor || undefined,
-        separatorColor || undefined,
-      );
-      if (processed && processed !== processedHtml) {
-        setProcessedHtml(processed);
+      // Aplica cor à barra vertical (elementos com border-left)
+      if (separatorColor) {
+        const cellsWithBorder = doc.querySelectorAll('[style*="border-left"]');
+        cellsWithBorder.forEach((cell) => {
+          const cellElement = cell as HTMLElement;
+          const currentStyle = cellElement.getAttribute("style") || "";
+          // Substitui a cor da borda mantendo o resto do estilo
+          const newStyle = currentStyle.replace(
+            /border-left:\s*[^;]+;/g,
+            `border-left: 3px solid ${separatorColor};`
+          );
+          cellElement.setAttribute("style", newStyle);
+        });
+      }
+
+      const updatedHtml = doc.body.innerHTML;
+      if (updatedHtml !== processedHtml) {
+        setProcessedHtml(updatedHtml);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [textColor, separatorColor, originalHtml]);
+  }, [textColor, separatorColor]);
 
   // Atualiza o preview ref quando processedHtml muda (aplicação de cores)
   useEffect(() => {
