@@ -732,24 +732,16 @@ export default function Home() {
     setTimeout(() => setSuccessMessage(""), 2000);
   };
 
-  // Atualiza o preview ref quando processedHtml muda (aplicação de cores)
-  useEffect(() => {
-    if (processedHtml && previewRef.current) {
-      // Só atualiza se o conteúdo for diferente (evita loop)
-      if (previewRef.current.innerHTML !== processedHtml) {
-        previewRef.current.innerHTML = processedHtml;
-      }
-    }
-
-    // CRÍTICO: Também atualiza pasteAreaRef para que as cores aplicadas sejam copiadas
-    if (processedHtml && pasteAreaRef.current) {
-      if (pasteAreaRef.current.innerHTML !== processedHtml) {
-        // Aplica otimização para Gmail antes de colocar no pasteArea
-        const optimizedHtml = optimizeForGmail(processedHtml);
-        pasteAreaRef.current.innerHTML = optimizedHtml;
-      }
-    }
-  }, [processedHtml]);
+  // REMOVIDO: Este useEffect estava sobrescrevendo as mudanças manuais no DOM
+  // Agora cada função (applyColorToSelection, applySeparatorColor, etc)
+  // atualiza diretamente o processedHtml quando necessário
+  // useEffect(() => {
+  //   if (processedHtml && previewRef.current) {
+  //     if (previewRef.current.innerHTML !== processedHtml) {
+  //       previewRef.current.innerHTML = processedHtml;
+  //     }
+  //   }
+  // }, [processedHtml]);
 
   const processHtml = (
     html: string,
