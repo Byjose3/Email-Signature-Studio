@@ -2639,15 +2639,40 @@ export default function Home() {
         const doc = parser.parseFromString(htmlToCopy, "text/html");
 
         // Procura todos os elementos com cor definida
-        const elementsWithColor = doc.querySelectorAll('[style*="color"], font');
+        const elementsWithColor = doc.querySelectorAll('[style*="color"], font[color]');
         elementsWithColor.forEach((el) => {
           const element = el as HTMLElement;
-          const computedColor = element.style.color;
 
-          if (computedColor && element.tagName !== 'TD' && element.tagName !== 'TABLE') {
+          // Ignora células de tabela e elementos de estrutura
+          if (element.tagName === 'TD' || element.tagName === 'TABLE' || element.tagName === 'TR') {
+            return;
+          }
+
+          // Obtém a cor - pode estar em style.color ou no atributo color
+          let color = element.style.color || element.getAttribute('color');
+
+          if (!color) return;
+
+          // Converte RGB para hexadecimal se necessário
+          if (color.startsWith('rgb')) {
+            const rgbMatch = color.match(/\d+/g);
+            if (rgbMatch && rgbMatch.length >= 3) {
+              const r = parseInt(rgbMatch[0]);
+              const g = parseInt(rgbMatch[1]);
+              const b = parseInt(rgbMatch[2]);
+              color = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+            }
+          }
+
+          // Se já é uma tag <font>, apenas garante que o atributo color está correto
+          if (element.tagName === 'FONT') {
+            element.setAttribute('color', color);
+            element.style.color = color;
+          } else {
             // Converte para <font color="">
             const fontTag = doc.createElement('font');
-            fontTag.setAttribute('color', computedColor);
+            fontTag.setAttribute('color', color);
+            fontTag.style.color = color;
             fontTag.innerHTML = element.innerHTML;
 
             // Substitui o elemento original
