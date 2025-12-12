@@ -2676,45 +2676,11 @@ export default function Home() {
             }
           }
 
-          // Se já é uma tag <font>, processa recursivamente se contém <br>
+          // Se já é uma tag <font>, apenas garante o atributo color correto
           if (element.tagName === 'FONT') {
-            // Verifica se contém <br>
-            const brs = element.querySelectorAll('br');
-
-            if (brs.length > 0) {
-              // Tem <br> dentro - precisa dividir em múltiplas tags <font>
-              const parent = element.parentNode;
-              if (!parent) return;
-
-              // Processa cada filho separadamente
-              const children = Array.from(element.childNodes);
-              const fragment = doc.createDocumentFragment();
-
-              children.forEach((child) => {
-                if (child.nodeName === 'BR') {
-                  // Mantém o <br> fora das tags <font>
-                  fragment.appendChild(child.cloneNode());
-                } else if (child.nodeType === Node.TEXT_NODE && child.textContent?.trim()) {
-                  // Texto - envolve em <font>
-                  const newFont = doc.createElement('font');
-                  newFont.setAttribute('color', color);
-                  newFont.textContent = child.textContent;
-                  fragment.appendChild(newFont);
-                } else if (child.nodeType === Node.ELEMENT_NODE) {
-                  // Elemento - envolve em <font>
-                  const newFont = doc.createElement('font');
-                  newFont.setAttribute('color', color);
-                  newFont.appendChild(child.cloneNode(true));
-                  fragment.appendChild(newFont);
-                }
-              });
-
-              parent.replaceChild(fragment, element);
-            } else {
-              // Sem <br> - apenas garante o atributo color
-              element.setAttribute('color', color);
-              element.style.removeProperty('color');
-            }
+            element.setAttribute('color', color);
+            // Remove style.color para usar apenas o atributo
+            element.style.removeProperty('color');
           } else if (color) {
             // Não é <font> mas tem cor - converte para <font color="">
             const fontTag = doc.createElement('font');
