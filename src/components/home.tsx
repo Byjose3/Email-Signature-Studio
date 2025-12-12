@@ -62,6 +62,7 @@ export default function Home() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const pasteAreaRef = useRef<HTMLDivElement>(null);
+  const isApplyingColorRef = useRef<boolean>(false);
 
   useEffect(() => {
     // Carrega assinaturas guardadas do localStorage
@@ -641,6 +642,9 @@ export default function Home() {
     span.style.color = textColor;
 
     try {
+      // Marca que estamos aplicando cor (previne useEffect de sobrescrever)
+      isApplyingColorRef.current = true;
+
       // Extrai o conteúdo da seleção
       const contents = range.extractContents();
 
@@ -662,6 +666,11 @@ export default function Home() {
         setProcessedHtml(newHtml);
       }
 
+      // Aguarda o React processar e depois libera o useEffect
+      setTimeout(() => {
+        isApplyingColorRef.current = false;
+      }, 100);
+
       // Limpa a seleção
       selection.removeAllRanges();
 
@@ -669,6 +678,7 @@ export default function Home() {
       setTimeout(() => setSuccessMessage(""), 2000);
     } catch (error) {
       console.error('Erro ao aplicar cor:', error);
+      isApplyingColorRef.current = false;
       setError("Erro ao aplicar cor. Tente selecionar apenas texto simples.");
       setTimeout(() => setError(""), 3000);
     }
@@ -732,16 +742,16 @@ export default function Home() {
     setTimeout(() => setSuccessMessage(""), 2000);
   };
 
-  // REMOVIDO: Este useEffect estava sobrescrevendo as mudanças manuais no DOM
-  // Agora cada função (applyColorToSelection, applySeparatorColor, etc)
-  // atualiza diretamente o processedHtml quando necessário
-  // useEffect(() => {
-  //   if (processedHtml && previewRef.current) {
-  //     if (previewRef.current.innerHTML !== processedHtml) {
-  //       previewRef.current.innerHTML = processedHtml;
-  //     }
-  //   }
-  // }, [processedHtml]);
+  // Atualiza o preview ref quando processedHtml muda
+  // Mas NÃO sobrescreve quando estamos aplicando cor manualmente
+  useEffect(() => {
+    if (processedHtml && previewRef.current && !isApplyingColorRef.current) {
+      // Só atualiza se o conteúdo for diferente (evita loop)
+      if (previewRef.current.innerHTML !== processedHtml) {
+        previewRef.current.innerHTML = processedHtml;
+      }
+    }
+  }, [processedHtml]);
 
   const processHtml = (
     html: string,
