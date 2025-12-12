@@ -2638,19 +2638,30 @@ export default function Home() {
         const parser = new DOMParser();
         const doc = parser.parseFromString(htmlToCopy, "text/html");
 
-        // Procura todos os elementos com cor definida
-        const elementsWithColor = doc.querySelectorAll('[style*="color"], font[color]');
-        elementsWithColor.forEach((el) => {
+        // Procura TODOS os elementos que podem ter cor de texto
+        const allElements = doc.querySelectorAll('*');
+        allElements.forEach((el) => {
           const element = el as HTMLElement;
 
-          // Ignora células de tabela e elementos de estrutura
-          if (element.tagName === 'TD' || element.tagName === 'TABLE' || element.tagName === 'TR') {
+          // Ignora elementos de estrutura que não devem ter cor de texto
+          if (['TD', 'TABLE', 'TR', 'TBODY', 'THEAD', 'HTML', 'BODY', 'HEAD'].includes(element.tagName)) {
             return;
           }
 
-          // Obtém a cor - pode estar em style.color ou no atributo color
-          let color = element.style.color || element.getAttribute('color');
+          // Verifica se tem cor no style.color (não background-color)
+          let color = '';
 
+          // Método 1: Lê do style.color
+          if (element.style.color) {
+            color = element.style.color;
+          }
+
+          // Método 2: Lê do atributo color (tags <font>)
+          if (!color && element.hasAttribute('color')) {
+            color = element.getAttribute('color') || '';
+          }
+
+          // Se não tem cor, ignora
           if (!color) return;
 
           // Converte RGB para hexadecimal se necessário
@@ -2664,18 +2675,22 @@ export default function Home() {
             }
           }
 
-          // Se já é uma tag <font>, apenas garante que o atributo color está correto
+          // Se já é uma tag <font>, atualiza o atributo color
           if (element.tagName === 'FONT') {
             element.setAttribute('color', color);
-            element.style.color = color;
-          } else {
-            // Converte para <font color="">
+            // Remove style.color para usar apenas o atributo
+            element.style.removeProperty('color');
+          } else if (color) {
+            // Não é <font> mas tem cor - converte para <font color="">
             const fontTag = doc.createElement('font');
             fontTag.setAttribute('color', color);
-            fontTag.style.color = color;
-            fontTag.innerHTML = element.innerHTML;
 
-            // Substitui o elemento original
+            // Move todo o conteúdo para dentro da tag <font>
+            while (element.firstChild) {
+              fontTag.appendChild(element.firstChild);
+            }
+
+            // Substitui o elemento original pela tag <font>
             element.parentNode?.replaceChild(fontTag, element);
           }
         });
