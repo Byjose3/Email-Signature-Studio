@@ -620,7 +620,7 @@ export default function Home() {
 
   // Função para aplicar cor apenas ao texto selecionado
   const applyColorToSelection = () => {
-    if (!previewRef.current) return;
+    if (!previewRef.current || !textColor) return;
 
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) {
@@ -637,15 +637,24 @@ export default function Home() {
     }
 
     try {
-      // Usa document.execCommand que preserva melhor a estrutura HTML
-      // Este método é usado nativamente pelos editores de email
-      document.execCommand('styleWithCSS', false, 'false');
-      document.execCommand('foreColor', false, textColor);
+      // Cria tag <font> com atributo color (mesma abordagem da barra)
+      const font = document.createElement('font');
+      font.setAttribute('color', textColor);
+
+      // Extrai o conteúdo selecionado
+      const contents = range.extractContents();
+
+      // Coloca o conteúdo dentro da tag <font>
+      font.appendChild(contents);
+
+      // Insere a tag <font> de volta no range
+      range.insertNode(font);
+
+      // Limpa a seleção
+      selection.removeAllRanges();
 
       // Atualiza o processedHtml com o novo conteúdo
-      if (previewRef.current) {
-        setProcessedHtml(previewRef.current.innerHTML);
-      }
+      setProcessedHtml(previewRef.current.innerHTML);
 
       setSuccessMessage("Cor aplicada ao texto selecionado!");
       setTimeout(() => setSuccessMessage(""), 2000);
