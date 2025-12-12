@@ -62,7 +62,6 @@ export default function Home() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const pasteAreaRef = useRef<HTMLDivElement>(null);
-  const isApplyingColorRef = useRef<boolean>(false);
 
   useEffect(() => {
     // Carrega assinaturas guardadas do localStorage
@@ -621,7 +620,7 @@ export default function Home() {
 
   // Função para aplicar cor apenas ao texto selecionado
   const applyColorToSelection = () => {
-    if (!previewRef.current || !textColor) return;
+    if (!previewRef.current) return;
 
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) {
@@ -637,37 +636,22 @@ export default function Home() {
       return;
     }
 
-    // Bloqueia onInput e useEffect durante aplicação de cor
-    isApplyingColorRef.current = true;
-
     try {
-      // CRÍTICO: Força uso de <font> em vez de <span style> (compatível com Gmail)
+      // Usa document.execCommand que preserva melhor a estrutura HTML
+      // Este método é usado nativamente pelos editores de email
       document.execCommand('styleWithCSS', false, 'false');
-      // Usa execCommand que preserva a estrutura HTML
       document.execCommand('foreColor', false, textColor);
 
-      console.log('=== APPLY COLOR DEBUG ===');
-      console.log('Cor aplicada:', textColor);
-
-      // Aguarda um tick para o DOM atualizar
-      setTimeout(() => {
-        if (previewRef.current) {
-          console.log('HTML após aplicar cor (primeiros 500 chars):', previewRef.current.innerHTML.substring(0, 500));
-          console.log('Spans/fonts com cor no preview:', previewRef.current.querySelectorAll('[style*="color"], font[color]').length);
-        }
-        // Libera após aplicar
-        isApplyingColorRef.current = false;
-      }, 100);
-
-      // Limpa a seleção
-      selection.removeAllRanges();
+      // Atualiza o processedHtml com o novo conteúdo
+      if (previewRef.current) {
+        setProcessedHtml(previewRef.current.innerHTML);
+      }
 
       setSuccessMessage("Cor aplicada ao texto selecionado!");
       setTimeout(() => setSuccessMessage(""), 2000);
     } catch (error) {
-      console.error('Erro ao aplicar cor:', error);
-      isApplyingColorRef.current = false;
-      setError("Erro ao aplicar cor. Tente selecionar apenas texto simples.");
+      console.error("Erro ao aplicar cor:", error);
+      setError("Erro ao aplicar cor. Por favor, tente novamente.");
       setTimeout(() => setError(""), 3000);
     }
   };
@@ -730,13 +714,21 @@ export default function Home() {
     setTimeout(() => setSuccessMessage(""), 2000);
   };
 
-  // Atualiza o preview ref quando processedHtml muda
-  // Mas NÃO sobrescreve quando estamos aplicando cor manualmente
+  // Atualiza o preview ref quando processedHtml muda (aplicação de cores)
   useEffect(() => {
-    if (processedHtml && previewRef.current && !isApplyingColorRef.current) {
+    if (processedHtml && previewRef.current) {
       // Só atualiza se o conteúdo for diferente (evita loop)
       if (previewRef.current.innerHTML !== processedHtml) {
         previewRef.current.innerHTML = processedHtml;
+      }
+    }
+
+    // CRÍTICO: Também atualiza pasteAreaRef para que as cores aplicadas sejam copiadas
+    if (processedHtml && pasteAreaRef.current) {
+      if (pasteAreaRef.current.innerHTML !== processedHtml) {
+        // Aplica otimização para Gmail antes de colocar no pasteArea
+        const optimizedHtml = optimizeForGmail(processedHtml);
+        pasteAreaRef.current.innerHTML = optimizedHtml;
       }
     }
   }, [processedHtml]);
@@ -2501,61 +2493,13 @@ export default function Home() {
     textElements.forEach((element) => {
       const htmlElement = element as HTMLElement;
 
-      // CRÍTICO: Converte <span style="color"> em <font color=""> para Gmail
-      if (htmlElement.tagName === "SPAN" && htmlElement.style.color) {
-        const color = htmlElement.style.color;
-
-        // Converte RGB para hex se necessário
-        let hexColor = color;
-        if (color.startsWith('rgb')) {
-          const rgbMatch = color.match(/\d+/g);
-          if (rgbMatch && rgbMatch.length >= 3) {
-            const r = parseInt(rgbMatch[0]);
-            const g = parseInt(rgbMatch[1]);
-            const b = parseInt(rgbMatch[2]);
-            hexColor = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-          }
-        }
-
-        // Cria tag <font> para substituir o <span>
-        const font = doc.createElement('font');
-        font.setAttribute('color', hexColor);
-        font.style.color = color;
-
-        // Move todos os filhos do span para o font
-        while (htmlElement.firstChild) {
-          font.appendChild(htmlElement.firstChild);
-        }
-
-        // Substitui o span pelo font
-        htmlElement.parentNode?.replaceChild(font, htmlElement);
-        return;
-      }
-
-      // CRÍTICO: Preserva e normaliza tags <font> com atributo color para Gmail
+      // CRÍTICO: Preserva tags <font> com atributo color para Gmail
       if (htmlElement.tagName === "FONT") {
-        let colorAttr = htmlElement.getAttribute("color");
-
-        // Se tem style.color mas não tem atributo color, adiciona
-        if (!colorAttr && htmlElement.style.color) {
-          const color = htmlElement.style.color;
-          // Converte RGB para hex se necessário
-          if (color.startsWith('rgb')) {
-            const rgbMatch = color.match(/\d+/g);
-            if (rgbMatch && rgbMatch.length >= 3) {
-              const r = parseInt(rgbMatch[0]);
-              const g = parseInt(rgbMatch[1]);
-              const b = parseInt(rgbMatch[2]);
-              colorAttr = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-            }
-          } else {
-            colorAttr = color;
-          }
-        }
-
+        const colorAttr = htmlElement.getAttribute("color");
         if (colorAttr) {
-          // Garante que AMBOS estão presentes (como no backup)
+          // Garante que o atributo color está presente
           htmlElement.setAttribute("color", colorAttr);
+          // Também reforça no style.color
           htmlElement.style.color = colorAttr;
         }
       }
@@ -2658,15 +2602,7 @@ export default function Home() {
       }
     });
 
-    const finalHtml = doc.body.innerHTML.trim();
-
-    // DEBUG: Ver se a conversão está funcionando
-    console.log('=== OPTIMIZE FOR GMAIL ===');
-    console.log('Spans com cor encontrados:', doc.querySelectorAll('span[style*="color"]').length);
-    console.log('Fonts criados:', doc.querySelectorAll('font[color]').length);
-    console.log('HTML final (primeiros 500 chars):', finalHtml.substring(0, 500));
-
-    return finalHtml;
+    return doc.body.innerHTML.trim();
   };
 
   const updateLink = (index: number, newUrl: string) => {
@@ -2696,34 +2632,6 @@ export default function Home() {
       if (previewRef.current) {
         // Usa o conteúdo atual do preview (pode ter sido editado pelo user)
         let htmlToCopy = previewRef.current.innerHTML;
-
-        console.log('=== COPY TO CLIPBOARD DEBUG ===');
-        console.log('HTML ANTES do optimizeForGmail (primeiros 500 chars):', htmlToCopy.substring(0, 500));
-        console.log('Spans com cor no previewRef ANTES do optimize:', previewRef.current.querySelectorAll('span[style*="color"]').length);
-
-        // CRÍTICO: Normaliza tags de cor ANTES de otimizar
-        // Converte qualquer elemento com cor (span, font com style.color) em <font color="">
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(htmlToCopy, "text/html");
-
-        // Procura todos os elementos com cor definida
-        const elementsWithColor = doc.querySelectorAll('[style*="color"], font');
-        elementsWithColor.forEach((el) => {
-          const element = el as HTMLElement;
-          const computedColor = element.style.color;
-
-          if (computedColor && element.tagName !== 'TD' && element.tagName !== 'TABLE') {
-            // Converte para <font color="">
-            const fontTag = doc.createElement('font');
-            fontTag.setAttribute('color', computedColor);
-            fontTag.innerHTML = element.innerHTML;
-
-            // Substitui o elemento original
-            element.parentNode?.replaceChild(fontTag, element);
-          }
-        });
-
-        htmlToCopy = doc.body.innerHTML;
 
         // Otimiza para Gmail (garante width e height fixos no logo)
         htmlToCopy = optimizeForGmail(htmlToCopy);
@@ -3401,7 +3309,7 @@ export default function Home() {
                       contentEditable={true}
                       suppressContentEditableWarning={true}
                       onInput={() => {
-                        if (previewRef.current && !isApplyingColorRef.current) {
+                        if (previewRef.current) {
                           setProcessedHtml(previewRef.current.innerHTML);
                         }
                       }}
