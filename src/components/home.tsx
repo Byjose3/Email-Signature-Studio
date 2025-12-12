@@ -637,23 +637,21 @@ export default function Home() {
     }
 
     try {
-      // Cria um span com a cor (mesma metodologia da barra)
-      const span = document.createElement("span");
-      span.style.color = textColor;
+      // Usa document.execCommand que preserva melhor a estrutura HTML
+      // Este método é usado nativamente pelos editores de email
+      document.execCommand('styleWithCSS', false, 'false');
+      document.execCommand('foreColor', false, textColor);
 
-      // Tenta envolver o conteúdo selecionado
-      range.surroundContents(span);
-
-      // Limpa a seleção
-      selection.removeAllRanges();
-
-      // Atualiza o processedHtml com o novo conteúdo (mesma lógica da barra)
-      setProcessedHtml(previewRef.current.innerHTML);
+      // Atualiza o processedHtml com o novo conteúdo
+      if (previewRef.current) {
+        setProcessedHtml(previewRef.current.innerHTML);
+      }
 
       setSuccessMessage("Cor aplicada ao texto selecionado!");
       setTimeout(() => setSuccessMessage(""), 2000);
     } catch (error) {
-      setError("Erro ao aplicar cor. Tente selecionar apenas texto simples.");
+      console.error("Erro ao aplicar cor:", error);
+      setError("Erro ao aplicar cor. Por favor, tente novamente.");
       setTimeout(() => setError(""), 3000);
     }
   };
