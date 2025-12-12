@@ -663,25 +663,40 @@ export default function Home() {
   const applySeparatorColor = () => {
     if (!previewRef.current || !separatorColor) return;
 
-    // Aplica cor à barra vertical diretamente no canvas editável
-    const cellsWithBorder = previewRef.current.querySelectorAll('[style*="border-left"]');
+    // Procura todos os elementos td na assinatura
+    const allCells = previewRef.current.querySelectorAll('td');
+    let foundBorder = false;
 
-    if (cellsWithBorder.length === 0) {
+    allCells.forEach((cell) => {
+      const cellElement = cell as HTMLElement;
+      const style = cellElement.style;
+
+      // Verifica se o elemento tem uma borda esquerda definida
+      if (style.borderLeft || style.borderLeftWidth || style.borderLeftColor) {
+        foundBorder = true;
+
+        // Extrai a largura atual da borda (ou usa 3px como padrão)
+        let borderWidth = '3px';
+        if (style.borderLeftWidth) {
+          borderWidth = style.borderLeftWidth;
+        } else if (style.borderLeft) {
+          const widthMatch = style.borderLeft.match(/(\d+(?:\.\d+)?px)/);
+          if (widthMatch) borderWidth = widthMatch[1];
+        }
+
+        // Aplica a nova cor mantendo a largura
+        cellElement.style.borderLeft = `${borderWidth} solid ${separatorColor}`;
+        cellElement.style.borderLeftWidth = borderWidth;
+        cellElement.style.borderLeftStyle = 'solid';
+        cellElement.style.borderLeftColor = separatorColor;
+      }
+    });
+
+    if (!foundBorder) {
       setError("Nenhuma barra separadora encontrada na assinatura.");
       setTimeout(() => setError(""), 3000);
       return;
     }
-
-    cellsWithBorder.forEach((cell) => {
-      const cellElement = cell as HTMLElement;
-      const currentStyle = cellElement.getAttribute("style") || "";
-      // Substitui a cor da borda mantendo o resto do estilo
-      const newStyle = currentStyle.replace(
-        /border-left:\s*[^;]+;/g,
-        `border-left: 3px solid ${separatorColor};`
-      );
-      cellElement.setAttribute("style", newStyle);
-    });
 
     // Atualiza o processedHtml com o novo conteúdo
     setProcessedHtml(previewRef.current.innerHTML);
