@@ -3210,30 +3210,13 @@ export default function Home() {
                     cores e ajustar o logo.
                   </p>
 
-                  {/* Aviso importante sobre cópia */}
-                  {processedHtml && (
-                    <div className="mb-4 p-4 bg-amber-50 border-2 border-amber-300 rounded-lg">
-                      <div className="flex items-start gap-3">
-                        <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                        <div className="text-sm text-amber-800">
-                          <p className="font-semibold mb-1">⚠️ Importante: Como copiar para o Gmail</p>
-                          <p className="mb-2">Para garantir que as cores aparecem no Gmail:</p>
-                          <ol className="list-decimal list-inside space-y-1 ml-2">
-                            <li><strong>Guarde</strong> a assinatura usando o botão abaixo</li>
-                            <li>Vá à aba <strong>"Assinaturas Guardadas"</strong></li>
-                            <li><strong>Copie</strong> a partir da assinatura guardada</li>
-                          </ol>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Botão para guardar assinatura atual */}
-                  {processedHtml && !showSaveDialog && (
+                  {/* Botão para guardar assinatura */}
+                  {!showSaveDialog && (
                     <div className="mb-4">
                       <button
                         onClick={() => setShowSaveDialog(true)}
-                        className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md font-medium"
+                        disabled={!processedHtml || processedHtml === originalHtml}
+                        className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:bg-gray-300 transition-all shadow-md font-medium"
                       >
                         <Save className="w-5 h-5" />
                         Guardar Assinatura
@@ -3316,6 +3299,37 @@ export default function Home() {
                   <Lightbulb className="w-6 h-6 text-yellow-500" />
                   Informações e Dicas
                 </h2>
+
+                {/* Seção: IMPORTANTE - Como Copiar para Gmail */}
+                <div className="bg-amber-50 border-l-4 border-amber-500 p-6 rounded-lg">
+                  <h3 className="text-lg font-semibold text-amber-900 mb-3 flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5" />
+                    ⚠️ Importante: Como Copiar para o Gmail
+                  </h3>
+                  <div className="space-y-3 text-amber-800">
+                    <p className="font-medium">
+                      Para garantir que as cores e formatação aparecem corretamente no Gmail:
+                    </p>
+                    <ol className="list-decimal list-inside space-y-2 ml-2 bg-white bg-opacity-50 p-4 rounded-lg">
+                      <li>
+                        <strong>Guarde</strong> a assinatura usando o botão "Guardar" (ele fica ativo após fazer alterações)
+                      </li>
+                      <li>
+                        Vá à aba <strong>"Assinaturas Guardadas"</strong>
+                      </li>
+                      <li>
+                        <strong>Copie</strong> a assinatura a partir da lista de assinaturas guardadas
+                      </li>
+                      <li>
+                        Cole no Gmail - as cores e formatação serão preservadas
+                      </li>
+                    </ol>
+                    <p className="text-sm italic mt-3 bg-white bg-opacity-50 p-3 rounded">
+                      💡 <strong>Nota:</strong> Copiar diretamente do editor pode não preservar todas as formatações no Gmail.
+                      Guardar primeiro garante compatibilidade total.
+                    </p>
+                  </div>
+                </div>
 
                 {/* Seção: Como Usar */}
                 <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg">
