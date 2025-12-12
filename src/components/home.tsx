@@ -828,30 +828,8 @@ export default function Home() {
             linkElement.style.marginRight = "6px";
           }
 
-          // BACKUP para Gmail produção: adiciona espaços invisíveis após o link
-          // Gmail remove margin-right mas preserva text nodes
-
-          // Calcula número de &nbsp; baseado no margin-right ORIGINAL salvo
-          const originalMargin = linkElement.getAttribute(
-            "data-original-margin-right",
-          );
-          const marginRight = originalMargin || linkElement.style.marginRight;
-
-          if (marginRight && marginRight.includes("px")) {
-            const marginValue = parseInt(marginRight);
-            // Calibração baseada em testes: 4 espaços = demasiado, queremos ~6px
-            // Vamos tentar: 1 &nbsp; ≈ 2.5px em Gmail produção
-            // Para 6px: 6 / 2.5 = 2.4 → arredonda para 2 espaços
-            const numSpaces = Math.max(1, Math.round(marginValue / 2.5));
-
-            // Adiciona espaços após o link (Gmail produção preserva isto)
-            const spaceString = "\u00A0".repeat(numSpaces);
-            const space = doc.createTextNode(spaceString);
-            linkElement.parentNode?.insertBefore(
-              space,
-              linkElement.nextSibling,
-            );
-          }
+          // Não adiciona espaços &nbsp; extras - o espaçamento já vem do HTML original
+          // O margin-right CSS inline é suficiente para o espaçamento visual
         }
       });
 
@@ -2748,7 +2726,9 @@ export default function Home() {
           {successMessage && (
             <div className="fixed top-4 right-4 z-50 p-4 bg-green-50 border-2 border-green-300 rounded-lg shadow-xl flex items-start gap-3 max-w-md animate-in slide-in-from-top-5">
               <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-              <p className="text-green-800 text-sm font-medium">{successMessage}</p>
+              <p className="text-green-800 text-sm font-medium">
+                {successMessage}
+              </p>
             </div>
           )}
 
@@ -3215,7 +3195,9 @@ export default function Home() {
                     <div className="mb-4">
                       <button
                         onClick={() => setShowSaveDialog(true)}
-                        disabled={!processedHtml || processedHtml === originalHtml}
+                        disabled={
+                          !processedHtml || processedHtml === originalHtml
+                        }
                         className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:bg-gray-300 transition-all shadow-md font-medium"
                       >
                         <Save className="w-5 h-5" />
@@ -3308,26 +3290,25 @@ export default function Home() {
                   </h3>
                   <div className="space-y-3 text-amber-800">
                     <p className="font-medium">
-                      Para garantir que as cores e formatação aparecem corretamente no Gmail:
+                      Para garantir que as cores e formatação aparecem
+                      corretamente no Gmail:
                     </p>
                     <ol className="list-decimal list-inside space-y-2 ml-2 bg-white bg-opacity-50 p-4 rounded-lg">
                       <li>
-                        <strong>Guarde</strong> a assinatura usando o botão "Guardar" (ele fica ativo após fazer alterações)
+                        <strong>Guarde</strong> a assinatura usando o botão
+                        "Guardar" (ele fica ativo após fazer alterações)
                       </li>
                       <li>
                         Vá à aba <strong>"Assinaturas Guardadas"</strong>
                       </li>
                       <li>
-                        <strong>Copie</strong> a assinatura a partir da lista de assinaturas guardadas
+                        <strong>Copie</strong> a assinatura a partir da lista de
+                        assinaturas guardadas
                       </li>
                       <li>
                         Cole no Gmail - as cores e formatação serão preservadas
                       </li>
                     </ol>
-                    <p className="text-sm italic mt-3 bg-white bg-opacity-50 p-3 rounded">
-                      💡 <strong>Nota:</strong> Copiar diretamente do editor pode não preservar todas as formatações no Gmail.
-                      Guardar primeiro garante compatibilidade total.
-                    </p>
                   </div>
                 </div>
 
