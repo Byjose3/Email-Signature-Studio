@@ -228,29 +228,44 @@ export default function Home() {
     try {
       const htmlToCopy = signature.html;
 
-      // Usa método confiável para copiar HTML
+      // Cria elemento temporário para copiar
       const tempDiv = document.createElement("div");
       tempDiv.innerHTML = htmlToCopy;
       tempDiv.style.position = "absolute";
       tempDiv.style.left = "-9999px";
       document.body.appendChild(tempDiv);
 
-      const range = document.createRange();
-      range.selectNodeContents(tempDiv);
-      const selection = window.getSelection();
-      selection?.removeAllRanges();
-      selection?.addRange(range);
+      // Tenta usar a API moderna do Clipboard (preserva formatação melhor)
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'text/html': new Blob([htmlToCopy], { type: 'text/html' }),
+            'text/plain': new Blob([tempDiv.innerText], { type: 'text/plain' })
+          })
+        ]);
 
-      const successful = document.execCommand("copy");
-
-      selection?.removeAllRanges();
-      document.body.removeChild(tempDiv);
-
-      if (successful) {
+        document.body.removeChild(tempDiv);
         setSuccessMessage("Assinatura copiada! Cole diretamente no Gmail.");
         setTimeout(() => setSuccessMessage(""), 3000);
-      } else {
-        throw new Error("Falha ao copiar");
+      } catch (clipboardErr) {
+        // Fallback: usa método antigo se a API moderna falhar
+        const range = document.createRange();
+        range.selectNodeContents(tempDiv);
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+
+        const successful = document.execCommand("copy");
+
+        selection?.removeAllRanges();
+        document.body.removeChild(tempDiv);
+
+        if (successful) {
+          setSuccessMessage("Assinatura copiada! Cole diretamente no Gmail.");
+          setTimeout(() => setSuccessMessage(""), 3000);
+        } else {
+          throw new Error("Falha ao copiar");
+        }
       }
     } catch (err) {
       setError("Erro ao copiar assinatura.");
