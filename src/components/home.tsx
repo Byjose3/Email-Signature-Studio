@@ -2633,6 +2633,30 @@ export default function Home() {
         // Usa o conteúdo atual do preview (pode ter sido editado pelo user)
         let htmlToCopy = previewRef.current.innerHTML;
 
+        // CRÍTICO: Normaliza tags de cor antes de otimizar
+        // Converte qualquer elemento com cor (span, font com style.color) em <font color="">
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlToCopy, "text/html");
+
+        // Procura todos os elementos com cor definida
+        const elementsWithColor = doc.querySelectorAll('[style*="color"], font');
+        elementsWithColor.forEach((el) => {
+          const element = el as HTMLElement;
+          const computedColor = element.style.color;
+
+          if (computedColor && element.tagName !== 'TD' && element.tagName !== 'TABLE') {
+            // Converte para <font color="">
+            const fontTag = doc.createElement('font');
+            fontTag.setAttribute('color', computedColor);
+            fontTag.innerHTML = element.innerHTML;
+
+            // Substitui o elemento original
+            element.parentNode?.replaceChild(fontTag, element);
+          }
+        });
+
+        htmlToCopy = doc.body.innerHTML;
+
         // Otimiza para Gmail (garante width e height fixos no logo)
         htmlToCopy = optimizeForGmail(htmlToCopy);
 
