@@ -2687,24 +2687,24 @@ export default function Home() {
 
       return (
         <div key={imageId} className="space-y-2">
-          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-xl border border-border">
             <div className="flex-shrink-0">
               <img
                 src={img.getAttribute("src") || ""}
                 alt={altText}
-                className="w-16 h-16 object-contain rounded border border-gray-300 bg-white"
+                className="w-16 h-16 object-contain rounded-lg border border-border bg-card"
               />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-700 truncate flex items-center gap-1">
+              <p className="text-sm font-medium text-foreground truncate flex items-center gap-1">
                 {isLogo ? (
-                  <Building2 className="w-4 h-4" />
+                  <Building2 className="w-4 h-4 text-primary" />
                 ) : (
-                  <Link2 className="w-4 h-4" />
+                  <Link2 className="w-4 h-4 text-info" />
                 )}
                 {altText}
               </p>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 {isLogo ? "Logo da empresa" : "Ícone/Imagem"}
               </p>
             </div>
@@ -2715,7 +2715,7 @@ export default function Home() {
                 onChange={(e) => handleImageUpload(imageId, e)}
                 className="hidden"
               />
-              <div className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium shadow-sm">
+              <div className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium shadow-sm">
                 <Upload className="w-4 h-4" />
                 Substituir
               </div>
@@ -2723,7 +2723,7 @@ export default function Home() {
           </div>
           {hasSocialLink && (
             <div className="pl-3">
-              <label className="block text-xs font-medium text-gray-600 mb-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 Link da rede social:
               </label>
               <input
@@ -2733,7 +2733,7 @@ export default function Home() {
                   handleSocialLinkUpdate(imageId, e.target.value)
                 }
                 placeholder="https://..."
-                className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-1.5 text-sm border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-card"
               />
             </div>
           )}
@@ -2745,29 +2745,29 @@ export default function Home() {
   const imageButtons = getImageButtons();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:p-6">
+    <div className="min-h-screen bg-gradient-main p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
+        <div className="bg-card rounded-2xl shadow-xl border border-border/50 p-6 md:p-8">
           <div className="mb-8">
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
               Email Signature Studio
             </h1>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               Crie, edite e gerencie suas assinaturas de email para Gmail
             </p>
           </div>
 
           {error && (
-            <div className="fixed top-4 right-4 z-50 p-4 bg-red-50 border-2 border-red-300 rounded-lg shadow-xl flex items-start gap-3 max-w-md animate-in slide-in-from-top-5">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-red-800 text-sm font-medium">{error}</p>
+            <div className="fixed top-4 right-4 z-50 p-4 bg-destructive/10 border-2 border-destructive/30 rounded-lg shadow-xl flex items-start gap-3 max-w-md animate-in slide-in-from-top-5">
+              <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+              <p className="text-destructive text-sm font-medium">{error}</p>
             </div>
           )}
 
           {successMessage && (
-            <div className="fixed top-4 right-4 z-50 p-4 bg-green-50 border-2 border-green-300 rounded-lg shadow-xl flex items-start gap-3 max-w-md animate-in slide-in-from-top-5">
-              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-              <p className="text-green-800 text-sm font-medium">
+            <div className="fixed top-4 right-4 z-50 p-4 bg-success/10 border-2 border-success/30 rounded-lg shadow-xl flex items-start gap-3 max-w-md animate-in slide-in-from-top-5">
+              <CheckCircle className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
+              <p className="text-success text-sm font-medium">
                 {successMessage}
               </p>
             </div>
@@ -2803,15 +2803,15 @@ export default function Home() {
             <TabsContent value="saved" className="mt-0">
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                    <FolderOpen className="w-6 h-6" />
+                  <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                    <FolderOpen className="w-6 h-6 text-primary" />
                     Assinaturas Guardadas ({savedSignatures.length})
                   </h2>
                   <div className="flex gap-2">
                     <button
                       onClick={exportAllSignatures}
                       disabled={savedSignatures.length === 0}
-                      className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+                      className="flex items-center gap-2 px-4 py-2 bg-success text-success-foreground rounded-lg hover:bg-success/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors text-sm font-medium"
                       title="Exportar backup HTML de todas as assinaturas"
                     >
                       <Download className="w-4 h-4" />
@@ -2821,9 +2821,9 @@ export default function Home() {
                 </div>
 
                 {/* Aviso sobre localStorage */}
-                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                  <p className="text-sm text-amber-800 flex items-start gap-2">
-                    <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <div className="mb-4 p-3 bg-warning/10 border border-warning/30 rounded-lg">
+                  <p className="text-sm text-warning-foreground flex items-start gap-2">
+                    <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-warning" />
                     <span>
                       <strong>Aviso:</strong> As assinaturas são guardadas
                       localmente no seu navegador. Se limpar os dados ou cache
@@ -2835,17 +2835,17 @@ export default function Home() {
 
                 {/* Dialog de Confirmação de Eliminação */}
                 {deleteConfirmId && (
-                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                  <div className="fixed inset-0 bg-foreground/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-card rounded-xl shadow-xl max-w-md w-full p-6 border border-border">
                       <div className="flex items-start gap-4 mb-4">
-                        <div className="flex-shrink-0 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                          <AlertCircle className="w-6 h-6 text-red-600" />
+                        <div className="flex-shrink-0 w-12 h-12 bg-destructive/10 rounded-full flex items-center justify-center">
+                          <AlertCircle className="w-6 h-6 text-destructive" />
                         </div>
                         <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                          <h3 className="text-lg font-semibold text-foreground mb-2">
                             Eliminar Assinatura
                           </h3>
-                          <p className="text-gray-600 text-sm">
+                          <p className="text-muted-foreground text-sm">
                             Tem certeza que deseja eliminar esta assinatura?
                             Esta ação não pode ser desfeita.
                           </p>
@@ -2854,13 +2854,13 @@ export default function Home() {
                       <div className="flex gap-3 justify-end">
                         <button
                           onClick={() => setDeleteConfirmId(null)}
-                          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors font-medium"
+                          className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors font-medium"
                         >
                           Cancelar
                         </button>
                         <button
                           onClick={deleteSignature}
-                          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors font-medium flex items-center gap-2"
+                          className="px-4 py-2 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 transition-colors font-medium flex items-center gap-2"
                         >
                           <Trash2 className="w-4 h-4" />
                           Eliminar
@@ -2876,22 +2876,22 @@ export default function Home() {
                     {savedSignatures.map((sig) => (
                       <div
                         key={sig.id}
-                        className="p-4 bg-gradient-to-br from-gray-50 to-blue-50 border-2 border-gray-200 rounded-lg hover:border-blue-400 transition-all hover:shadow-md"
+                        className="p-4 bg-card border-2 border-border rounded-xl hover:border-primary/50 transition-all hover:shadow-lg group"
                       >
                         <div className="flex items-start justify-between mb-3">
-                          <h3 className="font-semibold text-gray-800 truncate flex-1">
+                          <h3 className="font-semibold text-foreground truncate flex-1">
                             {sig.name}
                           </h3>
                           <button
                             onClick={() => confirmDelete(sig.id)}
-                            className="flex-shrink-0 p-1 text-red-600 hover:bg-red-100 rounded transition-colors"
+                            className="flex-shrink-0 p-1.5 text-destructive hover:bg-destructive/10 rounded-lg transition-colors opacity-60 group-hover:opacity-100"
                             title="Eliminar assinatura"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
 
-                        <div className="mb-3 p-2 bg-white border border-gray-200 rounded h-32 overflow-hidden relative">
+                        <div className="mb-3 p-2 bg-background border border-border rounded-lg h-32 overflow-hidden relative">
                           <div
                             className="absolute top-0 left-0 origin-top-left pointer-events-none"
                             dangerouslySetInnerHTML={{ __html: sig.thumbnail }}
@@ -2903,7 +2903,7 @@ export default function Home() {
                           />
                         </div>
 
-                        <div className="text-xs text-gray-600 mb-3">
+                        <div className="text-xs text-muted-foreground mb-3">
                           Guardada em:{" "}
                           {new Date(sig.savedAt).toLocaleDateString("pt-PT")} às{" "}
                           {new Date(sig.savedAt).toLocaleTimeString("pt-PT", {
@@ -2915,7 +2915,7 @@ export default function Home() {
                         <div className="flex gap-2">
                           <button
                             onClick={() => copySavedSignature(sig)}
-                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium text-sm"
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm"
                             title="Copiar assinatura para colar no Gmail"
                           >
                             <Copy className="w-4 h-4" />
@@ -2926,12 +2926,12 @@ export default function Home() {
                     ))}
                   </div>
                 ) : (
-                  <div className="p-8 text-center bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg">
-                    <FolderOpen className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                    <p className="text-gray-600 font-medium">
+                  <div className="p-8 text-center bg-muted/50 border-2 border-dashed border-border rounded-xl">
+                    <FolderOpen className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
+                    <p className="text-foreground font-medium">
                       Nenhuma assinatura guardada
                     </p>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                       Crie uma assinatura e clique em "Guardar" para começar
                     </p>
                   </div>
@@ -2945,12 +2945,12 @@ export default function Home() {
                 {/* Coluna Esquerda - Input */}
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                      <FileText className="w-5 h-5 text-blue-600" />
+                    <label className="block text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-primary" />
                       HTML Original (Referência)
                     </label>
                     <p
-                      className="text-gray-500 mb-3 flex items-center gap-1"
+                      className="text-muted-foreground mb-3 flex items-center gap-1"
                       style={{ fontSize: "14px" }}
                     >
                       <Info className="w-3 h-3" />
@@ -2969,7 +2969,7 @@ export default function Home() {
                       onClick={() =>
                         document.getElementById("file-upload-input")?.click()
                       }
-                      className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg hover:from-indigo-700 hover:to-blue-700 transition-all cursor-pointer shadow-md font-medium mb-4"
+                      className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all cursor-pointer shadow-md font-medium mb-4"
                     >
                       <FileText className="w-5 h-5" />
                       <span className="font-medium">Carregar arquivo HTML</span>
@@ -2979,7 +2979,7 @@ export default function Home() {
                       ref={pasteAreaRef}
                       onPaste={handlePasteArea}
                       contentEditable={false}
-                      className="relative w-full p-4 border-2 border-blue-300 rounded-lg bg-white shadow-inner overflow-auto"
+                      className="relative w-full p-4 border-2 border-primary/30 rounded-xl bg-card shadow-inner overflow-auto"
                       style={{ outline: "none", height: "532px" }}
                       data-placeholder="HTML Original (apenas visualização)"
                     ></div>
@@ -2987,14 +2987,14 @@ export default function Home() {
 
                   {processedHtml && (
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                        <Ruler className="w-5 h-5" />
+                      <label className="block text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                        <Ruler className="w-5 h-5 text-accent" />
                         Ajustar Tamanho do Logo
                       </label>
-                      <div className="p-4 bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200 rounded-lg space-y-3">
+                      <div className="p-4 bg-accent/5 border-2 border-accent/20 rounded-xl space-y-3">
                         <div className="flex items-center gap-3">
                           <div className="flex-1">
-                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                            <label className="block text-xs font-medium text-muted-foreground mb-1">
                               Largura (px)
                             </label>
                             <input
@@ -3007,7 +3007,7 @@ export default function Home() {
                               }
                               min="10"
                               max="500"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                              className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent bg-card"
                             />
                           </div>
 
@@ -3015,10 +3015,10 @@ export default function Home() {
                             onClick={() =>
                               setAspectRatioLocked(!aspectRatioLocked)
                             }
-                            className={`mt-5 p-2 rounded-md transition-colors ${
+                            className={`mt-5 p-2 rounded-lg transition-colors ${
                               aspectRatioLocked
-                                ? "bg-purple-600 text-white hover:bg-purple-700"
-                                : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                                ? "bg-accent text-accent-foreground hover:bg-accent/90"
+                                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                             }`}
                             title={
                               aspectRatioLocked
@@ -3034,7 +3034,7 @@ export default function Home() {
                           </button>
 
                           <div className="flex-1">
-                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                            <label className="block text-xs font-medium text-muted-foreground mb-1">
                               Altura (px)
                             </label>
                             <input
@@ -3042,13 +3042,13 @@ export default function Home() {
                               value={logoHeight === 0 ? "auto" : logoHeight}
                               readOnly
                               disabled
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
+                              className="w-full px-3 py-2 border border-border rounded-lg bg-muted text-muted-foreground cursor-not-allowed"
                             />
                           </div>
                         </div>
 
                         <div
-                          className="text-purple-700 bg-white/50 p-2 rounded flex items-start gap-2"
+                          className="text-accent bg-card/50 p-2 rounded-lg flex items-start gap-2"
                           style={{ fontSize: "14px" }}
                         >
                           <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5" />
@@ -3056,7 +3056,7 @@ export default function Home() {
                             <strong>Dica:</strong> Dimensões atuais: {logoWidth}
                             x{logoHeight}px
                             {logoWidth > 200 && (
-                              <span className="text-orange-600 ml-2 inline-flex items-center gap-1">
+                              <span className="text-warning ml-2 inline-flex items-center gap-1">
                                 <AlertCircle className="w-3 h-3" /> Logo pode
                                 ficar muito grande no Gmail
                               </span>
@@ -3069,14 +3069,14 @@ export default function Home() {
 
                   {processedHtml && (
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                        <Palette className="w-5 h-5" />
+                      <label className="block text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                        <Palette className="w-5 h-5 text-success" />
                         Ajustar Cores
                       </label>
-                      <div className="p-4 bg-gradient-to-br from-green-50 to-teal-50 border-2 border-green-200 rounded-lg space-y-3">
+                      <div className="p-4 bg-success/5 border-2 border-success/20 rounded-xl space-y-3">
                         <div className="flex items-center gap-4">
                           <div className="flex-1">
-                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                            <label className="block text-xs font-medium text-muted-foreground mb-1">
                               Cor do Texto
                             </label>
                             <div className="flex items-center gap-2">
@@ -3084,7 +3084,7 @@ export default function Home() {
                                 type="color"
                                 value={textColor || "#000000"}
                                 onChange={(e) => setTextColor(e.target.value)}
-                                className="w-12 h-10 rounded border border-gray-300 cursor-pointer"
+                                className="w-12 h-10 rounded-lg border border-border cursor-pointer"
                               />
                               <input
                                 type="text"
@@ -3094,13 +3094,13 @@ export default function Home() {
                                   setTextColor(value);
                                 }}
                                 placeholder="#000000"
-                                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 font-mono text-sm uppercase"
+                                className="flex-1 px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-success focus:border-success font-mono text-sm uppercase bg-card"
                               />
                             </div>
                           </div>
 
                           <div className="flex-1">
-                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                            <label className="block text-xs font-medium text-muted-foreground mb-1">
                               Cor da Barra
                             </label>
                             <div className="flex items-center gap-2">
@@ -3110,7 +3110,7 @@ export default function Home() {
                                 onChange={(e) =>
                                   setSeparatorColor(e.target.value)
                                 }
-                                className="w-12 h-10 rounded border border-gray-300 cursor-pointer"
+                                className="w-12 h-10 rounded-lg border border-border cursor-pointer"
                               />
                               <input
                                 type="text"
@@ -3120,7 +3120,7 @@ export default function Home() {
                                   setSeparatorColor(value);
                                 }}
                                 placeholder="#d4d4d4"
-                                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 font-mono text-sm uppercase"
+                                className="flex-1 px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-success focus:border-success font-mono text-sm uppercase bg-card"
                               />
                             </div>
                           </div>
@@ -3129,7 +3129,7 @@ export default function Home() {
                         {textColor && (
                           <button
                             onClick={applyColorToSelection}
-                            className="w-full px-4 py-2 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                            className="w-full px-4 py-2.5 bg-success text-success-foreground font-medium rounded-lg hover:bg-success/90 transition-colors flex items-center justify-center gap-2"
                           >
                             <Sparkles className="w-4 h-4" />
                             Aplicar Cor ao Texto Selecionado
@@ -3137,7 +3137,7 @@ export default function Home() {
                         )}
 
                         <div
-                          className="text-green-700 bg-white/50 p-2 rounded flex items-start gap-2"
+                          className="text-success bg-card/50 p-2 rounded-lg flex items-start gap-2"
                           style={{ fontSize: "14px" }}
                         >
                           <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5" />
@@ -3154,8 +3154,8 @@ export default function Home() {
 
                   {imageButtons && imageButtons.length > 0 && (
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                        <ImageIcon className="w-5 h-5" />
+                      <label className="block text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                        <ImageIcon className="w-5 h-5 text-info" />
                         Substituir Imagens ({imageButtons.length})
                       </label>
                       <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
@@ -3166,26 +3166,26 @@ export default function Home() {
 
                   {links.length > 0 && (
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                        <Link2 className="w-5 h-5" />
+                      <label className="block text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                        <Link2 className="w-5 h-5 text-info" />
                         Editar Links ({links.length})
                       </label>
-                      <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg space-y-3">
+                      <div className="p-4 bg-info/5 border-2 border-info/20 rounded-xl space-y-3">
                         {links.map((link) => (
                           <div
                             key={link.index}
-                            className="bg-white p-3 rounded-md border border-blue-200"
+                            className="bg-card p-3 rounded-lg border border-info/30"
                           >
                             <div className="mb-2">
-                              <label className="block text-xs font-medium text-gray-600 mb-1">
+                              <label className="block text-xs font-medium text-muted-foreground mb-1">
                                 Texto:{" "}
-                                <span className="font-semibold text-gray-800">
+                                <span className="font-semibold text-foreground">
                                   {link.text}
                                 </span>
                               </label>
                             </div>
                             <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">
+                              <label className="block text-xs font-medium text-muted-foreground mb-1">
                                 URL
                               </label>
                               <input
@@ -3195,13 +3195,13 @@ export default function Home() {
                                   updateLink(link.index, e.target.value)
                                 }
                                 placeholder="https://exemplo.com"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+                                className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-info focus:border-info font-mono text-sm bg-background"
                               />
                             </div>
                           </div>
                         ))}
                         <div
-                          className="text-blue-700 bg-white/50 p-2 rounded flex items-start gap-2"
+                          className="text-info bg-card/50 p-2 rounded-lg flex items-start gap-2"
                           style={{ fontSize: "14px" }}
                         >
                           <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5" />
@@ -3218,12 +3218,12 @@ export default function Home() {
 
                 {/* Coluna Direita - Preview */}
                 <div className="lg:sticky lg:top-6 lg:self-start">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                    <Eye className="w-5 h-5 text-green-600" />
+                  <label className="block text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                    <Eye className="w-5 h-5 text-success" />
                     Canvas Editável (Edite e Visualize Aqui)
                   </label>
                   <p
-                    className="text-gray-500 mb-3 flex items-center gap-1"
+                    className="text-muted-foreground mb-3 flex items-center gap-1"
                     style={{ fontSize: "14px" }}
                   >
                     <Info className="w-3 h-3" />
@@ -3239,7 +3239,7 @@ export default function Home() {
                         disabled={
                           !processedHtml || processedHtml === originalHtml
                         }
-                        className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:bg-gray-300 transition-all shadow-md font-medium"
+                        className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:bg-muted transition-all shadow-md font-medium"
                       >
                         <Save className="w-5 h-5" />
                         Guardar Assinatura
@@ -3249,8 +3249,8 @@ export default function Home() {
 
                   {/* Dialog para guardar assinatura */}
                   {processedHtml && showSaveDialog && (
-                    <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-lg space-y-3 mb-4">
-                      <label className="block text-sm font-semibold text-gray-700">
+                    <div className="p-4 bg-primary/5 border-2 border-primary/20 rounded-xl space-y-3 mb-4">
+                      <label className="block text-sm font-semibold text-foreground">
                         Nome da Assinatura
                       </label>
                       <input
@@ -3259,13 +3259,13 @@ export default function Home() {
                         onChange={(e) => setSignatureName(e.target.value)}
                         onKeyPress={(e) => e.key === "Enter" && saveSignature()}
                         placeholder="Ex: Assinatura Corporativa 2024"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-card"
                         autoFocus
                       />
                       <div className="flex gap-2">
                         <button
                           onClick={saveSignature}
-                          className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
+                          className="flex-1 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
                         >
                           Guardar
                         </button>
@@ -3274,7 +3274,7 @@ export default function Home() {
                             setShowSaveDialog(false);
                             setSignatureName("");
                           }}
-                          className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors font-medium"
+                          className="flex-1 px-4 py-2.5 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors font-medium"
                         >
                           Cancelar
                         </button>
@@ -3292,15 +3292,15 @@ export default function Home() {
                           setProcessedHtml(previewRef.current.innerHTML);
                         }
                       }}
-                      className="p-6 bg-white border-2 border-green-300 rounded-lg shadow-inner overflow-auto focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                      className="p-6 bg-card border-2 border-success/30 rounded-xl shadow-inner overflow-auto focus:ring-2 focus:ring-success focus:border-success"
                       style={{ height: "532px", outline: "none" }}
                     />
                   ) : (
                     <div
-                      className="p-6 bg-white border-2 border-gray-300 rounded-lg shadow-inner overflow-auto"
+                      className="p-6 bg-card border-2 border-border rounded-xl shadow-inner overflow-auto"
                       style={{ height: "532px" }}
                     >
-                      <div className="flex flex-col items-center justify-center h-96 text-gray-400">
+                      <div className="flex flex-col items-center justify-center h-96 text-muted-foreground">
                         <Image className="w-16 h-16 mb-4 opacity-50" />
                         <p className="text-lg font-medium">
                           A aguardar assinatura
@@ -3318,23 +3318,23 @@ export default function Home() {
             {/* Tab: Informações e Dicas */}
             <TabsContent value="info" className="mt-0">
               <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                  <Lightbulb className="w-6 h-6 text-yellow-500" />
+                <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                  <Lightbulb className="w-6 h-6 text-warning" />
                   Informações e Dicas
                 </h2>
 
                 {/* Seção: IMPORTANTE - Como Copiar para Gmail */}
-                <div className="bg-amber-50 border-l-4 border-amber-500 p-6 rounded-lg">
-                  <h3 className="text-lg font-semibold text-amber-900 mb-3 flex items-center gap-2">
-                    <AlertCircle className="w-5 h-5" />
-                    ⚠️ Importante: Como Copiar para o Gmail
+                <div className="bg-warning/10 border-l-4 border-warning p-6 rounded-xl">
+                  <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 text-warning" />
+                    Importante: Como Copiar para o Gmail
                   </h3>
-                  <div className="space-y-3 text-amber-800">
+                  <div className="space-y-3 text-foreground/80">
                     <p className="font-medium">
                       Para garantir que as cores e formatação aparecem
                       corretamente no Gmail:
                     </p>
-                    <ol className="list-decimal list-inside space-y-2 ml-2 bg-white bg-opacity-50 p-4 rounded-lg">
+                    <ol className="list-decimal list-inside space-y-2 ml-2 bg-card/50 p-4 rounded-lg">
                       <li>
                         <strong>Guarde</strong> a assinatura usando o botão
                         "Guardar" (ele fica ativo após fazer alterações)
@@ -3354,62 +3354,62 @@ export default function Home() {
                 </div>
 
                 {/* Seção: Como Usar */}
-                <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg">
-                  <h3 className="text-lg font-semibold text-blue-900 mb-3 flex items-center gap-2">
-                    <Info className="w-5 h-5" />
+                <div className="bg-info/10 border-l-4 border-info p-6 rounded-xl">
+                  <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+                    <Info className="w-5 h-5 text-info" />
                     Como Usar Esta Aplicação
                   </h3>
-                  <ul className="space-y-2 text-blue-800">
+                  <ul className="space-y-2 text-foreground/80">
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-blue-600" />
+                      <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-info" />
                       <span>
                         <strong>Cole o HTML</strong> da sua assinatura na área
                         de entrada
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-blue-600" />
+                      <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-info" />
                       <span>
                         <strong>Faça upload do logo</strong> clicando no botão
                         "Alterar Imagem"
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-blue-600" />
+                      <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-info" />
                       <span>
                         <strong>Faça upload dos logos</strong> e defina os links
                         de cada uma das suas redes sociais
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-blue-600" />
+                      <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-info" />
                       <span>
                         <strong>Edite os links e os textos</strong> dos links
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-blue-600" />
+                      <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-info" />
                       <span>
                         <strong>Ajuste as cores e espaçamentos</strong> usando
                         os controlos disponíveis
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-blue-600" />
+                      <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-info" />
                       <span>
                         <strong>Copie a assinatura</strong> usando o botão
                         "Copiar Assinatura"
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-blue-600" />
+                      <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-info" />
                       <span>
                         <strong>Cole no Gmail</strong> nas configurações de
                         assinatura
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-blue-600" />
+                      <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-info" />
                       <span>
                         <strong>Guarde a sua assinatura</strong> para poder
                         reutilizá-la ou editá-la mais tarde
@@ -3419,12 +3419,12 @@ export default function Home() {
                 </div>
 
                 {/* Seção: Como Definir no Gmail */}
-                <div className="bg-indigo-50 border-l-4 border-indigo-500 p-6 rounded-lg">
-                  <h3 className="text-lg font-semibold text-indigo-900 mb-3 flex items-center gap-2">
-                    <Mail className="w-5 h-5" />
+                <div className="bg-primary/10 border-l-4 border-primary p-6 rounded-xl">
+                  <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+                    <Mail className="w-5 h-5 text-primary" />
                     Como Definir a Assinatura no Gmail
                   </h3>
-                  <div className="space-y-3 text-indigo-800">
+                  <div className="space-y-3 text-foreground/80">
                     <p className="mb-3">
                       Depois de copiar a assinatura, siga estes passos:
                     </p>
@@ -3433,7 +3433,7 @@ export default function Home() {
                         <strong>Abra o Gmail</strong> no seu navegador
                       </li>
                       <li>
-                        Clique no <strong>ícone de engrenagem</strong> (⚙️) no
+                        Clique no <strong>ícone de engrenagem</strong> no
                         canto superior direito
                       </li>
                       <li>
@@ -3456,9 +3456,9 @@ export default function Home() {
                         <strong>"Guardar alterações"</strong>
                       </li>
                     </ol>
-                    <div className="mt-4 p-3 bg-indigo-100 rounded-md">
+                    <div className="mt-4 p-3 bg-primary/10 rounded-lg">
                       <p className="text-sm flex items-start gap-2">
-                        <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                        <Info className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
                         <span>
                           <strong>Dica:</strong> Pode definir se a assinatura
                           aparece em novos emails, respostas ou ambos.
@@ -3469,21 +3469,21 @@ export default function Home() {
                 </div>
 
                 {/* Seção: Logo da Marca */}
-                <div className="bg-purple-50 border-l-4 border-purple-500 p-6 rounded-lg">
-                  <h3 className="text-lg font-semibold text-purple-900 mb-3 flex items-center gap-2">
-                    <ImageIcon className="w-5 h-5" />
+                <div className="bg-accent/10 border-l-4 border-accent p-6 rounded-xl">
+                  <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+                    <ImageIcon className="w-5 h-5 text-accent" />
                     Logo da Marca
                   </h3>
-                  <div className="space-y-3 text-purple-800">
+                  <div className="space-y-3 text-foreground/80">
                     <p className="flex items-start gap-2">
-                      <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-purple-600" />
+                      <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-accent" />
                       <span>
                         <strong>Dimensões do logo protegidas:</strong> O logo
                         mantém sempre as proporções corretas automaticamente.
                       </span>
                     </p>
                     <p className="flex items-start gap-2">
-                      <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-purple-600" />
+                      <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0 text-accent" />
                       <span>
                         <strong>Tamanho no Gmail:</strong> O logo entra no Gmail
                         com o tamanho correto.
@@ -3493,14 +3493,14 @@ export default function Home() {
                 </div>
 
                 {/* Seção: Avisos Importantes */}
-                <div className="bg-yellow-50 border-l-4 border-yellow-500 p-6 rounded-lg">
-                  <h3 className="text-lg font-semibold text-yellow-900 mb-3 flex items-center gap-2">
-                    <AlertCircle className="w-5 h-5" />
+                <div className="bg-warning/10 border-l-4 border-warning p-6 rounded-xl">
+                  <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 text-warning" />
                     Avisos Importantes
                   </h3>
-                  <div className="space-y-3 text-yellow-800">
+                  <div className="space-y-3 text-foreground/80">
                     <p className="flex items-center gap-2">
-                      <span className="text-2xl flex-shrink-0">⚠️</span>
+                      <span className="text-warning text-lg flex-shrink-0">●</span>
                       <span>
                         <strong>
                           Não altere o tamanho do logo no editor do Gmail:
@@ -3512,7 +3512,7 @@ export default function Home() {
                       </span>
                     </p>
                     <p className="flex items-center gap-2">
-                      <span className="text-2xl flex-shrink-0">⚠️</span>
+                      <span className="text-warning text-lg flex-shrink-0">●</span>
                       <span>
                         <strong>Se alterar por engano:</strong> Selecione o logo
                         no Gmail e escolha "Tamanho original" para voltar ao
@@ -3520,7 +3520,7 @@ export default function Home() {
                       </span>
                     </p>
                     <p className="flex items-center gap-2">
-                      <span className="text-2xl flex-shrink-0">💡</span>
+                      <span className="text-info text-lg flex-shrink-0">●</span>
                       <span>
                         <strong>Compatibilidade:</strong> A assinatura é
                         otimizada para Gmail, mas pode funcionar noutros
@@ -3531,28 +3531,28 @@ export default function Home() {
                 </div>
 
                 {/* Seção: Dicas de Utilização */}
-                <div className="bg-green-50 border-l-4 border-green-500 p-6 rounded-lg">
-                  <h3 className="text-lg font-semibold text-green-900 mb-3 flex items-center gap-2">
-                    <Lightbulb className="w-5 h-5" />
+                <div className="bg-success/10 border-l-4 border-success p-6 rounded-xl">
+                  <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+                    <Lightbulb className="w-5 h-5 text-success" />
                     Dicas de Utilização
                   </h3>
-                  <ul className="space-y-2 text-green-800">
+                  <ul className="space-y-2 text-foreground/80">
                     <li className="flex items-center gap-2">
-                      <span className="text-xl flex-shrink-0">✅</span>
+                      <CheckCircle className="w-5 h-5 flex-shrink-0 text-success" />
                       <span>
                         <strong>Guarde as suas assinaturas:</strong> Use o botão
                         "Guardar Assinatura" para não perder o seu trabalho.
                       </span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <span className="text-xl flex-shrink-0">✅</span>
+                      <CheckCircle className="w-5 h-5 flex-shrink-0 text-success" />
                       <span>
                         <strong>Teste antes de usar:</strong> Envie um email de
                         teste para si próprio para verificar a formatação.
                       </span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <span className="text-xl flex-shrink-0">✅</span>
+                      <CheckCircle className="w-5 h-5 flex-shrink-0 text-success" />
                       <span>
                         <strong>Espaçamento da barra:</strong> Ajuste o
                         espaçamento antes da barra vertical para melhor
@@ -3560,7 +3560,7 @@ export default function Home() {
                       </span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <span className="text-xl flex-shrink-0">✅</span>
+                      <CheckCircle className="w-5 h-5 flex-shrink-0 text-success" />
                       <span>
                         <strong>Cores personalizadas:</strong> Use os seletores
                         de cor para combinar com a identidade visual da empresa.
@@ -3570,12 +3570,12 @@ export default function Home() {
                 </div>
 
                 {/* Seção: Suporte */}
-                <div className="bg-gray-50 border-l-4 border-gray-500 p-6 rounded-lg">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <Mail className="w-5 h-5" />
+                <div className="bg-secondary border-l-4 border-muted-foreground p-6 rounded-xl">
+                  <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+                    <Mail className="w-5 h-5 text-muted-foreground" />
                     Precisa de Ajuda?
                   </h3>
-                  <p className="text-gray-700">
+                  <p className="text-muted-foreground">
                     Se encontrar algum problema ou tiver dúvidas sobre a
                     utilização desta aplicação, entre em contacto com o suporte
                     técnico.
