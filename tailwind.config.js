@@ -51,6 +51,21 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
+        info: {
+          DEFAULT: "hsl(var(--info))",
+          foreground: "hsl(var(--info-foreground))",
+        },
+      },
+      backgroundImage: {
+        'gradient-main': 'linear-gradient(135deg, hsl(var(--gradient-start)), hsl(var(--gradient-end)))',
       },
       borderRadius: {
         lg: "var(--radius)",
