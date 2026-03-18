@@ -68,6 +68,8 @@ export default function Home() {
   const [signatureName, setSignatureName] = useState("");
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("editor");
+  const [editingSignatureId, setEditingSignatureId] = useState<string | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const pasteAreaRef = useRef<HTMLDivElement>(null);
 
@@ -136,7 +138,7 @@ export default function Home() {
       const thumbnail = editedHtml;
 
       const newSignature: SavedSignature = {
-        id: Date.now().toString(),
+        id: editingSignatureId ?? Date.now().toString(),
         name: signatureName.trim(),
         html: editedHtml, // Guarda HTML editado do preview
         thumbnail,
@@ -150,13 +152,16 @@ export default function Home() {
         footerImageHeight,
       };
 
-      const updated = [...savedSignatures, newSignature];
+      const updated = editingSignatureId
+        ? savedSignatures.map((s) => s.id === editingSignatureId ? newSignature : s)
+        : [...savedSignatures, newSignature];
       setSavedSignatures(updated);
       localStorage.setItem("emailSignatures", JSON.stringify(updated));
 
       setSignatureName("");
       setShowSaveDialog(false);
       setError("");
+      setEditingSignatureId(null);
 
       // LIMPA TODOS OS ESTADOS após guardar (para permitir carregar nova assinatura)
       setProcessedHtml("");
@@ -187,7 +192,7 @@ export default function Home() {
       setLinks([]);
 
       // Mostra mensagem de sucesso
-      setSuccessMessage("Assinatura guardada com sucesso!");
+      setSuccessMessage(editingSignatureId ? "Assinatura atualizada com sucesso!" : "Assinatura guardada com sucesso!");
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (err) {
       console.error("Erro ao guardar assinatura:", err);
@@ -226,6 +231,14 @@ export default function Home() {
     if (processed) {
       setProcessedHtml(processed);
     }
+  };
+
+  // Edita uma assinatura guardada — carrega no editor e muda para a aba editor
+  const editSavedSignature = (signature: SavedSignature) => {
+    loadSignature(signature);
+    setEditingSignatureId(signature.id);
+    setSignatureName(signature.name);
+    setActiveTab("editor");
   };
 
   // Confirma a eliminação de uma assinatura
@@ -2916,7 +2929,7 @@ export default function Home() {
           )}
 
           {/* Tabs de navegação */}
-          <Tabs defaultValue="editor" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-3 mb-6">
               <TabsTrigger
                 value="editor"
@@ -3056,6 +3069,14 @@ export default function Home() {
 
                         <div className="flex gap-2">
                           <button
+                            onClick={() => editSavedSignature(sig)}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-sm"
+                            title="Editar assinatura no editor"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                            Editar
+                          </button>
+                          <button
                             onClick={() => copySavedSignature(sig)}
                             className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium text-sm"
                             title="Copiar assinatura para colar no Gmail"
@@ -3083,6 +3104,22 @@ export default function Home() {
 
             {/* Tab: Editor de Assinatura */}
             <TabsContent value="editor" className="mt-0">
+              {/* Banner de edição de assinatura guardada */}
+              {editingSignatureId && (
+                <div className="mb-4 flex items-center gap-3 p-3 bg-amber-50 border border-amber-300 rounded-lg text-amber-800 text-sm font-medium">
+                  <Edit3 className="w-4 h-4 flex-shrink-0" />
+                  <span>A editar assinatura guardada: <strong>{signatureName}</strong></span>
+                  <button
+                    onClick={() => {
+                      setEditingSignatureId(null);
+                      setSignatureName("");
+                    }}
+                    className="ml-auto text-xs underline hover:no-underline text-amber-700"
+                  >
+                    Cancelar edição
+                  </button>
+                </div>
+              )}
               <div className="grid lg:grid-cols-2 gap-6 items-start">
                 {/* Coluna Esquerda - Input */}
                 <div className="space-y-6">
@@ -3548,12 +3585,12 @@ export default function Home() {
                       <button
                         onClick={() => setShowSaveDialog(true)}
                         disabled={
-                          !processedHtml || processedHtml === originalHtml
+                          !processedHtml || (!editingSignatureId && processedHtml === originalHtml)
                         }
                         className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:bg-gray-300 transition-all shadow-md font-medium"
                       >
                         <Save className="w-5 h-5" />
-                        Guardar Assinatura
+                        {editingSignatureId ? "Atualizar Assinatura" : "Guardar Assinatura"}
                       </button>
                     </div>
                   )}
@@ -3562,7 +3599,7 @@ export default function Home() {
                   {processedHtml && showSaveDialog && (
                     <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-lg space-y-3 mb-4">
                       <label className="block text-sm font-semibold text-gray-700">
-                        Nome da Assinatura
+                        {editingSignatureId ? "Nome da Assinatura (atualizar)" : "Nome da Assinatura"}
                       </label>
                       <input
                         type="text"
@@ -3578,12 +3615,12 @@ export default function Home() {
                           onClick={saveSignature}
                           className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
                         >
-                          Guardar
+                          {editingSignatureId ? "Atualizar" : "Guardar"}
                         </button>
                         <button
                           onClick={() => {
                             setShowSaveDialog(false);
-                            setSignatureName("");
+                            if (!editingSignatureId) setSignatureName("");
                           }}
                           className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors font-medium"
                         >
