@@ -2339,10 +2339,25 @@ export default function Home() {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
 
-    // Remove qualquer rodapé já existente
     const existing = doc.querySelector('[data-footer-image="true"]');
+
+    // Se a imagem já existe e estamos apenas a redimensionar (mesmo src), actualiza in-place
+    if (existing && src && existing.getAttribute("src") === src) {
+      existing.setAttribute("width", String(width));
+      (existing as HTMLElement).style.width = `${width}px`;
+      (existing as HTMLElement).style.maxWidth = `${width}px`;
+      if (height > 0) {
+        existing.setAttribute("height", String(height));
+        (existing as HTMLElement).style.height = `${height}px`;
+      } else {
+        existing.removeAttribute("height");
+        (existing as HTMLElement).style.height = "";
+      }
+      return doc.body.innerHTML;
+    }
+
+    // Remove qualquer rodapé já existente (src diferente ou remoção)
     if (existing) {
-      // Sobe até à <table> pai do rodapé e remove-a
       let tableParent: Element | null = existing;
       while (tableParent && tableParent.tagName !== "TABLE") {
         tableParent = tableParent.parentElement;
@@ -2364,9 +2379,31 @@ export default function Home() {
     return doc.body.innerHTML;
   };
 
-  /** Atualiza as dimensões da imagem de rodapé já injectada */
+  /** Atualiza apenas as dimensões da imagem de rodapé sem a mover no DOM */
   const updateFooterImageSize = (width: number, height: number) => {
     if (!footerImageSrc) return;
+
+    // Se a imagem já existe no preview, actualiza apenas os atributos sem re-inserir
+    if (previewRef.current) {
+      const existingImg = previewRef.current.querySelector<HTMLImageElement>('[data-footer-image="true"]');
+      if (existingImg) {
+        existingImg.setAttribute("width", String(width));
+        existingImg.style.width = `${width}px`;
+        existingImg.style.maxWidth = `${width}px`;
+        if (height > 0) {
+          existingImg.setAttribute("height", String(height));
+          existingImg.style.height = `${height}px`;
+        } else {
+          existingImg.removeAttribute("height");
+          existingImg.style.height = "";
+        }
+        // Sincroniza o processedHtml com o novo innerHTML para exportação
+        setProcessedHtml(previewRef.current.innerHTML);
+        return;
+      }
+    }
+
+    // Fallback: imagem ainda não existe no preview – usa o caminho normal
     const newHtml = applyFooterImageToHtml(processedHtml, footerImageSrc, width, height);
     setProcessedHtml(newHtml);
     if (previewRef.current) previewRef.current.innerHTML = newHtml;
