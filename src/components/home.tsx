@@ -42,6 +42,7 @@ interface SavedSignature {
   footerImageSrc?: string;
   footerImageWidth?: number;
   footerImageHeight?: number;
+  disclaimerText?: string;
 }
 
 export default function Home() {
@@ -70,6 +71,7 @@ export default function Home() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("editor");
   const [editingSignatureId, setEditingSignatureId] = useState<string | null>(null);
+  const [disclaimerText, setDisclaimerText] = useState<string>("");
   const previewRef = useRef<HTMLDivElement>(null);
   const pasteAreaRef = useRef<HTMLDivElement>(null);
 
@@ -116,6 +118,30 @@ export default function Home() {
     return doc.body.innerHTML;
   };
 
+  // ── DISCLAIMER HELPERS (definidos cedo para serem usados em loadSignature) ───
+
+  /** Constrói o bloco HTML para o disclaimer */
+  const buildDisclaimerHtml = (text: string): string => {
+    if (!text.trim()) return "";
+    const htmlText = text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\n/g, "<br>");
+    return `<table border="0" cellpadding="0" cellspacing="0" role="presentation" data-disclaimer-block="true" style="border-collapse:collapse;border-spacing:0;margin-top:12px;width:100%;max-width:600px;"><tbody><tr><td style="padding:10px 0 0 0;border-top:1px solid #e0e0e0;font-family:Arial,sans-serif;font-size:10px;line-height:1.5;color:#888888;" valign="top">${htmlText}</td></tr></tbody></table>`;
+  };
+
+  /** Injeta / actualiza / remove o disclaimer no HTML processado */
+  const applyDisclaimerToHtml = (html: string, text: string): string => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const existing = doc.querySelector('[data-disclaimer-block="true"]');
+    if (existing) existing.remove();
+    if (!text.trim()) return doc.body.innerHTML;
+    doc.body.insertAdjacentHTML("beforeend", buildDisclaimerHtml(text));
+    return doc.body.innerHTML;
+  };
+
   // Guarda assinatura no localStorage
   const saveSignature = () => {
     if (!processedHtml) {
@@ -150,6 +176,7 @@ export default function Home() {
         footerImageSrc,
         footerImageWidth,
         footerImageHeight,
+        disclaimerText,
       };
 
       const updated = editingSignatureId
@@ -188,6 +215,9 @@ export default function Home() {
       setFooterImageHeight(0);
       setFooterOriginalAspectRatio(1);
 
+      // Reset de disclaimer
+      setDisclaimerText("");
+
       // Reset dos links editáveis (limpa campos de links da UI)
       setLinks([]);
 
@@ -221,6 +251,7 @@ export default function Home() {
     setFooterImageSrc(signature.footerImageSrc ?? "");
     setFooterImageWidth(signature.footerImageWidth ?? 400);
     setFooterImageHeight(signature.footerImageHeight ?? 0);
+    setDisclaimerText(signature.disclaimerText ?? "");
 
     // Processa o HTML com as cores guardadas para mostrar no preview
     const processed = processHtml(
@@ -229,7 +260,12 @@ export default function Home() {
       signature.separatorColor,
     );
     if (processed) {
-      setProcessedHtml(processed);
+      // Aplica o disclaimer se existir
+      const disclaimerToApply = signature.disclaimerText ?? "";
+      const withDisclaimer = disclaimerToApply
+        ? applyDisclaimerToHtml(processed, disclaimerToApply)
+        : processed;
+      setProcessedHtml(withDisclaimer);
     }
   };
 
@@ -1851,8 +1887,13 @@ export default function Home() {
       });
       setLinks(extractedLinks);
 
-      setProcessedHtml(processed);
-      return processed;
+      // Aplica disclaimer se já existir um definido
+      const finalProcessed = disclaimerText
+        ? applyDisclaimerToHtml(processed, disclaimerText)
+        : processed;
+
+      setProcessedHtml(finalProcessed);
+      return finalProcessed;
     } catch (err) {
       console.error("Erro ao processar HTML:", err);
       setError(
@@ -1874,6 +1915,7 @@ export default function Home() {
       // RESET de cores quando carrega nova assinatura
       setTextColor("");
       setSeparatorColor("");
+      setDisclaimerText("");
 
       if (htmlData) {
         // Guarda HTML original
@@ -1923,6 +1965,7 @@ export default function Home() {
       // RESET de cores quando carrega nova assinatura
       setTextColor("");
       setSeparatorColor("");
+      setDisclaimerText("");
 
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -2365,6 +2408,17 @@ export default function Home() {
     } else {
       updateFooterImageSize(footerImageWidth, newHeight);
     }
+  };
+
+  // ── DISCLAIMER ────────────────────────────────────────────────────────────────
+
+  /** Atualiza o disclaimer no preview em tempo real */
+  const handleDisclaimerChange = (text: string) => {
+    setDisclaimerText(text);
+    if (!processedHtml) return;
+    const newHtml = applyDisclaimerToHtml(processedHtml, text);
+    setProcessedHtml(newHtml);
+    if (previewRef.current) previewRef.current.innerHTML = newHtml;
   };
 
   // ────────────────────────────────────────────────────────────────────────────
@@ -3559,6 +3613,40 @@ export default function Home() {
                             </span>
                           </div>
                         )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Disclaimer ── */}
+                  {processedHtml && (
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                        <FileText className="w-5 h-5" />
+                        Disclaimer / Aviso Legal
+                      </label>
+                      <div className="p-4 bg-gradient-to-br from-slate-50 to-gray-50 border-2 border-slate-200 rounded-lg space-y-3">
+                        <textarea
+                          value={disclaimerText}
+                          onChange={(e) => handleDisclaimerChange(e.target.value)}
+                          placeholder={"Este e-mail e os seus anexos são confidenciais e destinam-se exclusivamente ao(s) destinatário(s) indicado(s).\nSe recebeu esta mensagem por engano, por favor, notifique o remetente e elimine-a imediatamente."}
+                          rows={4}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-slate-500 focus:border-slate-500 text-sm font-mono resize-y"
+                          style={{ fontFamily: "monospace", fontSize: "12px" }}
+                        />
+                        <div className="flex items-start gap-2 text-slate-600 bg-white/50 p-2 rounded" style={{ fontSize: "13px" }}>
+                          <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                          <span>
+                            O disclaimer aparecerá por baixo da assinatura com uma linha separadora, em texto pequeno cinzento. Compatível com Gmail.
+                            {disclaimerText && (
+                              <button
+                                onClick={() => handleDisclaimerChange("")}
+                                className="ml-2 text-red-500 hover:text-red-700 underline text-xs font-medium"
+                              >
+                                Remover disclaimer
+                              </button>
+                            )}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   )}
