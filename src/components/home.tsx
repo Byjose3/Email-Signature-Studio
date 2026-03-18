@@ -2410,15 +2410,50 @@ export default function Home() {
     if (previewRef.current) previewRef.current.innerHTML = newHtml;
   };
 
-  /** Insere a imagem de rodapé sempre ao nível do body do preview (fora da tabela principal) */
+  /** Insere a imagem de rodapé ao nível do body do preview, na posição do cursor guardado */
   const insertFooterImageAtCursor = (src: string, width: number, height: number) => {
     const footerHtml = buildFooterImageHtml(src, width, height);
 
     if (previewRef.current) {
-      // Always append at body level — never inside a table cell
-      // This prevents the vertical separator from growing
       const tempDiv = document.createElement("div");
       tempDiv.innerHTML = footerHtml;
+
+      // Tenta inserir na posição do cursor guardado, mas ao nível do body
+      if (savedCursorRange.current && previewRef.current.contains(savedCursorRange.current.commonAncestorContainer)) {
+        const range = savedCursorRange.current;
+
+        // Sobe na árvore DOM a partir do nó do cursor até encontrar um filho directo do previewRef
+        let node: Node | null = range.commonAncestorContainer;
+        if (node.nodeType === Node.TEXT_NODE) node = node.parentElement;
+        let directChild: Element | null = null;
+        // Se já é filho directo do preview
+        if (node && (node as Element).parentElement === previewRef.current) {
+          directChild = node as Element;
+        } else {
+          // Sobe até chegar a um filho directo
+          while (node && node !== previewRef.current) {
+            if ((node as Element).parentElement === previewRef.current) {
+              directChild = node as Element;
+              break;
+            }
+            node = (node as Element).parentElement;
+          }
+        }
+
+        if (directChild) {
+          // Insere os nós do footer DEPOIS do directChild encontrado
+          let insertAfter: Element = directChild;
+          while (tempDiv.firstChild) {
+            const child = tempDiv.firstChild;
+            insertAfter.after(child as ChildNode);
+            insertAfter = child as Element;
+          }
+          setProcessedHtml(previewRef.current.innerHTML);
+          return;
+        }
+      }
+
+      // Fallback: adiciona no final do preview
       while (tempDiv.firstChild) {
         previewRef.current.appendChild(tempDiv.firstChild);
       }
@@ -2426,11 +2461,10 @@ export default function Home() {
       return;
     }
 
-    // Fallback: insere via applyFooterImageToHtml (no final / antes do disclaimer)
-    const currentHtml = previewRef.current?.innerHTML || processedHtml;
+    // Fallback absoluto: via applyFooterImageToHtml
+    const currentHtml = processedHtml;
     const newHtml = applyFooterImageToHtml(currentHtml, src, width, height);
     setProcessedHtml(newHtml);
-    if (previewRef.current) previewRef.current.innerHTML = newHtml;
   };
 
   /** Trata o upload da imagem de rodapé */
@@ -3851,6 +3885,12 @@ export default function Home() {
                         }
                       }}
                       onMouseUp={() => {
+                        const sel = window.getSelection();
+                        if (sel && sel.rangeCount > 0) {
+                          savedCursorRange.current = sel.getRangeAt(0).cloneRange();
+                        }
+                      }}
+                      onClick={() => {
                         const sel = window.getSelection();
                         if (sel && sel.rangeCount > 0) {
                           savedCursorRange.current = sel.getRangeAt(0).cloneRange();
