@@ -2327,7 +2327,7 @@ export default function Home() {
   const buildFooterImageHtml = (src: string, width: number, height: number): string => {
     const heightAttr = height > 0 ? ` height="${height}"` : "";
     const heightStyle = height > 0 ? ` height:${height}px;` : "";
-    return `<table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;border-spacing:0;margin-top:16px;"><tbody><tr><td style="padding:0;vertical-align:top;" valign="top"><img src="${src}" width="${width}"${heightAttr} alt="Rodapé" data-footer-image="true" style="display:block;border:0;outline:none;width:${width}px;max-width:${width}px;${heightStyle}" /></td></tr></tbody></table>`;
+    return `<table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;border-spacing:0;margin-top:8px;"><tbody><tr><td style="padding:0;vertical-align:top;" valign="top"><img src="${src}" width="${width}"${heightAttr} alt="Rodapé" data-footer-image="true" style="display:block;border:0;outline:none;width:${width}px;max-width:${width}px;${heightStyle}" /></td></tr></tbody></table>`;
   };
 
   /** Injeta / actualiza / remove a imagem de rodapé no HTML processado */
@@ -2410,25 +2410,20 @@ export default function Home() {
     if (previewRef.current) previewRef.current.innerHTML = newHtml;
   };
 
-  /** Insere a imagem de rodapé na posição do cursor (ou no final se não houver cursor guardado) */
+  /** Insere a imagem de rodapé sempre ao nível do body do preview (fora da tabela principal) */
   const insertFooterImageAtCursor = (src: string, width: number, height: number) => {
     const footerHtml = buildFooterImageHtml(src, width, height);
 
-    if (previewRef.current && savedCursorRange.current) {
-      const range = savedCursorRange.current;
-      // Verifica se o range ainda está dentro do previewRef
-      if (previewRef.current.contains(range.commonAncestorContainer)) {
-        range.collapse(false); // colapsa ao ponto de inserção (fim da selecção)
-        const tempDiv = document.createElement("div");
-        tempDiv.innerHTML = footerHtml;
-        const frag = document.createDocumentFragment();
-        let node;
-        while ((node = tempDiv.firstChild)) frag.appendChild(node);
-        range.insertNode(frag);
-        // Actualiza o processedHtml a partir do DOM
-        setProcessedHtml(previewRef.current.innerHTML);
-        return;
+    if (previewRef.current) {
+      // Always append at body level — never inside a table cell
+      // This prevents the vertical separator from growing
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = footerHtml;
+      while (tempDiv.firstChild) {
+        previewRef.current.appendChild(tempDiv.firstChild);
       }
+      setProcessedHtml(previewRef.current.innerHTML);
+      return;
     }
 
     // Fallback: insere via applyFooterImageToHtml (no final / antes do disclaimer)
@@ -2484,10 +2479,32 @@ export default function Home() {
     setFooterImageSrc("");
     setFooterImageWidth(400);
     setFooterImageHeight(0);
-    if (processedHtml) {
+    // Remove directly from live DOM (source of truth) to avoid stale state issues
+    if (previewRef.current) {
+      const existing = previewRef.current.querySelector('[data-footer-image="true"]');
+      if (existing) {
+        // Walk up to find the wrapper table for this footer image
+        let tableParent: Element | null = existing;
+        while (tableParent && tableParent.tagName !== "TABLE") {
+          tableParent = tableParent.parentElement;
+        }
+        // Only remove if the table is a direct child of the preview (body-level),
+        // so we never accidentally remove the main signature table
+        if (tableParent && previewRef.current.contains(tableParent) && tableParent.parentElement === previewRef.current) {
+          tableParent.remove();
+        } else if (tableParent) {
+          // Fallback: remove the closest table that is a direct preview child
+          let parent: Element | null = tableParent;
+          while (parent && parent.parentElement !== previewRef.current) {
+            parent = parent.parentElement;
+          }
+          if (parent) parent.remove();
+        }
+      }
+      setProcessedHtml(previewRef.current.innerHTML);
+    } else if (processedHtml) {
       const newHtml = applyFooterImageToHtml(processedHtml, "", 0, 0);
       setProcessedHtml(newHtml);
-      if (previewRef.current) previewRef.current.innerHTML = newHtml;
     }
   };
 
