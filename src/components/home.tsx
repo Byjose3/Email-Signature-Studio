@@ -74,6 +74,7 @@ export default function Home() {
   const [disclaimerText, setDisclaimerText] = useState<string>("");
   const previewRef = useRef<HTMLDivElement>(null);
   const pasteAreaRef = useRef<HTMLDivElement>(null);
+  const savedCursorRange = useRef<Range | null>(null);
 
   useEffect(() => {
     // Carrega assinaturas guardadas do localStorage
@@ -2409,6 +2410,34 @@ export default function Home() {
     if (previewRef.current) previewRef.current.innerHTML = newHtml;
   };
 
+  /** Insere a imagem de rodapé na posição do cursor (ou no final se não houver cursor guardado) */
+  const insertFooterImageAtCursor = (src: string, width: number, height: number) => {
+    const footerHtml = buildFooterImageHtml(src, width, height);
+
+    if (previewRef.current && savedCursorRange.current) {
+      const range = savedCursorRange.current;
+      // Verifica se o range ainda está dentro do previewRef
+      if (previewRef.current.contains(range.commonAncestorContainer)) {
+        range.collapse(false); // colapsa ao ponto de inserção (fim da selecção)
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = footerHtml;
+        const frag = document.createDocumentFragment();
+        let node;
+        while ((node = tempDiv.firstChild)) frag.appendChild(node);
+        range.insertNode(frag);
+        // Actualiza o processedHtml a partir do DOM
+        setProcessedHtml(previewRef.current.innerHTML);
+        return;
+      }
+    }
+
+    // Fallback: insere via applyFooterImageToHtml (no final / antes do disclaimer)
+    const currentHtml = previewRef.current?.innerHTML || processedHtml;
+    const newHtml = applyFooterImageToHtml(currentHtml, src, width, height);
+    setProcessedHtml(newHtml);
+    if (previewRef.current) previewRef.current.innerHTML = newHtml;
+  };
+
   /** Trata o upload da imagem de rodapé */
   const handleFooterImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -2427,9 +2456,20 @@ export default function Home() {
         setFooterImageWidth(currentWidth);
         setFooterImageHeight(0); // auto
         if (processedHtml) {
-          const newHtml = applyFooterImageToHtml(processedHtml, src, currentWidth, 0);
-          setProcessedHtml(newHtml);
-          if (previewRef.current) previewRef.current.innerHTML = newHtml;
+          // Remove imagem antiga se existir, depois insere na posição do cursor
+          const existingImg = previewRef.current?.querySelector('[data-footer-image="true"]');
+          if (existingImg) {
+            // Já existe — apenas actualiza o src in-place
+            existingImg.setAttribute("src", src);
+            existingImg.setAttribute("width", String(currentWidth));
+            (existingImg as HTMLElement).style.width = `${currentWidth}px`;
+            (existingImg as HTMLElement).style.maxWidth = `${currentWidth}px`;
+            (existingImg as HTMLElement).style.height = "";
+            existingImg.removeAttribute("height");
+            if (previewRef.current) setProcessedHtml(previewRef.current.innerHTML);
+          } else {
+            insertFooterImageAtCursor(src, currentWidth, 0);
+          }
         }
       };
       img.src = src;
@@ -3523,6 +3563,13 @@ export default function Home() {
                         />
                         <div className="flex gap-2">
                           <button
+                            onMouseDown={() => {
+                              // Guarda o cursor do preview ANTES do click tirar o foco
+                              const sel = window.getSelection();
+                              if (sel && sel.rangeCount > 0 && previewRef.current?.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+                                savedCursorRange.current = sel.getRangeAt(0).cloneRange();
+                              }
+                            }}
                             onClick={() =>
                               document
                                 .getElementById("footer-image-upload")
@@ -3784,6 +3831,18 @@ export default function Home() {
                       onInput={() => {
                         if (previewRef.current) {
                           setProcessedHtml(previewRef.current.innerHTML);
+                        }
+                      }}
+                      onMouseUp={() => {
+                        const sel = window.getSelection();
+                        if (sel && sel.rangeCount > 0) {
+                          savedCursorRange.current = sel.getRangeAt(0).cloneRange();
+                        }
+                      }}
+                      onKeyUp={() => {
+                        const sel = window.getSelection();
+                        if (sel && sel.rangeCount > 0) {
+                          savedCursorRange.current = sel.getRangeAt(0).cloneRange();
                         }
                       }}
                       className="p-6 bg-white border-2 border-green-300 rounded-lg shadow-inner overflow-auto focus:ring-2 focus:ring-green-500 focus:border-green-500"
