@@ -39,6 +39,9 @@ interface SavedSignature {
   logoHeight: number;
   textColor: string;
   separatorColor: string;
+  footerImageSrc?: string;
+  footerImageWidth?: number;
+  footerImageHeight?: number;
 }
 
 export default function Home() {
@@ -53,6 +56,11 @@ export default function Home() {
   const [originalAspectRatio, setOriginalAspectRatio] = useState<number>(1);
   const [textColor, setTextColor] = useState<string>("");
   const [separatorColor, setSeparatorColor] = useState<string>("");
+  const [footerImageSrc, setFooterImageSrc] = useState<string>("");
+  const [footerImageWidth, setFooterImageWidth] = useState<number>(400);
+  const [footerImageHeight, setFooterImageHeight] = useState<number>(0);
+  const [footerAspectRatioLocked, setFooterAspectRatioLocked] = useState(true);
+  const [footerOriginalAspectRatio, setFooterOriginalAspectRatio] = useState<number>(1);
   const [links, setLinks] = useState<
     Array<{ text: string; url: string; index: number }>
   >([]);
@@ -137,6 +145,9 @@ export default function Home() {
         logoHeight,
         textColor,
         separatorColor,
+        footerImageSrc,
+        footerImageWidth,
+        footerImageHeight,
       };
 
       const updated = [...savedSignatures, newSignature];
@@ -165,6 +176,12 @@ export default function Home() {
       setLogoWidth(0);
       setLogoHeight(0);
       setOriginalAspectRatio(1);
+
+      // Reset de imagem de rodapé
+      setFooterImageSrc("");
+      setFooterImageWidth(400);
+      setFooterImageHeight(0);
+      setFooterOriginalAspectRatio(1);
 
       // Reset dos links editáveis (limpa campos de links da UI)
       setLinks([]);
@@ -196,6 +213,9 @@ export default function Home() {
     setLogoHeight(signature.logoHeight);
     setTextColor(signature.textColor);
     setSeparatorColor(signature.separatorColor);
+    setFooterImageSrc(signature.footerImageSrc ?? "");
+    setFooterImageWidth(signature.footerImageWidth ?? 400);
+    setFooterImageHeight(signature.footerImageHeight ?? 0);
 
     // Processa o HTML com as cores guardadas para mostrar no preview
     const processed = processHtml(
@@ -2214,6 +2234,114 @@ export default function Home() {
     }
   };
 
+  // ── RODAPÉ ──────────────────────────────────────────────────────────────────
+
+  /** Constrói o bloco HTML para a imagem de rodapé */
+  const buildFooterImageHtml = (src: string, width: number, height: number): string => {
+    const heightAttr = height > 0 ? ` height="${height}"` : "";
+    const heightStyle = height > 0 ? ` height:${height}px;` : "";
+    return `<table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;border-spacing:0;margin-top:8px;"><tbody><tr><td style="padding:0;vertical-align:top;" valign="top"><img src="${src}" width="${width}"${heightAttr} alt="Rodapé" data-footer-image="true" style="display:block;border:0;outline:none;width:${width}px;max-width:${width}px;${heightStyle}" /></td></tr></tbody></table>`;
+  };
+
+  /** Injeta / actualiza / remove a imagem de rodapé no HTML processado */
+  const applyFooterImageToHtml = (
+    html: string,
+    src: string,
+    width: number,
+    height: number,
+  ): string => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+
+    // Remove qualquer rodapé já existente
+    const existing = doc.querySelector('[data-footer-image="true"]');
+    if (existing) {
+      // Sobe até à <table> pai do rodapé e remove-a
+      let tableParent: Element | null = existing;
+      while (tableParent && tableParent.tagName !== "TABLE") {
+        tableParent = tableParent.parentElement;
+      }
+      if (tableParent) tableParent.remove();
+    }
+
+    if (!src) return doc.body.innerHTML;
+
+    // Adiciona o novo rodapé ao final do body
+    const footerHtml = buildFooterImageHtml(src, width, height);
+    doc.body.insertAdjacentHTML("beforeend", footerHtml);
+
+    return doc.body.innerHTML;
+  };
+
+  /** Atualiza as dimensões da imagem de rodapé já injectada */
+  const updateFooterImageSize = (width: number, height: number) => {
+    if (!footerImageSrc) return;
+    const newHtml = applyFooterImageToHtml(processedHtml, footerImageSrc, width, height);
+    setProcessedHtml(newHtml);
+    if (previewRef.current) previewRef.current.innerHTML = newHtml;
+  };
+
+  /** Trata o upload da imagem de rodapé */
+  const handleFooterImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const src = ev.target?.result as string;
+      // Detecta dimensões naturais para calcular aspect ratio
+      const img = new window.Image();
+      img.onload = () => {
+        const ratio = img.naturalWidth / img.naturalHeight;
+        setFooterOriginalAspectRatio(ratio);
+        // Mantém a largura actual mas recalcula a altura se estiver em auto
+        const currentWidth = footerImageWidth || img.naturalWidth;
+        setFooterImageSrc(src);
+        setFooterImageWidth(currentWidth);
+        setFooterImageHeight(0); // auto
+        if (processedHtml) {
+          const newHtml = applyFooterImageToHtml(processedHtml, src, currentWidth, 0);
+          setProcessedHtml(newHtml);
+          if (previewRef.current) previewRef.current.innerHTML = newHtml;
+        }
+      };
+      img.src = src;
+    };
+    reader.readAsDataURL(file);
+    // Reset do input para permitir re-upload do mesmo ficheiro
+    e.target.value = "";
+  };
+
+  /** Remove a imagem de rodapé */
+  const removeFooterImage = () => {
+    setFooterImageSrc("");
+    setFooterImageWidth(400);
+    setFooterImageHeight(0);
+    if (processedHtml) {
+      const newHtml = applyFooterImageToHtml(processedHtml, "", 0, 0);
+      setProcessedHtml(newHtml);
+      if (previewRef.current) previewRef.current.innerHTML = newHtml;
+    }
+  };
+
+  const handleFooterWidthChange = (newWidth: number) => {
+    setFooterImageWidth(newWidth);
+    setFooterImageHeight(0);
+    updateFooterImageSize(newWidth, 0);
+  };
+
+  const handleFooterHeightChange = (newHeight: number) => {
+    setFooterImageHeight(newHeight);
+    if (footerAspectRatioLocked && footerOriginalAspectRatio > 0) {
+      const newWidth = Math.round(newHeight * footerOriginalAspectRatio);
+      setFooterImageWidth(newWidth);
+      updateFooterImageSize(newWidth, newHeight);
+    } else {
+      updateFooterImageSize(footerImageWidth, newHeight);
+    }
+  };
+
+  // ────────────────────────────────────────────────────────────────────────────
+
   const optimizeForGmail = (html: string): string => {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
@@ -3063,6 +3191,175 @@ export default function Home() {
                             )}
                           </div>
                         </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {processedHtml && (
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                        <Image className="w-5 h-5" />
+                        Imagem de Rodapé
+                      </label>
+                      <div className="p-4 bg-gradient-to-br from-orange-50 to-amber-50 border-2 border-orange-200 rounded-lg space-y-3">
+                        {/* Upload */}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFooterImageUpload}
+                          className="hidden"
+                          id="footer-image-upload"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() =>
+                              document
+                                .getElementById("footer-image-upload")
+                                ?.click()
+                            }
+                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors font-medium text-sm"
+                          >
+                            <Upload className="w-4 h-4" />
+                            {footerImageSrc
+                              ? "Substituir Imagem"
+                              : "Adicionar Imagem de Rodapé"}
+                          </button>
+                          {footerImageSrc && (
+                            <button
+                              onClick={removeFooterImage}
+                              className="px-3 py-2 bg-red-100 text-red-600 rounded-md hover:bg-red-200 transition-colors text-sm font-medium"
+                              title="Remover imagem de rodapé"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Preview miniatura */}
+                        {footerImageSrc && (
+                          <div className="flex items-center gap-3 bg-white/60 p-2 rounded-md">
+                            <img
+                              src={footerImageSrc}
+                              alt="Rodapé preview"
+                              style={{ maxWidth: 80, maxHeight: 40, objectFit: "contain" }}
+                              className="rounded border border-orange-200"
+                            />
+                            <span className="text-xs text-orange-700 font-medium">
+                              Imagem de rodapé carregada
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Controlos de dimensões (só visível quando há imagem) */}
+                        {footerImageSrc && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-3">
+                              <div className="flex-1">
+                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                  Largura (px)
+                                </label>
+                                <input
+                                  type="number"
+                                  value={footerImageWidth}
+                                  onChange={(e) =>
+                                    handleFooterWidthChange(
+                                      parseInt(e.target.value) || 0,
+                                    )
+                                  }
+                                  min="10"
+                                  max="800"
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                />
+                              </div>
+
+                              <button
+                                onClick={() =>
+                                  setFooterAspectRatioLocked(
+                                    !footerAspectRatioLocked,
+                                  )
+                                }
+                                className={`mt-5 p-2 rounded-md transition-colors ${
+                                  footerAspectRatioLocked
+                                    ? "bg-orange-600 text-white hover:bg-orange-700"
+                                    : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                                }`}
+                                title={
+                                  footerAspectRatioLocked
+                                    ? "Proporção travada"
+                                    : "Proporção livre"
+                                }
+                              >
+                                {footerAspectRatioLocked ? (
+                                  <Lock className="w-5 h-5" />
+                                ) : (
+                                  <Unlock className="w-5 h-5" />
+                                )}
+                              </button>
+
+                              <div className="flex-1">
+                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                  Altura (px)
+                                </label>
+                                {footerAspectRatioLocked ? (
+                                  <input
+                                    type="text"
+                                    value="auto"
+                                    readOnly
+                                    disabled
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
+                                  />
+                                ) : (
+                                  <input
+                                    type="number"
+                                    value={
+                                      footerImageHeight === 0
+                                        ? ""
+                                        : footerImageHeight
+                                    }
+                                    onChange={(e) =>
+                                      handleFooterHeightChange(
+                                        parseInt(e.target.value) || 0,
+                                      )
+                                    }
+                                    min="10"
+                                    max="800"
+                                    placeholder="auto"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                  />
+                                )}
+                              </div>
+                            </div>
+
+                            <div
+                              className="text-orange-700 bg-white/50 p-2 rounded flex items-start gap-2"
+                              style={{ fontSize: "14px" }}
+                            >
+                              <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                              <div>
+                                <strong>Dica:</strong> Dimensões atuais:{" "}
+                                {footerImageWidth} ×{" "}
+                                {footerImageHeight === 0
+                                  ? "auto"
+                                  : footerImageHeight}
+                                px
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {!footerImageSrc && (
+                          <div
+                            className="text-orange-700 bg-white/50 p-2 rounded flex items-start gap-2"
+                            style={{ fontSize: "14px" }}
+                          >
+                            <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                            <span>
+                              <strong>Dica:</strong> Adicione uma imagem que
+                              aparecerá por baixo da assinatura (ex: banner,
+                              disclaimer, etc.)
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
