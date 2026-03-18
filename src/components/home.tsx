@@ -2048,15 +2048,23 @@ export default function Home() {
       // Atualiza o atributo data-social-link
       img.setAttribute("data-social-link", newLink);
 
-      // Envolve a imagem em um link se houver URL válida
-      if (newLink && newLink.trim() !== "") {
+      // Atualiza o href se a imagem já está dentro de um <a>, caso contrário envolve-a
+      const imgParent = img.parentNode as HTMLElement | null;
+      if (imgParent && imgParent.tagName === "A") {
+        // Já está dentro de um link - só atualiza o href (sem mover o elemento)
+        if (newLink && newLink.trim() !== "") {
+          (imgParent as HTMLAnchorElement).href = newLink;
+        } else {
+          // Link vazio: remove o <a> e deixa só a imagem no lugar
+          imgParent.parentNode?.replaceChild(img, imgParent);
+        }
+      } else if (newLink && newLink.trim() !== "") {
+        // Não está num link ainda - envolve a imagem
         const link = doc.createElement("a");
         link.href = newLink;
         link.target = "_blank";
         link.rel = "noopener noreferrer";
-
-        // Copia estilos da imagem para o link se necessário
-        const imgParent = img.parentNode;
+        link.style.display = "inline-block";
         imgParent?.replaceChild(link, img);
         link.appendChild(img);
       }
@@ -2076,13 +2084,19 @@ export default function Home() {
         if (pasteImg) {
           pasteImg.setAttribute("data-social-link", newLink);
 
-          if (newLink && newLink.trim() !== "") {
+          const pasteImgParent = pasteImg.parentNode as HTMLElement | null;
+          if (pasteImgParent && pasteImgParent.tagName === "A") {
+            if (newLink && newLink.trim() !== "") {
+              (pasteImgParent as HTMLAnchorElement).href = newLink;
+            } else {
+              pasteImgParent.parentNode?.replaceChild(pasteImg, pasteImgParent);
+            }
+          } else if (newLink && newLink.trim() !== "") {
             const pasteLink = pasteDoc.createElement("a");
             pasteLink.href = newLink;
             pasteLink.target = "_blank";
             pasteLink.rel = "noopener noreferrer";
-
-            const pasteImgParent = pasteImg.parentNode;
+            pasteLink.style.display = "inline-block";
             pasteImgParent?.replaceChild(pasteLink, pasteImg);
             pasteLink.appendChild(pasteImg);
           }
@@ -2240,7 +2254,7 @@ export default function Home() {
   const buildFooterImageHtml = (src: string, width: number, height: number): string => {
     const heightAttr = height > 0 ? ` height="${height}"` : "";
     const heightStyle = height > 0 ? ` height:${height}px;` : "";
-    return `<table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;border-spacing:0;margin-top:8px;"><tbody><tr><td style="padding:0;vertical-align:top;" valign="top"><img src="${src}" width="${width}"${heightAttr} alt="Rodapé" data-footer-image="true" style="display:block;border:0;outline:none;width:${width}px;max-width:${width}px;${heightStyle}" /></td></tr></tbody></table>`;
+    return `<table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;border-spacing:0;margin-top:16px;"><tbody><tr><td style="padding:0;vertical-align:top;" valign="top"><img src="${src}" width="${width}"${heightAttr} alt="Rodapé" data-footer-image="true" style="display:block;border:0;outline:none;width:${width}px;max-width:${width}px;${heightStyle}" /></td></tr></tbody></table>`;
   };
 
   /** Injeta / actualiza / remove a imagem de rodapé no HTML processado */
@@ -2811,7 +2825,6 @@ export default function Home() {
       const altText = img.getAttribute("alt") || `Imagem ${index + 1}`;
       const isLogo = altText.toLowerCase().includes("logo") || index === 0;
       const socialLink = img.getAttribute("data-social-link") || "";
-      const hasSocialLink = socialLink !== "";
 
       return (
         <div key={imageId} className="space-y-2">
@@ -2849,13 +2862,14 @@ export default function Home() {
               </div>
             </label>
           </div>
-          {hasSocialLink && (
+          {!isLogo && (
             <div className="pl-3">
               <label className="block text-xs font-medium text-gray-600 mb-1">
                 Link da rede social:
               </label>
               <input
                 type="url"
+                key={imageId + "-link"}
                 defaultValue={socialLink}
                 onChange={(e) =>
                   handleSocialLinkUpdate(imageId, e.target.value)
