@@ -736,6 +736,22 @@ export default function Home() {
     }
   }, [processedHtml]);
 
+  // Quando a tab muda para "editor", garante que o previewRef é preenchido
+  // (pode estar null quando o processedHtml foi definido enquanto a tab estava fechada)
+  useEffect(() => {
+    if (activeTab === "editor" && processedHtml) {
+      // Aguarda o próximo tick para que o DOM da tab esteja montado
+      setTimeout(() => {
+        if (previewRef.current && previewRef.current.innerHTML !== processedHtml) {
+          previewRef.current.innerHTML = processedHtml;
+        }
+        if (pasteAreaRef.current && originalHtml && pasteAreaRef.current.innerHTML !== originalHtml) {
+          pasteAreaRef.current.innerHTML = originalHtml;
+        }
+      }, 0);
+    }
+  }, [activeTab]);
+
   const processHtml = (
     html: string,
     customTextColor?: string,
@@ -2336,9 +2352,14 @@ export default function Home() {
 
     if (!src) return doc.body.innerHTML;
 
-    // Adiciona o novo rodapé ao final do body
+    // Adiciona o novo rodapé antes do disclaimer (se existir), caso contrário no final
     const footerHtml = buildFooterImageHtml(src, width, height);
-    doc.body.insertAdjacentHTML("beforeend", footerHtml);
+    const disclaimerBlock = doc.querySelector('[data-disclaimer-block="true"]');
+    if (disclaimerBlock) {
+      disclaimerBlock.insertAdjacentHTML("beforebegin", footerHtml);
+    } else {
+      doc.body.insertAdjacentHTML("beforeend", footerHtml);
+    }
 
     return doc.body.innerHTML;
   };
