@@ -2410,7 +2410,7 @@ export default function Home() {
     if (previewRef.current) previewRef.current.innerHTML = newHtml;
   };
 
-  /** Insere a imagem de rodapé ao nível do body do preview, na posição do cursor guardado */
+  /** Insere a imagem de rodapé sempre no final do preview (antes do disclaimer se existir) */
   const insertFooterImageAtCursor = (src: string, width: number, height: number) => {
     const footerHtml = buildFooterImageHtml(src, width, height);
 
@@ -2418,45 +2418,19 @@ export default function Home() {
       const tempDiv = document.createElement("div");
       tempDiv.innerHTML = footerHtml;
 
-      // Tenta inserir na posição do cursor guardado, mas ao nível do body
-      if (savedCursorRange.current && previewRef.current.contains(savedCursorRange.current.commonAncestorContainer)) {
-        const range = savedCursorRange.current;
-
-        // Sobe na árvore DOM a partir do nó do cursor até encontrar um filho directo do previewRef
-        let node: Node | null = range.commonAncestorContainer;
-        if (node.nodeType === Node.TEXT_NODE) node = node.parentElement;
-        let directChild: Element | null = null;
-        // Se já é filho directo do preview
-        if (node && (node as Element).parentElement === previewRef.current) {
-          directChild = node as Element;
-        } else {
-          // Sobe até chegar a um filho directo
-          while (node && node !== previewRef.current) {
-            if ((node as Element).parentElement === previewRef.current) {
-              directChild = node as Element;
-              break;
-            }
-            node = (node as Element).parentElement;
-          }
+      // A imagem de rodapé deve SEMPRE ficar no final da assinatura.
+      // Se existir bloco de disclaimer, insere antes dele; caso contrário append no final.
+      const disclaimerBlock = previewRef.current.querySelector('[data-disclaimer-block="true"]');
+      if (disclaimerBlock) {
+        while (tempDiv.firstChild) {
+          previewRef.current.insertBefore(tempDiv.firstChild, disclaimerBlock);
         }
-
-        if (directChild) {
-          // Insere os nós do footer DEPOIS do directChild encontrado
-          let insertAfter: Element = directChild;
-          while (tempDiv.firstChild) {
-            const child = tempDiv.firstChild;
-            insertAfter.after(child as ChildNode);
-            insertAfter = child as Element;
-          }
-          setProcessedHtml(previewRef.current.innerHTML);
-          return;
+      } else {
+        while (tempDiv.firstChild) {
+          previewRef.current.appendChild(tempDiv.firstChild);
         }
       }
 
-      // Fallback: adiciona no final do preview
-      while (tempDiv.firstChild) {
-        previewRef.current.appendChild(tempDiv.firstChild);
-      }
       setProcessedHtml(previewRef.current.innerHTML);
       return;
     }
