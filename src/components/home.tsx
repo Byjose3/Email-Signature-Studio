@@ -72,9 +72,15 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("editor");
   const [editingSignatureId, setEditingSignatureId] = useState<string | null>(null);
   const [disclaimerText, setDisclaimerText] = useState<string>("");
+  const [backupSignatures, setBackupSignatures] = useState<
+    Array<{ name: string; html: string }>
+  >([]);
+  const [showBackupPickerDialog, setShowBackupPickerDialog] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
   const pasteAreaRef = useRef<HTMLDivElement>(null);
   const savedCursorRange = useRef<Range | null>(null);
+  const lastMousePos = useRef<{ x: number; y: number } | null>(null);
+  const backupFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Carrega assinaturas guardadas do localStorage
@@ -92,6 +98,105 @@ export default function Home() {
     } catch (err) {
       console.error("Erro ao carregar assinaturas:", err);
     }
+  };
+
+  // Importa assinaturas de um ficheiro de backup HTML
+  const handleBackupFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Reset input so same file can be selected again
+    e.target.value = "";
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(content, "text/html");
+
+      // Tenta extrair assinaturas do formato de backup
+      const sections = doc.querySelectorAll(".signature-section");
+
+      if (sections.length === 0) {
+        // Não é um ficheiro de backup — tenta carregar directamente como assinatura
+        setTextColor("");
+        setSeparatorColor("");
+        setDisclaimerText("");
+        setOriginalHtml(content);
+        if (pasteAreaRef.current) {
+          pasteAreaRef.current.innerHTML = content;
+        }
+        processHtml(content, undefined, undefined);
+        setActiveTab("editor");
+        setSuccessMessage("Assinatura carregada no editor!");
+        setTimeout(() => setSuccessMessage(""), 3000);
+        return;
+      }
+
+      const extracted: Array<{ name: string; html: string }> = [];
+
+      sections.forEach((section) => {
+        // Extrai o nome da assinatura (remove o número inicial "N. ")
+        const h2 = section.querySelector("h2");
+        const rawName = h2?.textContent?.trim() ?? "Assinatura";
+        const name = rawName.replace(/^\d+\.\s*/, "");
+
+        // Extrai o HTML da assinatura
+        const container = section.querySelector(".signature-container");
+        const html = container?.innerHTML?.trim() ?? "";
+
+        if (html) {
+          extracted.push({ name, html });
+        }
+      });
+
+      if (extracted.length === 0) {
+        setError("Não foi possível extrair assinaturas do ficheiro de backup.");
+        setTimeout(() => setError(""), 4000);
+        return;
+      }
+
+      if (extracted.length === 1) {
+        // Carrega directamente no editor
+        const sig = extracted[0];
+        setTextColor("");
+        setSeparatorColor("");
+        setDisclaimerText("");
+        setOriginalHtml(sig.html);
+        if (pasteAreaRef.current) {
+          pasteAreaRef.current.innerHTML = sig.html;
+        }
+        processHtml(sig.html, undefined, undefined);
+        setSignatureName(sig.name);
+        setEditingSignatureId(null);
+        setActiveTab("editor");
+        setSuccessMessage(`"${sig.name}" carregada no editor!`);
+        setTimeout(() => setSuccessMessage(""), 3000);
+      } else {
+        // Mostra picker para o utilizador escolher
+        setBackupSignatures(extracted);
+        setShowBackupPickerDialog(true);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // Carrega uma assinatura extraída do backup no editor
+  const loadBackupSignature = (sig: { name: string; html: string }) => {
+    setTextColor("");
+    setSeparatorColor("");
+    setDisclaimerText("");
+    setOriginalHtml(sig.html);
+    if (pasteAreaRef.current) {
+      pasteAreaRef.current.innerHTML = sig.html;
+    }
+    processHtml(sig.html, undefined, undefined);
+    setSignatureName(sig.name);
+    setEditingSignatureId(null);
+    setShowBackupPickerDialog(false);
+    setActiveTab("editor");
+    setSuccessMessage(`"${sig.name}" carregada no editor!`);
+    setTimeout(() => setSuccessMessage(""), 3000);
   };
 
   // Remove cores inline do HTML para manter o original sem customizações
@@ -2410,7 +2515,7 @@ export default function Home() {
     if (previewRef.current) previewRef.current.innerHTML = newHtml;
   };
 
-  /** Insere a imagem de rodapé sempre no final do preview (antes do disclaimer se existir) */
+  /** Insere a imagem de rodapé na última posição do mouse dentro do canvas, ou no final se não houver posição guardada */
   const insertFooterImageAtCursor = (src: string, width: number, height: number) => {
     const footerHtml = buildFooterImageHtml(src, width, height);
 
@@ -2418,16 +2523,67 @@ export default function Home() {
       const tempDiv = document.createElement("div");
       tempDiv.innerHTML = footerHtml;
 
-      // A imagem de rodapé deve SEMPRE ficar no final da assinatura.
-      // Se existir bloco de disclaimer, insere antes dele; caso contrário append no final.
-      const disclaimerBlock = previewRef.current.querySelector('[data-disclaimer-block="true"]');
-      if (disclaimerBlock) {
-        while (tempDiv.firstChild) {
-          previewRef.current.insertBefore(tempDiv.firstChild, disclaimerBlock);
+      // Tenta usar o savedCursorRange (clique dentro do canvas)
+      const range = savedCursorRange.current;
+      let inserted = false;
+
+      if (range && previewRef.current.contains(range.commonAncestorContainer)) {
+        // Sobe até ao elemento de bloco filho direto do preview
+        let insertAfterNode: Node | null = range.endContainer;
+        while (insertAfterNode && insertAfterNode.parentNode !== previewRef.current) {
+          insertAfterNode = insertAfterNode.parentNode;
         }
-      } else {
-        while (tempDiv.firstChild) {
-          previewRef.current.appendChild(tempDiv.firstChild);
+        if (insertAfterNode && insertAfterNode.parentNode === previewRef.current) {
+          const nextSibling = insertAfterNode.nextSibling;
+          const fragment = document.createDocumentFragment();
+          while (tempDiv.firstChild) {
+            fragment.appendChild(tempDiv.firstChild);
+          }
+          previewRef.current.insertBefore(fragment, nextSibling);
+          inserted = true;
+        }
+      } else if (lastMousePos.current) {
+        // Tenta calcular a posição pelo último ponto do mouse dentro do canvas
+        const { x, y } = lastMousePos.current;
+        let mouseRange: Range | null = null;
+        if ((document as any).caretRangeFromPoint) {
+          mouseRange = (document as any).caretRangeFromPoint(x, y);
+        } else if ((document as any).caretPositionFromPoint) {
+          const pos = (document as any).caretPositionFromPoint(x, y);
+          if (pos) {
+            mouseRange = document.createRange();
+            mouseRange.setStart(pos.offsetNode, pos.offset);
+            mouseRange.collapse(true);
+          }
+        }
+        if (mouseRange && previewRef.current.contains(mouseRange.commonAncestorContainer)) {
+          let insertAfterNode: Node | null = mouseRange.endContainer;
+          while (insertAfterNode && insertAfterNode.parentNode !== previewRef.current) {
+            insertAfterNode = insertAfterNode.parentNode;
+          }
+          if (insertAfterNode && insertAfterNode.parentNode === previewRef.current) {
+            const nextSibling = insertAfterNode.nextSibling;
+            const fragment = document.createDocumentFragment();
+            while (tempDiv.firstChild) {
+              fragment.appendChild(tempDiv.firstChild);
+            }
+            previewRef.current.insertBefore(fragment, nextSibling);
+            inserted = true;
+          }
+        }
+      }
+
+      if (!inserted) {
+        // Fallback: insere antes do disclaimer (se existir) ou no final do preview
+        const disclaimerBlock = previewRef.current.querySelector('[data-disclaimer-block="true"]');
+        if (disclaimerBlock) {
+          while (tempDiv.firstChild) {
+            previewRef.current.insertBefore(tempDiv.firstChild, disclaimerBlock);
+          }
+        } else {
+          while (tempDiv.firstChild) {
+            previewRef.current.appendChild(tempDiv.firstChild);
+          }
         }
       }
 
@@ -3140,6 +3296,21 @@ export default function Home() {
                     Assinaturas Guardadas ({savedSignatures.length})
                   </h2>
                   <div className="flex gap-2">
+                    <input
+                      ref={backupFileInputRef}
+                      type="file"
+                      accept=".html,.htm"
+                      className="hidden"
+                      onChange={handleBackupFileImport}
+                    />
+                    <button
+                      onClick={() => backupFileInputRef.current?.click()}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                      title="Abrir ficheiro de backup HTML para editar"
+                    >
+                      <FolderOpen className="w-4 h-4" />
+                      Abrir Backup
+                    </button>
                     <button
                       onClick={exportAllSignatures}
                       disabled={savedSignatures.length === 0}
@@ -3164,6 +3335,47 @@ export default function Home() {
                     </span>
                   </p>
                 </div>
+
+                {/* Dialog de seleção de assinatura do backup */}
+                {showBackupPickerDialog && (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                          <FolderOpen className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            Selecionar Assinatura do Backup
+                          </h3>
+                          <p className="text-sm text-gray-500">
+                            {backupSignatures.length} assinaturas encontradas — escolha uma para editar
+                          </p>
+                        </div>
+                      </div>
+                      <div className="space-y-2 max-h-72 overflow-y-auto mb-4">
+                        {backupSignatures.map((sig, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => loadBackupSignature(sig)}
+                            className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-400 rounded-lg transition-all text-sm font-medium text-gray-800 flex items-center gap-3"
+                          >
+                            <Edit3 className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                            {sig.name}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex justify-end">
+                        <button
+                          onClick={() => setShowBackupPickerDialog(false)}
+                          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors font-medium text-sm"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Dialog de Confirmação de Eliminação */}
                 {deleteConfirmId && (
@@ -3588,13 +3800,6 @@ export default function Home() {
                         />
                         <div className="flex gap-2">
                           <button
-                            onMouseDown={() => {
-                              // Guarda o cursor do preview ANTES do click tirar o foco
-                              const sel = window.getSelection();
-                              if (sel && sel.rangeCount > 0 && previewRef.current?.contains(sel.getRangeAt(0).commonAncestorContainer)) {
-                                savedCursorRange.current = sel.getRangeAt(0).cloneRange();
-                              }
-                            }}
                             onClick={() =>
                               document
                                 .getElementById("footer-image-upload")
@@ -3858,16 +4063,52 @@ export default function Home() {
                           setProcessedHtml(previewRef.current.innerHTML);
                         }
                       }}
-                      onMouseUp={() => {
-                        const sel = window.getSelection();
-                        if (sel && sel.rangeCount > 0) {
-                          savedCursorRange.current = sel.getRangeAt(0).cloneRange();
+                      onMouseUp={(e) => {
+                        // Usa caretRangeFromPoint para capturar a posição exacta do rato
+                        const x = e.clientX;
+                        const y = e.clientY;
+                        let range: Range | null = null;
+                        if ((document as any).caretRangeFromPoint) {
+                          range = (document as any).caretRangeFromPoint(x, y);
+                        } else if ((document as any).caretPositionFromPoint) {
+                          const pos = (document as any).caretPositionFromPoint(x, y);
+                          if (pos) {
+                            range = document.createRange();
+                            range.setStart(pos.offsetNode, pos.offset);
+                            range.collapse(true);
+                          }
+                        }
+                        if (range && previewRef.current?.contains(range.commonAncestorContainer)) {
+                          savedCursorRange.current = range;
+                        } else {
+                          const sel = window.getSelection();
+                          if (sel && sel.rangeCount > 0) {
+                            savedCursorRange.current = sel.getRangeAt(0).cloneRange();
+                          }
                         }
                       }}
-                      onClick={() => {
-                        const sel = window.getSelection();
-                        if (sel && sel.rangeCount > 0) {
-                          savedCursorRange.current = sel.getRangeAt(0).cloneRange();
+                      onClick={(e) => {
+                        // Usa caretRangeFromPoint para capturar a posição exacta do rato
+                        const x = e.clientX;
+                        const y = e.clientY;
+                        let range: Range | null = null;
+                        if ((document as any).caretRangeFromPoint) {
+                          range = (document as any).caretRangeFromPoint(x, y);
+                        } else if ((document as any).caretPositionFromPoint) {
+                          const pos = (document as any).caretPositionFromPoint(x, y);
+                          if (pos) {
+                            range = document.createRange();
+                            range.setStart(pos.offsetNode, pos.offset);
+                            range.collapse(true);
+                          }
+                        }
+                        if (range && previewRef.current?.contains(range.commonAncestorContainer)) {
+                          savedCursorRange.current = range;
+                        } else {
+                          const sel = window.getSelection();
+                          if (sel && sel.rangeCount > 0) {
+                            savedCursorRange.current = sel.getRangeAt(0).cloneRange();
+                          }
                         }
                       }}
                       onKeyUp={() => {
@@ -3875,6 +4116,9 @@ export default function Home() {
                         if (sel && sel.rangeCount > 0) {
                           savedCursorRange.current = sel.getRangeAt(0).cloneRange();
                         }
+                      }}
+                      onMouseMove={(e) => {
+                        lastMousePos.current = { x: e.clientX, y: e.clientY };
                       }}
                       className="p-6 bg-white border-2 border-green-300 rounded-lg shadow-inner overflow-auto focus:ring-2 focus:ring-green-500 focus:border-green-500"
                       style={{ height: "532px", outline: "none" }}
