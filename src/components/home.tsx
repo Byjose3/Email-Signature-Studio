@@ -79,6 +79,7 @@ export default function Home() {
   const previewRef = useRef<HTMLDivElement>(null);
   const pasteAreaRef = useRef<HTMLDivElement>(null);
   const savedCursorRange = useRef<Range | null>(null);
+  const savedInsertChildIndex = useRef<number | null>(null);
   const lastMousePos = useRef<{ x: number; y: number } | null>(null);
   const backupFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -2464,11 +2465,29 @@ export default function Home() {
 
     // Remove qualquer rodapé já existente (src diferente ou remoção)
     if (existing) {
-      let tableParent: Element | null = existing;
-      while (tableParent && tableParent.tagName !== "TABLE") {
-        tableParent = tableParent.parentElement;
+      let footerTable: Element | null = existing;
+      while (footerTable && footerTable.tagName !== "TABLE") {
+        footerTable = footerTable.parentElement;
       }
-      if (tableParent) tableParent.remove();
+      if (footerTable) {
+        // Verifica se a tabela está dentro de um <tr> injectado
+        const parentTr = footerTable.closest("tr");
+        if (parentTr) {
+          const trImages = parentTr.querySelectorAll("img");
+          const trText = parentTr.textContent?.trim() || "";
+          const onlyHasFooterImage =
+            trImages.length === 1 &&
+            trImages[0].getAttribute("data-footer-image") === "true" &&
+            trText === "";
+          if (onlyHasFooterImage) {
+            parentTr.remove();
+          } else {
+            footerTable.remove();
+          }
+        } else {
+          footerTable.remove();
+        }
+      }
     }
 
     if (!src) return doc.body.innerHTML;
@@ -2515,26 +2534,161 @@ export default function Home() {
     if (previewRef.current) previewRef.current.innerHTML = newHtml;
   };
 
-  /** Insere a imagem de rodapé na última posição do mouse dentro do canvas, ou no final se não houver posição guardada */
+  /** Guarda a posição de cursor actual como índice de filho directo do preview — resistente a perda de foco */
+  const saveCursorPosition = () => {
+    if (!previewRef.current) return;
+    // Método 1: usar a selecção actual do browser
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0).cloneRange();
+      if (previewRef.current.contains(range.commonAncestorContainer)) {
+        savedCursorRange.current = range;
+        // Calcular índice do filho directo
+        let node: Node | null = range.endContainer;
+        while (node && node.parentNode !== previewRef.current) {
+          node = node.parentNode;
+        }
+        if (node && node.parentNode === previewRef.current) {
+          savedInsertChildIndex.current = Array.from(previewRef.current.childNodes).indexOf(node as ChildNode);
+        }
+        return;
+      }
+    }
+    // Método 2: usar o savedCursorRange já guardado
+    const range = savedCursorRange.current;
+    if (range && previewRef.current.contains(range.commonAncestorContainer)) {
+      let node: Node | null = range.endContainer;
+      while (node && node.parentNode !== previewRef.current) {
+        node = node.parentNode;
+      }
+      if (node && node.parentNode === previewRef.current) {
+        savedInsertChildIndex.current = Array.from(previewRef.current.childNodes).indexOf(node as ChildNode);
+      }
+    }
+  };
+
+  /**
+   * Encontra o nó ancestral mais próximo do cursor que represente uma "linha" na
+   * estrutura da assinatura — tipicamente um <tr>, ou um filho directo de <tbody>/<table>,
+   * ou na pior hipótese um filho directo do preview.  Isto garante que a imagem de
+   * rodapé é inserida na posição correcta **dentro** da tabela, e não sempre no final.
+   */
+  const findInsertionPoint = (
+    startNode: Node,
+    container: HTMLElement,
+  ): { parent: Node; refChild: Node | null } | null => {
+    let node: Node | null = startNode;
+
+    // 1) Tenta encontrar o <tr> mais próximo — permite inserir nova row logo após
+    while (node && node !== container) {
+      if (node.nodeType === Node.ELEMENT_NODE && (node as Element).tagName === "TR") {
+        const parent = node.parentNode;
+        if (parent) {
+          return { parent, refChild: node.nextSibling };
+        }
+      }
+      node = node.parentNode;
+    }
+
+    // 2) Se não encontrou <tr>, tenta inserir depois do filho directo do tbody/table
+    node = startNode;
+    while (node && node !== container) {
+      const parent = node.parentNode;
+      if (
+        parent &&
+        parent.nodeType === Node.ELEMENT_NODE &&
+        ((parent as Element).tagName === "TBODY" || (parent as Element).tagName === "TABLE")
+      ) {
+        return { parent, refChild: node.nextSibling };
+      }
+      node = parent;
+    }
+
+    // 3) Fallback: filho directo do container
+    node = startNode;
+    while (node && node.parentNode !== container) {
+      node = node.parentNode;
+    }
+    if (node && node.parentNode === container) {
+      return { parent: container, refChild: node.nextSibling };
+    }
+
+    return null;
+  };
+
+  /** Insere a imagem de rodapé na posição guardada do cursor, ou no final se não houver posição */
   const insertFooterImageAtCursor = (src: string, width: number, height: number) => {
     const footerHtml = buildFooterImageHtml(src, width, height);
 
     if (previewRef.current) {
-      const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = footerHtml;
-
-      // Tenta usar o savedCursorRange (clique dentro do canvas)
-      const range = savedCursorRange.current;
       let inserted = false;
 
-      if (range && previewRef.current.contains(range.commonAncestorContainer)) {
-        // Sobe até ao elemento de bloco filho direto do preview
-        let insertAfterNode: Node | null = range.endContainer;
-        while (insertAfterNode && insertAfterNode.parentNode !== previewRef.current) {
-          insertAfterNode = insertAfterNode.parentNode;
+      // Método primário: usar o savedCursorRange para inserir na posição exacta
+      const range = savedCursorRange.current;
+      if (range) {
+        try {
+          if (previewRef.current.contains(range.commonAncestorContainer)) {
+            const cursorNode = range.endContainer;
+            const insertion = findInsertionPoint(cursorNode, previewRef.current);
+
+            if (insertion) {
+              // Se o ponto de inserção é dentro de uma tabela (<tr>/<tbody>/<table>),
+              // precisamos de criar uma nova <tr> com <td> para envolver o footer
+              const parentEl = insertion.parent as Element;
+              const isInsideTable =
+                parentEl.tagName === "TBODY" ||
+                parentEl.tagName === "TABLE" ||
+                parentEl.tagName === "THEAD" ||
+                parentEl.tagName === "TFOOT";
+
+              if (isInsideTable) {
+                // Calcula colspan da tabela para a nova row ocupar toda a largura
+                const table = parentEl.tagName === "TABLE"
+                  ? parentEl
+                  : parentEl.closest("table");
+                let colspan = 1;
+                if (table) {
+                  const firstRow = table.querySelector("tr");
+                  if (firstRow) {
+                    colspan = firstRow.querySelectorAll("td, th").length;
+                  }
+                }
+                // Cria nova row com td contendo a imagem de rodapé
+                const newRow = document.createElement("tr");
+                const newCell = document.createElement("td");
+                newCell.setAttribute("colspan", String(colspan));
+                newCell.setAttribute("style", "padding:0;vertical-align:top;");
+                newCell.innerHTML = footerHtml;
+                newRow.appendChild(newCell);
+                insertion.parent.insertBefore(newRow, insertion.refChild);
+                inserted = true;
+              } else {
+                // Fora de tabela — insere directamente
+                const tempDiv = document.createElement("div");
+                tempDiv.innerHTML = footerHtml;
+                const fragment = document.createDocumentFragment();
+                while (tempDiv.firstChild) {
+                  fragment.appendChild(tempDiv.firstChild);
+                }
+                insertion.parent.insertBefore(fragment, insertion.refChild);
+                inserted = true;
+              }
+            }
+          }
+        } catch (_) {
+          // Range pode estar inválido — continua para fallback
         }
-        if (insertAfterNode && insertAfterNode.parentNode === previewRef.current) {
+      }
+
+      // Método secundário: usar o childIndex (filho directo do preview)
+      if (!inserted) {
+        const childIndex = savedInsertChildIndex.current;
+        const children = Array.from(previewRef.current.childNodes);
+        if (childIndex !== null && childIndex >= 0 && childIndex < children.length) {
+          const insertAfterNode = children[childIndex];
           const nextSibling = insertAfterNode.nextSibling;
+          const tempDiv = document.createElement("div");
+          tempDiv.innerHTML = footerHtml;
           const fragment = document.createDocumentFragment();
           while (tempDiv.firstChild) {
             fragment.appendChild(tempDiv.firstChild);
@@ -2542,39 +2696,12 @@ export default function Home() {
           previewRef.current.insertBefore(fragment, nextSibling);
           inserted = true;
         }
-      } else if (lastMousePos.current) {
-        // Tenta calcular a posição pelo último ponto do mouse dentro do canvas
-        const { x, y } = lastMousePos.current;
-        let mouseRange: Range | null = null;
-        if ((document as any).caretRangeFromPoint) {
-          mouseRange = (document as any).caretRangeFromPoint(x, y);
-        } else if ((document as any).caretPositionFromPoint) {
-          const pos = (document as any).caretPositionFromPoint(x, y);
-          if (pos) {
-            mouseRange = document.createRange();
-            mouseRange.setStart(pos.offsetNode, pos.offset);
-            mouseRange.collapse(true);
-          }
-        }
-        if (mouseRange && previewRef.current.contains(mouseRange.commonAncestorContainer)) {
-          let insertAfterNode: Node | null = mouseRange.endContainer;
-          while (insertAfterNode && insertAfterNode.parentNode !== previewRef.current) {
-            insertAfterNode = insertAfterNode.parentNode;
-          }
-          if (insertAfterNode && insertAfterNode.parentNode === previewRef.current) {
-            const nextSibling = insertAfterNode.nextSibling;
-            const fragment = document.createDocumentFragment();
-            while (tempDiv.firstChild) {
-              fragment.appendChild(tempDiv.firstChild);
-            }
-            previewRef.current.insertBefore(fragment, nextSibling);
-            inserted = true;
-          }
-        }
       }
 
       if (!inserted) {
         // Fallback: insere antes do disclaimer (se existir) ou no final do preview
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = footerHtml;
         const disclaimerBlock = previewRef.current.querySelector('[data-disclaimer-block="true"]');
         if (disclaimerBlock) {
           while (tempDiv.firstChild) {
@@ -2648,21 +2775,43 @@ export default function Home() {
       const existing = previewRef.current.querySelector('[data-footer-image="true"]');
       if (existing) {
         // Walk up to find the wrapper table for this footer image
-        let tableParent: Element | null = existing;
-        while (tableParent && tableParent.tagName !== "TABLE") {
-          tableParent = tableParent.parentElement;
+        let footerTable: Element | null = existing;
+        while (footerTable && footerTable.tagName !== "TABLE") {
+          footerTable = footerTable.parentElement;
         }
-        // Only remove if the table is a direct child of the preview (body-level),
-        // so we never accidentally remove the main signature table
-        if (tableParent && previewRef.current.contains(tableParent) && tableParent.parentElement === previewRef.current) {
-          tableParent.remove();
-        } else if (tableParent) {
-          // Fallback: remove the closest table that is a direct preview child
-          let parent: Element | null = tableParent;
-          while (parent && parent.parentElement !== previewRef.current) {
-            parent = parent.parentElement;
+
+        if (footerTable) {
+          // Caso 1: A tabela do footer é filha directa do preview (inserção antiga/fallback)
+          if (footerTable.parentElement === previewRef.current) {
+            footerTable.remove();
           }
-          if (parent) parent.remove();
+          // Caso 2: A tabela do footer está dentro de um <td> de um <tr> injectado na tabela principal
+          else {
+            // Procura o <tr> que contém esta tabela de footer
+            let tr: Element | null = footerTable;
+            while (tr && tr.tagName !== "TR") {
+              tr = tr.parentElement;
+            }
+            if (tr) {
+              // Verifica se este <tr> contém APENAS o footer image (não tem outro conteúdo da assinatura)
+              const trImages = tr.querySelectorAll("img");
+              const trText = tr.textContent?.trim() || "";
+              const onlyHasFooterImage =
+                trImages.length === 1 &&
+                trImages[0].getAttribute("data-footer-image") === "true" &&
+                trText === "";
+              if (onlyHasFooterImage) {
+                // O <tr> foi injectado por nós — remove-o
+                tr.remove();
+              } else {
+                // O <tr> tem outro conteúdo — remove apenas a tabela do footer
+                footerTable.remove();
+              }
+            } else {
+              // Fallback: remove apenas a tabela do footer
+              footerTable.remove();
+            }
+          }
         }
       }
       setProcessedHtml(previewRef.current.innerHTML);
@@ -3800,6 +3949,12 @@ export default function Home() {
                         />
                         <div className="flex gap-2">
                           <button
+                            onMouseDown={(e) => {
+                              // Guarda a posição ANTES de perder o foco do canvas
+                              // (onMouseDown dispara antes de o browser limpar a selecção)
+                              e.preventDefault(); // impede que o canvas perca o foco imediatamente
+                              saveCursorPosition();
+                            }}
                             onClick={() =>
                               document
                                 .getElementById("footer-image-upload")
@@ -4086,6 +4241,16 @@ export default function Home() {
                             savedCursorRange.current = sel.getRangeAt(0).cloneRange();
                           }
                         }
+                        // Guarda o índice de filho directo para uso futuro
+                        if (savedCursorRange.current && previewRef.current) {
+                          let node: Node | null = savedCursorRange.current.endContainer;
+                          while (node && node.parentNode !== previewRef.current) {
+                            node = node.parentNode;
+                          }
+                          if (node && node.parentNode === previewRef.current) {
+                            savedInsertChildIndex.current = Array.from(previewRef.current.childNodes).indexOf(node as ChildNode);
+                          }
+                        }
                       }}
                       onClick={(e) => {
                         // Usa caretRangeFromPoint para capturar a posição exacta do rato
@@ -4110,11 +4275,30 @@ export default function Home() {
                             savedCursorRange.current = sel.getRangeAt(0).cloneRange();
                           }
                         }
+                        // Guarda o índice de filho directo para uso futuro
+                        if (savedCursorRange.current && previewRef.current) {
+                          let node: Node | null = savedCursorRange.current.endContainer;
+                          while (node && node.parentNode !== previewRef.current) {
+                            node = node.parentNode;
+                          }
+                          if (node && node.parentNode === previewRef.current) {
+                            savedInsertChildIndex.current = Array.from(previewRef.current.childNodes).indexOf(node as ChildNode);
+                          }
+                        }
                       }}
                       onKeyUp={() => {
                         const sel = window.getSelection();
                         if (sel && sel.rangeCount > 0) {
                           savedCursorRange.current = sel.getRangeAt(0).cloneRange();
+                          if (previewRef.current) {
+                            let node: Node | null = savedCursorRange.current.endContainer;
+                            while (node && node.parentNode !== previewRef.current) {
+                              node = node.parentNode;
+                            }
+                            if (node && node.parentNode === previewRef.current) {
+                              savedInsertChildIndex.current = Array.from(previewRef.current.childNodes).indexOf(node as ChildNode);
+                            }
+                          }
                         }
                       }}
                       onMouseMove={(e) => {
