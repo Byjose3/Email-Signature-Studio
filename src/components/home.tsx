@@ -235,7 +235,7 @@ export default function Home() {
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/\n/g, "<br>");
-    return `<table border="0" cellpadding="0" cellspacing="0" role="presentation" data-disclaimer-block="true" style="border-collapse:collapse;border-spacing:0;margin-top:12px;width:100%;max-width:600px;"><tbody><tr><td style="padding:10px 0 0 0;border-top:1px solid #e0e0e0;font-family:Arial,sans-serif;font-size:10px;line-height:1.5;color:#888888;" valign="top">${htmlText}</td></tr></tbody></table>`;
+    return `<table border="0" cellpadding="0" cellspacing="0" role="presentation" data-disclaimer-block="true" style="border-collapse:collapse;border-spacing:0;margin-top:32px;width:100%;max-width:600px;"><tbody><tr><td style="padding:10px 0 0 0;border-top:1px solid #e0e0e0;font-family:Arial,sans-serif;font-size:10px;line-height:1.5;color:#888888;" valign="top">${htmlText}</td></tr></tbody></table>`;
   };
 
   /** Injeta / actualiza / remove o disclaimer no HTML processado */
@@ -2530,7 +2530,7 @@ export default function Home() {
         (parentCell as HTMLElement).style.removeProperty("min-width");
         (parentCell as HTMLElement).style.removeProperty("max-width");
         (parentCell as HTMLElement).removeAttribute("width");
-        (parentCell as HTMLElement).style.paddingRight = `${spacingBefore}px`; // Usa valor detectado
+        (parentCell as HTMLElement).style.paddingRight = "0"; // Sem padding direito na célula do logo
         (parentCell as HTMLElement).style.paddingLeft = "0";
         (parentCell as HTMLElement).style.paddingTop = "0";
         (parentCell as HTMLElement).style.paddingBottom = "0";
