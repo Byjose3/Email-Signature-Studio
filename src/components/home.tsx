@@ -451,7 +451,9 @@ export default function Home() {
 
   // Exporta uma assinatura específica para HTML
   const exportSignatureAsHTML = (signature: SavedSignature) => {
-    // Cria um HTML completo que pode ser aberto no browser
+    const savedDate = new Date(signature.savedAt).toLocaleDateString("pt-PT");
+    const savedTime = new Date(signature.savedAt).toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" });
+
     const htmlContent = `<!DOCTYPE html>
 <html lang="pt">
 <head>
@@ -459,61 +461,238 @@ export default function Home() {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${signature.name}</title>
     <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f5f5f5;
+            background-color: #f0f2f5;
+            min-height: 100vh;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 40px 20px;
         }
         .container {
-            max-width: 800px;
-            margin: 0 auto;
+            max-width: 780px;
+            width: 100%;
             background: white;
-            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #1a56db 0%, #1e429f 100%);
+            padding: 28px 32px 24px;
+            color: white;
+        }
+        .header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            letter-spacing: -0.3px;
+        }
+        .header .meta {
+            font-size: 13px;
+            opacity: 0.75;
+        }
+        .steps {
+            background: #eff6ff;
+            border-bottom: 1px solid #dbeafe;
+            padding: 18px 32px;
+            display: flex;
+            align-items: center;
+            gap: 0;
+        }
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+        .step-num {
+            width: 28px;
+            height: 28px;
+            background: #1a56db;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .step-text {
+            font-size: 13px;
+            color: #1e3a5f;
+            line-height: 1.35;
+        }
+        .step-text strong {
+            display: block;
+            font-weight: 700;
+        }
+        .step-arrow {
+            font-size: 18px;
+            color: #93c5fd;
+            padding: 0 8px;
+            flex-shrink: 0;
+        }
+        .copy-section {
+            padding: 24px 32px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .copy-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 13px 28px;
+            background: #1a56db;
+            color: white;
+            border: none;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 0.1px;
+            transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+            box-shadow: 0 2px 8px rgba(26,86,219,0.30);
+            flex-shrink: 0;
         }
-        h1 {
-            color: #333;
-            border-bottom: 2px solid #007bff;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
+        .copy-btn:hover {
+            background: #1648c0;
+            box-shadow: 0 4px 14px rgba(26,86,219,0.38);
+            transform: translateY(-1px);
         }
-        .info {
-            background: #f8f9fa;
-            padding: 15px;
-            border-left: 4px solid #007bff;
-            margin-bottom: 20px;
+        .copy-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 4px rgba(26,86,219,0.20);
+        }
+        .copy-btn svg { flex-shrink: 0; }
+        .feedback {
             font-size: 14px;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 6px;
+            opacity: 0;
+            transition: opacity 0.25s;
+            pointer-events: none;
+        }
+        .feedback.show { opacity: 1; }
+        .feedback.success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .feedback.error   { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        .hint {
+            font-size: 13px;
+            color: #6b7280;
+            line-height: 1.4;
+        }
+        .preview-label {
+            padding: 14px 32px 10px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: #9ca3af;
         }
         .signature-container {
-            border: 1px solid #ddd;
-            padding: 16px 0 16px 16px;
-            background: white;
-            margin-top: 20px;
+            padding: 24px 32px 32px;
         }
-        .signature-container table {
-            margin: 0;
-        }
+        .signature-container table { margin: 0; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>${signature.name}</h1>
 
-        <div class="info">
-            <strong>Informação:</strong><br>
-            Guardada em: ${new Date(signature.savedAt).toLocaleDateString("pt-PT")} às ${new Date(signature.savedAt).toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}<br>
-            <br>
-            <strong>Como usar:</strong><br>
-            1. Selecione todo o conteúdo da assinatura abaixo (Ctrl+A)<br>
-            2. Copie (Ctrl+C)<br>
-            3. Cole no Email Signature Studio ou diretamente no Gmail
+        <div class="header">
+            <h1>${signature.name}</h1>
+            <div class="meta">Guardada em ${savedDate} às ${savedTime}</div>
         </div>
 
-        <div class="signature-container">
+        <div class="steps">
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-text"><strong>Copiar</strong>Clique no botão azul</div>
+            </div>
+            <div class="step-arrow">›</div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-text"><strong>Abrir Gmail</strong>Ir a Definições → Assinatura</div>
+            </div>
+            <div class="step-arrow">›</div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-text"><strong>Colar</strong>Ctrl+V no campo de assinatura</div>
+            </div>
+        </div>
+
+        <div class="copy-section">
+            <button class="copy-btn" id="copyBtn" onclick="copySignature()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                    <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                </svg>
+                Copiar Assinatura
+            </button>
+            <div class="feedback" id="feedback"></div>
+            <div class="hint">A assinatura é copiada com toda a formatação,<br>imagens e cores intactas.</div>
+        </div>
+
+        <div class="preview-label">Pré-visualização da assinatura</div>
+        <div class="signature-container" id="signatureContent">
             ${signature.html}
         </div>
+
     </div>
+    <script>
+        async function copySignature() {
+            const el = document.getElementById('signatureContent');
+            const btn = document.getElementById('copyBtn');
+            const fb = document.getElementById('feedback');
+
+            try {
+                // Método moderno: preserva HTML + formatação
+                await navigator.clipboard.write([
+                    new ClipboardItem({
+                        'text/html':  new Blob([el.innerHTML],  { type: 'text/html' }),
+                        'text/plain': new Blob([el.innerText],  { type: 'text/plain' })
+                    })
+                ]);
+                showFeedback(fb, btn, true);
+            } catch (e) {
+                // Fallback: selecção clássica
+                try {
+                    const range = document.createRange();
+                    range.selectNodeContents(el);
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                    const ok = document.execCommand('copy');
+                    sel.removeAllRanges();
+                    showFeedback(fb, btn, ok);
+                } catch (e2) {
+                    showFeedback(fb, btn, false);
+                }
+            }
+        }
+
+        function showFeedback(fb, btn, success) {
+            if (success) {
+                fb.textContent = '✓ Copiado! Agora cole no Gmail (Ctrl+V)';
+                fb.className = 'feedback success show';
+                btn.style.background = '#16a34a';
+                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copiado!';
+            } else {
+                fb.textContent = '✗ Erro ao copiar. Selecione manualmente e use Ctrl+C.';
+                fb.className = 'feedback error show';
+            }
+            setTimeout(() => {
+                fb.className = 'feedback';
+                btn.style.background = '';
+                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width=\\"14\\" height=\\"14\\" x=\\"8\\" y=\\"8\\" rx=\\"2\\" ry=\\"2\\"/><path d=\\"M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2\\"/></svg> Copiar Assinatura';
+            }, 3500);
+        }
+    </script>
 </body>
 </html>`;
 
@@ -521,15 +700,34 @@ export default function Home() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    // Remove caracteres especiais do nome do arquivo
     const fileName = signature.name.replace(/[^a-z0-9]/gi, "_").toLowerCase();
     link.download = `${fileName}-${new Date().toISOString().split("T")[0]}.html`;
     link.click();
     URL.revokeObjectURL(url);
   };
 
-  // Exporta todas as assinaturas para HTML (backup)
+  // Exporta todas as assinaturas individualmente, uma a uma
   const exportAllSignatures = () => {
+    if (savedSignatures.length === 0) {
+      setError("Não há assinaturas para exportar.");
+      setTimeout(() => setError(""), 3000);
+      return;
+    }
+
+    savedSignatures.forEach((sig, index) => {
+      setTimeout(() => {
+        exportSignatureAsHTML(sig);
+      }, index * 400); // 400ms de intervalo entre cada download
+    });
+
+    setSuccessMessage(
+      `A descarregar ${savedSignatures.length} assinatura(s) individualmente...`,
+    );
+    setTimeout(() => setSuccessMessage(""), 4000);
+  };
+
+  // Exporta todas as assinaturas para HTML (backup) — mantido para compatibilidade interna
+  const exportAllSignaturesAsBackup = () => {
     if (savedSignatures.length === 0) {
       setError("Não há assinaturas para exportar.");
       setTimeout(() => setError(""), 3000);
@@ -2573,161 +2771,87 @@ export default function Home() {
    * ou na pior hipótese um filho directo do preview.  Isto garante que a imagem de
    * rodapé é inserida na posição correcta **dentro** da tabela, e não sempre no final.
    */
-  const findInsertionPoint = (
-    startNode: Node,
-    container: HTMLElement,
-  ): { parent: Node; refChild: Node | null } | null => {
-    let node: Node | null = startNode;
-
-    // 1) Tenta encontrar o <tr> mais próximo — permite inserir nova row logo após
-    while (node && node !== container) {
-      if (node.nodeType === Node.ELEMENT_NODE && (node as Element).tagName === "TR") {
-        const parent = node.parentNode;
-        if (parent) {
-          return { parent, refChild: node.nextSibling };
-        }
-      }
-      node = node.parentNode;
-    }
-
-    // 2) Se não encontrou <tr>, tenta inserir depois do filho directo do tbody/table
-    node = startNode;
-    while (node && node !== container) {
-      const parent = node.parentNode;
-      if (
-        parent &&
-        parent.nodeType === Node.ELEMENT_NODE &&
-        ((parent as Element).tagName === "TBODY" || (parent as Element).tagName === "TABLE")
-      ) {
-        return { parent, refChild: node.nextSibling };
-      }
-      node = parent;
-    }
-
-    // 3) Fallback: filho directo do container
-    node = startNode;
-    while (node && node.parentNode !== container) {
-      node = node.parentNode;
-    }
-    if (node && node.parentNode === container) {
-      return { parent: container, refChild: node.nextSibling };
-    }
-
-    return null;
-  };
-
-  /** Insere a imagem de rodapé na posição guardada do cursor, ou no final se não houver posição */
+  /**
+   * Insere a imagem na posição exacta do cursor guardado (savedCursorRange).
+   * Estratégia:
+   *  1. Restaura o range no canvas e usa execCommand('insertHTML') — o mais fiável
+   *     em contentEditable, respeita a posição exacta dentro de qualquer elemento.
+   *  2. Fallback: insere via Range.insertNode() se execCommand não funcionar.
+   *  3. Fallback final: append depois da última tabela raiz.
+   */
   const insertFooterImageAtCursor = (src: string, width: number, height: number) => {
     const footerHtml = buildFooterImageHtml(src, width, height);
 
-    if (previewRef.current) {
-      let inserted = false;
-
-      // Método primário: usar o savedCursorRange para inserir na posição exacta
-      const range = savedCursorRange.current;
-      if (range) {
-        try {
-          if (previewRef.current.contains(range.commonAncestorContainer)) {
-            const cursorNode = range.endContainer;
-            const insertion = findInsertionPoint(cursorNode, previewRef.current);
-
-            if (insertion) {
-              // Se o ponto de inserção é dentro de uma tabela (<tr>/<tbody>/<table>),
-              // precisamos de criar uma nova <tr> com <td> para envolver o footer
-              const parentEl = insertion.parent as Element;
-              const isInsideTable =
-                parentEl.tagName === "TBODY" ||
-                parentEl.tagName === "TABLE" ||
-                parentEl.tagName === "THEAD" ||
-                parentEl.tagName === "TFOOT";
-
-              if (isInsideTable) {
-                // Calcula colspan da tabela para a nova row ocupar toda a largura
-                const table = parentEl.tagName === "TABLE"
-                  ? parentEl
-                  : parentEl.closest("table");
-                let colspan = 1;
-                if (table) {
-                  const firstRow = table.querySelector("tr");
-                  if (firstRow) {
-                    colspan = firstRow.querySelectorAll("td, th").length;
-                  }
-                }
-                // Cria nova row com td contendo a imagem de rodapé
-                const newRow = document.createElement("tr");
-                const newCell = document.createElement("td");
-                newCell.setAttribute("colspan", String(colspan));
-                newCell.setAttribute("style", "padding:0;vertical-align:top;");
-                newCell.innerHTML = footerHtml;
-                newRow.appendChild(newCell);
-                insertion.parent.insertBefore(newRow, insertion.refChild);
-                inserted = true;
-              } else {
-                // Fora de tabela — insere directamente
-                const tempDiv = document.createElement("div");
-                tempDiv.innerHTML = footerHtml;
-                const fragment = document.createDocumentFragment();
-                while (tempDiv.firstChild) {
-                  fragment.appendChild(tempDiv.firstChild);
-                }
-                insertion.parent.insertBefore(fragment, insertion.refChild);
-                inserted = true;
-              }
-            }
-          }
-        } catch (_) {
-          // Range pode estar inválido — continua para fallback
-        }
-      }
-
-      // Método secundário: usar o childIndex (filho directo do preview)
-      if (!inserted) {
-        const childIndex = savedInsertChildIndex.current;
-        const children = Array.from(previewRef.current.childNodes);
-        if (childIndex !== null && childIndex >= 0 && childIndex < children.length) {
-          const insertAfterNode = children[childIndex];
-          const nextSibling = insertAfterNode.nextSibling;
-          const tempDiv = document.createElement("div");
-          tempDiv.innerHTML = footerHtml;
-          const fragment = document.createDocumentFragment();
-          while (tempDiv.firstChild) {
-            fragment.appendChild(tempDiv.firstChild);
-          }
-          previewRef.current.insertBefore(fragment, nextSibling);
-          inserted = true;
-        }
-      }
-
-      if (!inserted) {
-        // Fallback: insere antes do disclaimer (se existir) ou no final do preview
-        const tempDiv = document.createElement("div");
-        tempDiv.innerHTML = footerHtml;
-        const disclaimerBlock = previewRef.current.querySelector('[data-disclaimer-block="true"]');
-        if (disclaimerBlock) {
-          while (tempDiv.firstChild) {
-            previewRef.current.insertBefore(tempDiv.firstChild, disclaimerBlock);
-          }
-        } else {
-          while (tempDiv.firstChild) {
-            previewRef.current.appendChild(tempDiv.firstChild);
-          }
-        }
-      }
-
-      setProcessedHtml(previewRef.current.innerHTML);
+    if (!previewRef.current) {
+      const newHtml = applyFooterImageToHtml(processedHtml, src, width, height);
+      setProcessedHtml(newHtml);
       return;
     }
 
-    // Fallback absoluto: via applyFooterImageToHtml
-    const currentHtml = processedHtml;
-    const newHtml = applyFooterImageToHtml(currentHtml, src, width, height);
-    setProcessedHtml(newHtml);
+    const preview = previewRef.current;
+    const range = savedCursorRange.current;
+
+    // Método 1: execCommand('insertHTML') — respeita a posição exacta do cursor
+    if (range && preview.contains(range.commonAncestorContainer)) {
+      try {
+        // Restaura o foco e o range no canvas
+        preview.focus();
+        const sel = window.getSelection();
+        if (sel) {
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+        // execCommand insere no ponto exacto da selecção
+        const success = document.execCommand("insertHTML", false, footerHtml);
+        if (success) {
+          setProcessedHtml(preview.innerHTML);
+          return;
+        }
+      } catch (_) {
+        // Continua para fallback
+      }
+    }
+
+    // Método 2: Range.insertNode() — alternativa quando execCommand falha
+    if (range && preview.contains(range.commonAncestorContainer)) {
+      try {
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = footerHtml;
+        const fragment = document.createDocumentFragment();
+        while (tempDiv.firstChild) fragment.appendChild(tempDiv.firstChild);
+
+        range.collapse(false); // move para o fim da selecção
+        range.insertNode(fragment);
+        setProcessedHtml(preview.innerHTML);
+        return;
+      } catch (_) {
+        // Continua para fallback final
+      }
+    }
+
+    // Fallback final: depois da última tabela raiz do preview
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = footerHtml;
+    const fragment = document.createDocumentFragment();
+    while (tempDiv.firstChild) fragment.appendChild(tempDiv.firstChild);
+
+    const rootTables = Array.from(preview.children).filter(
+      (el) => el.tagName === "TABLE",
+    );
+    const lastTable = rootTables[rootTables.length - 1] ?? null;
+    if (lastTable) {
+      preview.insertBefore(fragment, lastTable.nextSibling);
+    } else {
+      preview.appendChild(fragment);
+    }
+    setProcessedHtml(preview.innerHTML);
   };
 
   /** Trata o upload da imagem de rodapé */
   const handleFooterImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     const reader = new FileReader();
     reader.onload = (ev) => {
       const src = ev.target?.result as string;
@@ -2736,13 +2860,11 @@ export default function Home() {
       img.onload = () => {
         const ratio = img.naturalWidth / img.naturalHeight;
         setFooterOriginalAspectRatio(ratio);
-        // Mantém a largura actual mas recalcula a altura se estiver em auto
         const currentWidth = footerImageWidth || img.naturalWidth;
         setFooterImageSrc(src);
         setFooterImageWidth(currentWidth);
         setFooterImageHeight(0); // auto
         if (processedHtml) {
-          // Remove imagem antiga se existir, depois insere na posição do cursor
           const existingImg = previewRef.current?.querySelector('[data-footer-image="true"]');
           if (existingImg) {
             // Já existe — apenas actualiza o src in-place
@@ -2761,7 +2883,6 @@ export default function Home() {
       img.src = src;
     };
     reader.readAsDataURL(file);
-    // Reset do input para permitir re-upload do mesmo ficheiro
     e.target.value = "";
   };
 
@@ -3936,9 +4057,14 @@ export default function Home() {
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                         <Image className="w-5 h-5" />
-                        Imagem de Rodapé
+                        Inserir Imagem no Cursor
                       </label>
                       <div className="p-4 bg-gradient-to-br from-orange-50 to-amber-50 border-2 border-orange-200 rounded-lg space-y-3">
+                        {/* Instrução */}
+                        <div className="text-orange-800 bg-orange-100 border border-orange-300 px-3 py-2 rounded-md flex items-start gap-2" style={{ fontSize: "13px" }}>
+                          <Info className="w-4 h-4 flex-shrink-0 mt-0.5 text-orange-600" />
+                          <span>Clique no canvas onde quer inserir a imagem, <strong>depois</strong> clique no botão abaixo.</span>
+                        </div>
                         {/* Upload */}
                         <input
                           type="file"
@@ -3950,9 +4076,8 @@ export default function Home() {
                         <div className="flex gap-2">
                           <button
                             onMouseDown={(e) => {
-                              // Guarda a posição ANTES de perder o foco do canvas
-                              // (onMouseDown dispara antes de o browser limpar a selecção)
-                              e.preventDefault(); // impede que o canvas perca o foco imediatamente
+                              // Guarda o range ANTES de o canvas perder o foco
+                              e.preventDefault();
                               saveCursorPosition();
                             }}
                             onClick={() =>
@@ -3965,7 +4090,7 @@ export default function Home() {
                             <Upload className="w-4 h-4" />
                             {footerImageSrc
                               ? "Substituir Imagem"
-                              : "Adicionar Imagem de Rodapé"}
+                              : "Inserir Imagem no Cursor"}
                           </button>
                           {footerImageSrc && (
                             <button
@@ -4090,16 +4215,15 @@ export default function Home() {
                           </div>
                         )}
 
-                        {!footerImageSrc && (
+                        {footerImageSrc && (
                           <div
                             className="text-orange-700 bg-white/50 p-2 rounded flex items-start gap-2"
                             style={{ fontSize: "14px" }}
                           >
                             <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5" />
                             <span>
-                              <strong>Dica:</strong> Adicione uma imagem que
-                              aparecerá por baixo da assinatura (ex: banner,
-                              disclaimer, etc.)
+                              <strong>Dica:</strong> Para reposicionar a imagem,
+                              remova-a e insira novamente com o cursor no local pretendido.
                             </span>
                           </div>
                         )}
