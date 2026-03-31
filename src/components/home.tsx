@@ -1408,19 +1408,28 @@ export default function Home() {
             }
           }
 
-          // Define dimensões iniciais no estado
-          // NÃO calculamos height fixo - deixamos o navegador calcular baseado no aspect ratio da imagem
+          // Define dimensões iniciais no estado — calcula height explícito a partir do aspect ratio
           setLogoWidth(width);
-          setLogoHeight(0); // 0 = auto
+          // Se temos aspect ratio, calcula height explícito para forçar dimensões em todos os clientes
+          const computedHeight = (originalAspectRatio > 0 && imgElement.complete && imgElement.naturalWidth)
+            ? Math.round(width / (imgElement.naturalWidth / imgElement.naturalHeight))
+            : (height > 0 ? height : 0);
+          setLogoHeight(computedHeight);
 
-          // Aplica APENAS width - height será calculado automaticamente pelo navegador
-          // Define max-width para prevenir Gmail de aplicar "tamanho médio"
+          // Aplica width E height explícitos — clientes como Outlook, Apple Mail ignoram "auto"
           img.setAttribute("width", String(width));
-          img.removeAttribute("height"); // Remove height para forçar aspect ratio natural
+          if (computedHeight > 0) {
+            img.setAttribute("height", String(computedHeight));
+            img.style.height = `${computedHeight}px`;
+            img.style.maxHeight = `${computedHeight}px`;
+            img.style.minHeight = `${computedHeight}px`;
+          } else {
+            img.removeAttribute("height");
+            img.style.removeProperty("height");
+          }
           img.style.width = `${width}px`;
-          img.style.maxWidth = `${width}px`; // Bloqueia redimensionamento automático do Gmail
-          // NÃO define style.height - deixa o navegador calcular
-          img.style.removeProperty("height");
+          img.style.maxWidth = `${width}px`;
+          img.style.minWidth = `${width}px`;
           img.style.display = "block";
           img.style.border = "0";
           img.style.outline = "none";
@@ -1432,9 +1441,12 @@ export default function Home() {
           }
 
           if (parentCell) {
-            // NÃO define width fixo na célula - deixa crescer com logo + padding
-            // PRESERVA padding original se existir (não força a zero!)
+            // Define width fixo na célula igual ao do logo — força clientes a respeitar
             const parentCellElement = parentCell as HTMLElement;
+            parentCellElement.setAttribute("width", String(width));
+            parentCellElement.style.width = `${width}px`;
+            parentCellElement.style.minWidth = `${width}px`;
+            parentCellElement.style.maxWidth = `${width}px`;
             if (!parentCellElement.style.paddingRight) {
               parentCellElement.style.paddingRight = "0";
             }
@@ -1451,17 +1463,27 @@ export default function Home() {
             parentCellElement.setAttribute("valign", "top");
           }
         } else {
-          // Para outras imagens (ícones sociais), mantém dimensões originais
+          // Para outras imagens (ícones sociais e imagens de conteúdo): mantém e reforça dimensões
           const width = img.getAttribute("width") || img.style.width;
           const height = img.getAttribute("height") || img.style.height;
 
           if (width) {
-            img.setAttribute("width", width.replace("px", ""));
-            img.style.width = width.includes("px") ? width : `${width}px`;
+            const wv = parseInt(width.toString().replace("px", ""));
+            if (!isNaN(wv) && wv > 0) {
+              img.setAttribute("width", String(wv));
+              img.style.width = `${wv}px`;
+              img.style.maxWidth = `${wv}px`;
+              img.style.minWidth = `${wv}px`;
+            }
           }
           if (height) {
-            img.setAttribute("height", height.replace("px", ""));
-            img.style.height = height.includes("px") ? height : `${height}px`;
+            const hv = parseInt(height.toString().replace("px", ""));
+            if (!isNaN(hv) && hv > 0) {
+              img.setAttribute("height", String(hv));
+              img.style.height = `${hv}px`;
+              img.style.maxHeight = `${hv}px`;
+              img.style.minHeight = `${hv}px`;
+            }
           }
 
           // Ícones sociais devem ser inline ou inline-block (NUNCA block)
@@ -1476,9 +1498,6 @@ export default function Home() {
             }
           }
         }
-
-        // Remove max-width que pode interferir
-        img.style.maxWidth = "none";
       });
 
       // Preserva margin-top/margin-bottom/line-height em DIVs (para espaçamento)
@@ -2331,9 +2350,15 @@ export default function Home() {
           if (imageId === "img-0") {
             // Manter a largura atual ou usar uma largura padrão
             const newWidth = logoWidth > 0 ? logoWidth : 160;
+            // Calcula height a partir do aspect ratio da nova imagem
+            const newNaturalRatio = imageElement.naturalWidth > 0 && imageElement.naturalHeight > 0
+              ? imageElement.naturalWidth / imageElement.naturalHeight
+              : originalAspectRatio;
+            const newHeight = newNaturalRatio > 0 ? Math.round(newWidth / newNaturalRatio) : 0;
 
             setLogoWidth(newWidth);
-            setLogoHeight(0); // Sempre 0 = auto para manter aspect ratio natural
+            setLogoHeight(newHeight);
+            if (newNaturalRatio > 0) setOriginalAspectRatio(newNaturalRatio);
 
             // Atualizar o HTML com as novas dimensões
             const parser = new DOMParser();
@@ -2343,10 +2368,18 @@ export default function Home() {
             if (img) {
               img.setAttribute("src", base64);
               img.setAttribute("width", String(newWidth));
-              img.removeAttribute("height"); // Remove height - deixa navegador calcular
+              if (newHeight > 0) {
+                img.setAttribute("height", String(newHeight));
+                (img as HTMLElement).style.height = `${newHeight}px`;
+                (img as HTMLElement).style.maxHeight = `${newHeight}px`;
+                (img as HTMLElement).style.minHeight = `${newHeight}px`;
+              } else {
+                img.removeAttribute("height");
+                (img as HTMLElement).style.removeProperty("height");
+              }
               (img as HTMLElement).style.width = `${newWidth}px`;
-              (img as HTMLElement).style.maxWidth = `${newWidth}px`; // Previne Gmail aplicar tamanho médio
-              (img as HTMLElement).style.removeProperty("height"); // Remove style.height
+              (img as HTMLElement).style.maxWidth = `${newWidth}px`;
+              (img as HTMLElement).style.minWidth = `${newWidth}px`;
               (img as HTMLElement).style.display = "block";
               (img as HTMLElement).style.border = "0";
               (img as HTMLElement).style.outline = "none";
@@ -2366,10 +2399,18 @@ export default function Home() {
                 if (pasteImg) {
                   pasteImg.setAttribute("src", base64);
                   pasteImg.setAttribute("width", String(newWidth));
-                  pasteImg.removeAttribute("height"); // Remove height - deixa navegador calcular
+                  if (newHeight > 0) {
+                    pasteImg.setAttribute("height", String(newHeight));
+                    (pasteImg as HTMLElement).style.height = `${newHeight}px`;
+                    (pasteImg as HTMLElement).style.maxHeight = `${newHeight}px`;
+                    (pasteImg as HTMLElement).style.minHeight = `${newHeight}px`;
+                  } else {
+                    pasteImg.removeAttribute("height");
+                    (pasteImg as HTMLElement).style.removeProperty("height");
+                  }
                   (pasteImg as HTMLElement).style.width = `${newWidth}px`;
-                  (pasteImg as HTMLElement).style.maxWidth = `${newWidth}px`; // Previne Gmail aplicar tamanho médio
-                  (pasteImg as HTMLElement).style.removeProperty("height"); // Remove style.height
+                  (pasteImg as HTMLElement).style.maxWidth = `${newWidth}px`;
+                  (pasteImg as HTMLElement).style.minWidth = `${newWidth}px`;
                   (pasteImg as HTMLElement).style.display = "block";
                   (pasteImg as HTMLElement).style.border = "0";
                   (pasteImg as HTMLElement).style.outline = "none";
@@ -2490,17 +2531,26 @@ export default function Home() {
     const logo = doc.querySelector('img[data-image-id="img-0"]');
 
     if (logo) {
+      // Calcula height real a partir do aspect ratio se não foi especificado
+      const effectiveHeight = height > 0
+        ? height
+        : (originalAspectRatio > 0 ? Math.round(width / originalAspectRatio) : 0);
+
       logo.setAttribute("width", String(width));
-      if (height > 0) {
-        logo.setAttribute("height", String(height));
-        (logo as HTMLElement).style.height = `${height}px`;
+      if (effectiveHeight > 0) {
+        logo.setAttribute("height", String(effectiveHeight));
+        (logo as HTMLElement).style.height = `${effectiveHeight}px`;
+        (logo as HTMLElement).style.maxHeight = `${effectiveHeight}px`;
+        (logo as HTMLElement).style.minHeight = `${effectiveHeight}px`;
       } else {
-        // Se height é 0, usa auto
         logo.removeAttribute("height");
         (logo as HTMLElement).style.removeProperty("height");
+        (logo as HTMLElement).style.removeProperty("maxHeight");
+        (logo as HTMLElement).style.removeProperty("minHeight");
       }
       (logo as HTMLElement).style.width = `${width}px`;
-      (logo as HTMLElement).style.maxWidth = `${width}px`; // Previne Gmail aplicar tamanho médio
+      (logo as HTMLElement).style.maxWidth = `${width}px`;
+      (logo as HTMLElement).style.minWidth = `${width}px`;
       (logo as HTMLElement).style.display = "block";
       (logo as HTMLElement).style.border = "0";
       (logo as HTMLElement).style.outline = "none";
@@ -2525,11 +2575,11 @@ export default function Home() {
           }
         }
 
-        // Define célula do logo SEM width fixo (deixa crescer com logo + padding)
-        (parentCell as HTMLElement).style.removeProperty("width");
-        (parentCell as HTMLElement).style.removeProperty("min-width");
-        (parentCell as HTMLElement).style.removeProperty("max-width");
-        (parentCell as HTMLElement).removeAttribute("width");
+        // Define célula do logo COM width fixo igual ao da imagem (força clientes a respeitar)
+        (parentCell as HTMLElement).style.width = `${width}px`;
+        (parentCell as HTMLElement).style.minWidth = `${width}px`;
+        (parentCell as HTMLElement).style.maxWidth = `${width}px`;
+        (parentCell as HTMLElement).setAttribute("width", String(width));
         (parentCell as HTMLElement).style.paddingRight = "0"; // Sem padding direito na célula do logo
         (parentCell as HTMLElement).style.paddingLeft = "0";
         (parentCell as HTMLElement).style.paddingTop = "0";
@@ -2549,16 +2599,24 @@ export default function Home() {
         );
         const pasteLogo = pasteDoc.querySelector('img[data-image-id="img-0"]');
         if (pasteLogo) {
+          // Calcula height real a partir do aspect ratio se não foi especificado
+          const effectiveHeightPaste = height > 0
+            ? height
+            : (originalAspectRatio > 0 ? Math.round(width / originalAspectRatio) : 0);
+
           pasteLogo.setAttribute("width", String(width));
-          if (height > 0) {
-            pasteLogo.setAttribute("height", String(height));
-            (pasteLogo as HTMLElement).style.height = `${height}px`;
+          if (effectiveHeightPaste > 0) {
+            pasteLogo.setAttribute("height", String(effectiveHeightPaste));
+            (pasteLogo as HTMLElement).style.height = `${effectiveHeightPaste}px`;
+            (pasteLogo as HTMLElement).style.maxHeight = `${effectiveHeightPaste}px`;
+            (pasteLogo as HTMLElement).style.minHeight = `${effectiveHeightPaste}px`;
           } else {
             pasteLogo.removeAttribute("height");
             (pasteLogo as HTMLElement).style.removeProperty("height");
           }
           (pasteLogo as HTMLElement).style.width = `${width}px`;
-          (pasteLogo as HTMLElement).style.maxWidth = `${width}px`; // Previne Gmail aplicar tamanho médio
+          (pasteLogo as HTMLElement).style.maxWidth = `${width}px`;
+          (pasteLogo as HTMLElement).style.minWidth = `${width}px`;
           (pasteLogo as HTMLElement).style.display = "block";
           (pasteLogo as HTMLElement).style.border = "0";
           (pasteLogo as HTMLElement).style.outline = "none";
@@ -2584,11 +2642,11 @@ export default function Home() {
               }
             }
 
-            // Define célula do logo SEM width fixo (deixa crescer com logo + padding)
-            (pasteParentCell as HTMLElement).style.removeProperty("width");
-            (pasteParentCell as HTMLElement).style.removeProperty("min-width");
-            (pasteParentCell as HTMLElement).style.removeProperty("max-width");
-            (pasteParentCell as HTMLElement).removeAttribute("width");
+            // Define célula do logo COM width fixo (força clientes a respeitar)
+            (pasteParentCell as HTMLElement).style.width = `${width}px`;
+            (pasteParentCell as HTMLElement).style.minWidth = `${width}px`;
+            (pasteParentCell as HTMLElement).style.maxWidth = `${width}px`;
+            (pasteParentCell as HTMLElement).setAttribute("width", String(width));
             (pasteParentCell as HTMLElement).style.paddingRight =
               `${spacingBefore}px`; // Usa valor detectado
             (pasteParentCell as HTMLElement).style.paddingLeft = "0";
@@ -2607,10 +2665,10 @@ export default function Home() {
   const handleLogoWidthChange = (newWidth: number) => {
     setLogoWidth(newWidth);
 
-    // Sempre usa height = 0 (auto) para manter aspect ratio natural
-    // Isso faz o Gmail tratar como "tamanho original"
-    setLogoHeight(0);
-    updateLogoSize(newWidth, 0);
+    // Calcula height a partir do aspect ratio para manter proporções em todos os clientes
+    const computedHeight = originalAspectRatio > 0 ? Math.round(newWidth / originalAspectRatio) : 0;
+    setLogoHeight(computedHeight);
+    updateLogoSize(newWidth, computedHeight);
   };
 
   const handleLogoHeightChange = (newHeight: number) => {
@@ -2630,8 +2688,8 @@ export default function Home() {
   /** Constrói o bloco HTML para a imagem de rodapé */
   const buildFooterImageHtml = (src: string, width: number, height: number): string => {
     const heightAttr = height > 0 ? ` height="${height}"` : "";
-    const heightStyle = height > 0 ? ` height:${height}px;` : "";
-    return `<table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;border-spacing:0;margin-top:8px;"><tbody><tr><td style="padding:0;vertical-align:top;" valign="top"><img src="${src}" width="${width}"${heightAttr} alt="Rodapé" data-footer-image="true" style="display:block;border:0;outline:none;width:${width}px;max-width:${width}px;${heightStyle}" /></td></tr></tbody></table>`;
+    const heightStyle = height > 0 ? ` height:${height}px; max-height:${height}px; min-height:${height}px;` : "";
+    return `<table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;border-spacing:0;margin-top:8px;"><tbody><tr><td width="${width}" style="padding:0;vertical-align:top;width:${width}px;min-width:${width}px;max-width:${width}px;" valign="top"><img src="${src}" width="${width}"${heightAttr} alt="Rodapé" data-footer-image="true" style="display:block;border:0;outline:none;width:${width}px;max-width:${width}px;min-width:${width}px;${heightStyle}" /></td></tr></tbody></table>`;
   };
 
   /** Injeta / actualiza / remove a imagem de rodapé no HTML processado */
@@ -3104,19 +3162,32 @@ export default function Home() {
         }
       }
 
-      // Para o LOGO: Estratégia especial para Gmail aceitar o tamanho original
+      // Para o LOGO: Estratégia especial — define TODAS as dimensões explicitamente
       if (isLogo) {
-        // Gmail precisa de max-width definido para NÃO aplicar "tamanho médio" automaticamente
-        // Define max-width igual ao width para bloquear redimensionamento
         const widthValue = parseInt(width.toString().replace("px", ""));
-        if (!isNaN(widthValue)) {
-          imgElement.style.maxWidth = `${widthValue}px`;
+        if (!isNaN(widthValue) && widthValue > 0) {
+          imgElement.setAttribute("width", widthValue.toString());
           imgElement.style.width = `${widthValue}px`;
-        }
+          imgElement.style.maxWidth = `${widthValue}px`;
+          imgElement.style.minWidth = `${widthValue}px`;
 
-        // Remove height para manter aspect ratio natural
-        imgElement.removeAttribute("height");
-        imgElement.style.removeProperty("height");
+          // Calcula height a partir do atributo existente ou aspect ratio
+          const existingHeight = imgElement.getAttribute("height");
+          const existingHeightStyle = imgElement.style.height;
+          let heightValue = 0;
+          if (existingHeight && parseInt(existingHeight) > 0) {
+            heightValue = parseInt(existingHeight);
+          } else if (existingHeightStyle && parseInt(existingHeightStyle) > 0) {
+            heightValue = parseInt(existingHeightStyle);
+          }
+
+          if (heightValue > 0) {
+            imgElement.setAttribute("height", heightValue.toString());
+            imgElement.style.height = `${heightValue}px`;
+            imgElement.style.maxHeight = `${heightValue}px`;
+            imgElement.style.minHeight = `${heightValue}px`;
+          }
+        }
 
         // Display block força o Gmail a respeitar as dimensões
         imgElement.style.display = "block";
@@ -3129,33 +3200,65 @@ export default function Home() {
         imgElement.style.margin = "0";
         imgElement.style.padding = "0";
 
-        // Remove TODOS os atributos que permitem redimensionamento
+        // Remove atributos que permitem redimensionamento
         imgElement.removeAttribute("data-gce-editing");
         imgElement.removeAttribute("contenteditable");
 
         // Atributos adicionais que alguns clientes de email respeitam
         imgElement.setAttribute("border", "0");
+
+        // Aplica width fixo também na TD pai
+        let parentTd = imgElement.parentElement;
+        while (parentTd && parentTd.tagName !== "TD") {
+          parentTd = parentTd.parentElement;
+        }
+        if (parentTd && !isNaN(parseInt(width.toString().replace("px", "")))) {
+          const wv = parseInt(width.toString().replace("px", ""));
+          (parentTd as HTMLElement).setAttribute("width", wv.toString());
+          (parentTd as HTMLElement).style.width = `${wv}px`;
+          (parentTd as HTMLElement).style.minWidth = `${wv}px`;
+          (parentTd as HTMLElement).style.maxWidth = `${wv}px`;
+        }
       } else {
-        // Para outras imagens (não logo), mantém height se existir
-        const height =
-          imgElement.style.height || imgElement.getAttribute("height");
-        if (height) {
-          const heightValue = parseInt(height.toString().replace("px", ""));
-          if (!isNaN(heightValue)) {
-            imgElement.setAttribute("height", heightValue.toString());
-            imgElement.style.height = `${heightValue}px`;
+        // Para TODAS as outras imagens (ícones sociais, imagens de conteúdo):
+        // Aplica a mesma estratégia de fixar dimensões com atributo + CSS + min/max
+        const wStr = imgElement.style.width || imgElement.getAttribute("width");
+        const hStr = imgElement.style.height || imgElement.getAttribute("height");
+
+        if (wStr) {
+          const wv = parseInt(wStr.toString().replace("px", ""));
+          if (!isNaN(wv) && wv > 0) {
+            imgElement.setAttribute("width", wv.toString());
+            imgElement.style.width = `${wv}px`;
+            imgElement.style.maxWidth = `${wv}px`;
+            imgElement.style.minWidth = `${wv}px`;
+
+            // Fixa também a célula pai para máxima compatibilidade
+            let parentTdOther = imgElement.parentElement;
+            while (parentTdOther && parentTdOther.tagName !== "TD") {
+              parentTdOther = parentTdOther.parentElement;
+            }
+            if (parentTdOther) {
+              (parentTdOther as HTMLElement).setAttribute("width", wv.toString());
+              (parentTdOther as HTMLElement).style.width = `${wv}px`;
+              (parentTdOther as HTMLElement).style.minWidth = `${wv}px`;
+              (parentTdOther as HTMLElement).style.maxWidth = `${wv}px`;
+            }
           }
         }
-      }
 
-      // Remove propriedades problemáticas
-      // NÃO remove max-width do logo (necessário para Gmail)
-      if (!isLogo) {
-        imgElement.style.removeProperty("max-width");
+        if (hStr) {
+          const hv = parseInt(hStr.toString().replace("px", ""));
+          if (!isNaN(hv) && hv > 0) {
+            imgElement.setAttribute("height", hv.toString());
+            imgElement.style.height = `${hv}px`;
+            imgElement.style.maxHeight = `${hv}px`;
+            imgElement.style.minHeight = `${hv}px`;
+          }
+        }
+
+        imgElement.setAttribute("border", "0");
       }
-      imgElement.style.removeProperty("max-height");
-      imgElement.style.removeProperty("min-width");
-      imgElement.style.removeProperty("min-height");
       imgElement.style.removeProperty("object-fit");
       imgElement.style.removeProperty("object-position");
     });
@@ -3877,7 +3980,7 @@ export default function Home() {
                             </label>
                             <input
                               type="text"
-                              value={logoHeight === 0 ? "auto" : logoHeight}
+                              value={logoHeight > 0 ? logoHeight : (originalAspectRatio > 0 ? Math.round(logoWidth / originalAspectRatio) : "auto")}
                               readOnly
                               disabled
                               className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
