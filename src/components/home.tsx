@@ -1735,9 +1735,11 @@ export default function Home() {
           }
         }
 
-        // Remove estilos problemáticos para Gmail
-        htmlElement.style.removeProperty("max-width");
-        htmlElement.style.removeProperty("max-height");
+        // Remove estilos problemáticos para Gmail (mas NÃO em imagens — dimensões são geridas separadamente)
+        if (htmlElement.tagName !== "IMG") {
+          htmlElement.style.removeProperty("max-width");
+          htmlElement.style.removeProperty("max-height");
+        }
       });
 
       // Preserva bordas (linhas verticais/horizontais) - guarda info para conversão posterior
@@ -3207,7 +3209,7 @@ export default function Home() {
         // Atributos adicionais que alguns clientes de email respeitam
         imgElement.setAttribute("border", "0");
 
-        // Aplica width fixo também na TD pai
+        // Aplica width fixo também na TD pai E na TABLE pai
         let parentTd = imgElement.parentElement;
         while (parentTd && parentTd.tagName !== "TD") {
           parentTd = parentTd.parentElement;
@@ -3218,6 +3220,14 @@ export default function Home() {
           (parentTd as HTMLElement).style.width = `${wv}px`;
           (parentTd as HTMLElement).style.minWidth = `${wv}px`;
           (parentTd as HTMLElement).style.maxWidth = `${wv}px`;
+
+          // Fixa também a <table> pai
+          const parentTable = parentTd.closest("table");
+          if (parentTable) {
+            (parentTable as HTMLElement).setAttribute("width", wv.toString());
+            (parentTable as HTMLElement).style.width = `${wv}px`;
+            (parentTable as HTMLElement).style.maxWidth = `${wv}px`;
+          }
         }
       } else {
         // Para TODAS as outras imagens (ícones sociais, imagens de conteúdo):
@@ -3233,7 +3243,7 @@ export default function Home() {
             imgElement.style.maxWidth = `${wv}px`;
             imgElement.style.minWidth = `${wv}px`;
 
-            // Fixa também a célula pai para máxima compatibilidade
+            // Fixa também a célula pai E a tabela pai para máxima compatibilidade
             let parentTdOther = imgElement.parentElement;
             while (parentTdOther && parentTdOther.tagName !== "TD") {
               parentTdOther = parentTdOther.parentElement;
@@ -3243,6 +3253,18 @@ export default function Home() {
               (parentTdOther as HTMLElement).style.width = `${wv}px`;
               (parentTdOther as HTMLElement).style.minWidth = `${wv}px`;
               (parentTdOther as HTMLElement).style.maxWidth = `${wv}px`;
+
+              // Fixa também a <table> pai da <td>
+              const parentTableOther = parentTdOther.closest("table");
+              if (parentTableOther) {
+                const existingTableWidth = parentTableOther.getAttribute("width");
+                // Só restringe a tabela se não tiver largura já definida (maior que a imagem)
+                if (!existingTableWidth || parseInt(existingTableWidth) <= wv) {
+                  (parentTableOther as HTMLElement).setAttribute("width", wv.toString());
+                  (parentTableOther as HTMLElement).style.width = `${wv}px`;
+                  (parentTableOther as HTMLElement).style.maxWidth = `${wv}px`;
+                }
+              }
             }
           }
         }
