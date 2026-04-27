@@ -2538,71 +2538,96 @@ export default function Home() {
   };
 
   const handleSocialLinkUpdate = (imageId: string, newLink: string) => {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(processedHtml, "text/html");
-    const img = doc.querySelector(`img[data-image-id="${imageId}"]`);
-
-    if (img) {
-      // Atualiza o atributo data-social-link
-      img.setAttribute("data-social-link", newLink);
-
-      // Atualiza o href se a imagem já está dentro de um <a>, caso contrário envolve-a
-      const imgParent = img.parentNode as HTMLElement | null;
-      if (imgParent && imgParent.tagName === "A") {
-        // Já está dentro de um link - só atualiza o href (sem mover o elemento)
-        if (newLink && newLink.trim() !== "") {
-          (imgParent as HTMLAnchorElement).href = newLink;
-        } else {
-          // Link vazio: remove o <a> e deixa só a imagem no lugar
-          imgParent.parentNode?.replaceChild(img, imgParent);
-        }
-      } else if (newLink && newLink.trim() !== "") {
-        // Não está num link ainda - envolve a imagem
-        const link = doc.createElement("a");
-        link.href = newLink;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
-        link.style.display = "inline-block";
-        imgParent?.replaceChild(link, img);
-        link.appendChild(img);
-      }
-
-      const newHtml = doc.body.innerHTML;
-      setProcessedHtml(newHtml);
-
-      // Atualiza também a área de paste
-      if (pasteAreaRef.current) {
-        const pasteDoc = parser.parseFromString(
-          pasteAreaRef.current.innerHTML,
-          "text/html",
-        );
-        const pasteImg = pasteDoc.querySelector(
-          'img[data-image-id="' + imageId + '"]',
-        );
-        if (pasteImg) {
-          pasteImg.setAttribute("data-social-link", newLink);
-
-          const pasteImgParent = pasteImg.parentNode as HTMLElement | null;
-          if (pasteImgParent && pasteImgParent.tagName === "A") {
-            if (newLink && newLink.trim() !== "") {
-              (pasteImgParent as HTMLAnchorElement).href = newLink;
-            } else {
-              pasteImgParent.parentNode?.replaceChild(pasteImg, pasteImgParent);
-            }
-          } else if (newLink && newLink.trim() !== "") {
-            const pasteLink = pasteDoc.createElement("a");
-            pasteLink.href = newLink;
-            pasteLink.target = "_blank";
-            pasteLink.rel = "noopener noreferrer";
-            pasteLink.style.display = "inline-block";
-            pasteImgParent?.replaceChild(pasteLink, pasteImg);
-            pasteLink.appendChild(pasteImg);
+    // Atualiza o DOM do preview diretamente (sem re-render)
+    if (previewRef.current) {
+      const previewImg = previewRef.current.querySelector(
+        `img[data-image-id="${imageId}"]`,
+      ) as HTMLImageElement | null;
+      if (previewImg) {
+        previewImg.setAttribute("data-social-link", newLink);
+        const previewImgParent = previewImg.parentNode as HTMLElement | null;
+        if (previewImgParent && previewImgParent.tagName === "A") {
+          if (newLink && newLink.trim() !== "") {
+            (previewImgParent as HTMLAnchorElement).href = newLink;
           }
-
-          pasteAreaRef.current.innerHTML = pasteDoc.body.innerHTML;
         }
       }
     }
+
+    // Debounce o setProcessedHtml para não interromper a escrita
+    isUserEditingRef.current = true;
+    if (syncStateTimerRef.current) {
+      clearTimeout(syncStateTimerRef.current);
+    }
+    syncStateTimerRef.current = setTimeout(() => {
+      // Usa o HTML actual do previewRef (evita stale closure)
+      const currentHtml = previewRef.current
+        ? previewRef.current.innerHTML
+        : processedHtml;
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(currentHtml, "text/html");
+      const img = doc.querySelector(`img[data-image-id="${imageId}"]`);
+
+      if (img) {
+        img.setAttribute("data-social-link", newLink);
+        const imgParent = img.parentNode as HTMLElement | null;
+        if (imgParent && imgParent.tagName === "A") {
+          if (newLink && newLink.trim() !== "") {
+            (imgParent as HTMLAnchorElement).href = newLink;
+          } else {
+            imgParent.parentNode?.replaceChild(img, imgParent);
+          }
+        } else if (newLink && newLink.trim() !== "") {
+          const link = doc.createElement("a");
+          link.href = newLink;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.style.display = "inline-block";
+          imgParent?.replaceChild(link, img);
+          link.appendChild(img);
+        }
+
+        const newHtml = doc.body.innerHTML;
+        setProcessedHtml(newHtml);
+
+        // Atualiza também a área de paste
+        if (pasteAreaRef.current) {
+          const pasteDoc = parser.parseFromString(
+            pasteAreaRef.current.innerHTML,
+            "text/html",
+          );
+          const pasteImg = pasteDoc.querySelector(
+            'img[data-image-id="' + imageId + '"]',
+          );
+          if (pasteImg) {
+            pasteImg.setAttribute("data-social-link", newLink);
+            const pasteImgParent = pasteImg.parentNode as HTMLElement | null;
+            if (pasteImgParent && pasteImgParent.tagName === "A") {
+              if (newLink && newLink.trim() !== "") {
+                (pasteImgParent as HTMLAnchorElement).href = newLink;
+              } else {
+                pasteImgParent.parentNode?.replaceChild(pasteImg, pasteImgParent);
+              }
+            } else if (newLink && newLink.trim() !== "") {
+              const pasteLink = pasteDoc.createElement("a");
+              pasteLink.href = newLink;
+              pasteLink.target = "_blank";
+              pasteLink.rel = "noopener noreferrer";
+              pasteLink.style.display = "inline-block";
+              pasteImgParent?.replaceChild(pasteLink, pasteImg);
+              pasteLink.appendChild(pasteImg);
+            }
+            pasteAreaRef.current.innerHTML = pasteDoc.body.innerHTML;
+          }
+        }
+      }
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          isUserEditingRef.current = false;
+        });
+      });
+    }, 600);
   };
 
   const updateLogoSize = (width: number, height: number) => {
@@ -3573,15 +3598,28 @@ export default function Home() {
     if (linkElement) {
       linkElement.setAttribute("href", newUrl);
 
-      // Atualiza o state dos links
-      setLinks((prevLinks) =>
-        prevLinks.map((link) =>
-          link.index === index ? { ...link, url: newUrl } : link,
-        ),
-      );
-
-      // Atualiza o HTML processado
-      setProcessedHtml(previewRef.current.innerHTML);
+      // Sincroniza o HTML processado e o state dos links com debounce
+      // para não interromper a escrita no input
+      isUserEditingRef.current = true;
+      if (syncStateTimerRef.current) {
+        clearTimeout(syncStateTimerRef.current);
+      }
+      syncStateTimerRef.current = setTimeout(() => {
+        if (previewRef.current) {
+          // Atualiza o state dos links sem re-render durante escrita
+          setLinks((prevLinks) =>
+            prevLinks.map((link) =>
+              link.index === index ? { ...link, url: newUrl } : link,
+            ),
+          );
+          setProcessedHtml(previewRef.current.innerHTML);
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              isUserEditingRef.current = false;
+            });
+          });
+        }
+      }, 600);
     }
   };
 
@@ -4263,7 +4301,8 @@ export default function Home() {
                               </label>
                               <input
                                 type="url"
-                                value={link.url}
+                                key={`link-${link.index}`}
+                                defaultValue={link.url}
                                 onChange={(e) =>
                                   updateLink(link.index, e.target.value)
                                 }
