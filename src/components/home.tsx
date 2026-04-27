@@ -379,12 +379,23 @@ export default function Home() {
       signature.separatorColor,
     );
     if (processed) {
+      let final = processed;
+
+      // Aplica a imagem de rodapé se existir
+      const footerSrc = signature.footerImageSrc ?? "";
+      const footerW = signature.footerImageWidth ?? 400;
+      const footerH = signature.footerImageHeight ?? 0;
+      if (footerSrc) {
+        final = applyFooterImageToHtml(final, footerSrc, footerW, footerH);
+      }
+
       // Aplica o disclaimer se existir
       const disclaimerToApply = signature.disclaimerText ?? "";
-      const withDisclaimer = disclaimerToApply
-        ? applyDisclaimerToHtml(processed, disclaimerToApply)
-        : processed;
-      setProcessedHtml(withDisclaimer);
+      if (disclaimerToApply) {
+        final = applyDisclaimerToHtml(final, disclaimerToApply);
+      }
+
+      setProcessedHtml(final);
     }
   };
 
@@ -2246,10 +2257,15 @@ export default function Home() {
       });
       setLinks(extractedLinks);
 
-      // Aplica disclaimer se já existir um definido
-      const finalProcessed = disclaimerText
-        ? applyDisclaimerToHtml(processed, disclaimerText)
+      // Aplica a imagem de rodapé se já existir
+      let finalProcessed = footerImageSrc
+        ? applyFooterImageToHtml(processed, footerImageSrc, footerImageWidth, footerImageHeight)
         : processed;
+
+      // Aplica disclaimer se já existir um definido
+      finalProcessed = disclaimerText
+        ? applyDisclaimerToHtml(finalProcessed, disclaimerText)
+        : finalProcessed;
 
       setProcessedHtml(finalProcessed);
       return finalProcessed;
@@ -2893,7 +2909,10 @@ export default function Home() {
     }
 
     // Fallback: imagem ainda não existe no preview – usa o caminho normal
-    const newHtml = applyFooterImageToHtml(processedHtml, footerImageSrc, width, height);
+    const currentHtml = previewRef.current
+      ? previewRef.current.innerHTML
+      : processedHtml;
+    const newHtml = applyFooterImageToHtml(currentHtml, footerImageSrc, width, height);
     setProcessedHtml(newHtml);
     if (previewRef.current) previewRef.current.innerHTML = newHtml;
   };
@@ -3136,8 +3155,13 @@ export default function Home() {
   /** Atualiza o disclaimer no preview em tempo real */
   const handleDisclaimerChange = (text: string) => {
     setDisclaimerText(text);
-    if (!processedHtml) return;
-    const newHtml = applyDisclaimerToHtml(processedHtml, text);
+    // Usa o innerHTML actual do DOM do preview (fonte de verdade) em vez do estado React
+    // que pode estar desactualizado após edições directas ao DOM (e.g. imagem de rodapé)
+    const currentHtml = previewRef.current
+      ? previewRef.current.innerHTML
+      : processedHtml;
+    if (!currentHtml) return;
+    const newHtml = applyDisclaimerToHtml(currentHtml, text);
     setProcessedHtml(newHtml);
     if (previewRef.current) previewRef.current.innerHTML = newHtml;
   };
