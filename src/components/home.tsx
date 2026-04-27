@@ -90,10 +90,36 @@ export default function Home() {
   const backupFileInputRef = useRef<HTMLInputElement>(null);
   // Flag to prevent useEffect from overwriting the DOM while user is editing
   const isUserEditingRef = useRef<boolean>(false);
+  // Safety timer to force-release isUserEditingRef after max 2s (prevents permanent lock)
+  const userEditingSafetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Timestamp of last direct canvas edit (to prevent useEffect overwrite within 1s)
+  const lastDirectEditTimestampRef = useRef<number>(0);
   // Debounce timer for syncing state after user stops typing
   const syncStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Flag to prevent onBlur from syncing state during footer image insertion
   const isInsertingFooterRef = useRef<boolean>(false);
+
+  // Helper: set isUserEditingRef with a safety timeout that forces release after 2s
+  const setUserEditing = (value: boolean) => {
+    if (value) {
+      isUserEditingRef.current = true;
+      // Clear any existing safety timer
+      if (userEditingSafetyTimerRef.current) {
+        clearTimeout(userEditingSafetyTimerRef.current);
+      }
+      // Force-release after 2 seconds no matter what
+      userEditingSafetyTimerRef.current = setTimeout(() => {
+        isUserEditingRef.current = false;
+        userEditingSafetyTimerRef.current = null;
+      }, 2000);
+    } else {
+      isUserEditingRef.current = false;
+      if (userEditingSafetyTimerRef.current) {
+        clearTimeout(userEditingSafetyTimerRef.current);
+        userEditingSafetyTimerRef.current = null;
+      }
+    }
+  };
 
   useEffect(() => {
     // Carrega assinaturas guardadas do localStorage
@@ -1060,6 +1086,8 @@ export default function Home() {
     // Se o user está a editar ou a inserir imagem de rodapé, nunca sobrepor o DOM
     if (isUserEditingRef.current) return;
     if (isInsertingFooterRef.current) return;
+    // Protecção adicional: não sobrescrever o DOM durante 1.5s após a última edição directa no canvas
+    if (Date.now() - lastDirectEditTimestampRef.current < 1500) return;
     if (processedHtml && previewRef.current) {
       // Só atualiza se o conteúdo for diferente (evita loop)
       const currentHtml = previewRef.current.innerHTML;
@@ -2463,12 +2491,12 @@ export default function Home() {
               (img as HTMLElement).style.outline = "none";
 
               const newHtml = doc.body.innerHTML;
-              isUserEditingRef.current = true;
+              setUserEditing(true);
               setProcessedHtml(newHtml);
               if (previewRef.current) previewRef.current.innerHTML = newHtml;
               requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
-                  isUserEditingRef.current = false;
+                  setUserEditing(false);
                 });
               });
 
@@ -2513,12 +2541,12 @@ export default function Home() {
             if (img) {
               img.setAttribute("src", base64);
               const newHtml = doc.body.innerHTML;
-              isUserEditingRef.current = true;
+              setUserEditing(true);
               setProcessedHtml(newHtml);
               if (previewRef.current) previewRef.current.innerHTML = newHtml;
               requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
-                  isUserEditingRef.current = false;
+                  setUserEditing(false);
                 });
               });
 
@@ -2563,12 +2591,12 @@ export default function Home() {
     if (img) {
       img.setAttribute("src", trimmedUrl);
       const newHtml = doc.body.innerHTML;
-      isUserEditingRef.current = true;
+      setUserEditing(true);
       setProcessedHtml(newHtml);
       if (previewRef.current) previewRef.current.innerHTML = newHtml;
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          isUserEditingRef.current = false;
+          setUserEditing(false);
         });
       });
 
@@ -2601,7 +2629,7 @@ export default function Home() {
     }
 
     // Debounce o setProcessedHtml para não interromper a escrita
-    isUserEditingRef.current = true;
+    setUserEditing(true);
     if (syncStateTimerRef.current) {
       clearTimeout(syncStateTimerRef.current);
     }
@@ -2670,7 +2698,7 @@ export default function Home() {
 
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          isUserEditingRef.current = false;
+          setUserEditing(false);
         });
       });
     }, 600);
@@ -2742,12 +2770,12 @@ export default function Home() {
       }
 
       const newHtml = doc.body.innerHTML;
-      isUserEditingRef.current = true;
+      setUserEditing(true);
       setProcessedHtml(newHtml);
       if (previewRef.current) previewRef.current.innerHTML = newHtml;
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          isUserEditingRef.current = false;
+          setUserEditing(false);
         });
       });
 
@@ -2926,7 +2954,7 @@ export default function Home() {
 
     // Protege contra o useEffect([processedHtml]) sobrescrever o DOM
     // enquanto sincronizamos o estado com as novas dimensões
-    isUserEditingRef.current = true;
+    setUserEditing(true);
 
     // Se a imagem já existe no preview, actualiza apenas os atributos sem re-inserir
     if (previewRef.current) {
@@ -2947,7 +2975,7 @@ export default function Home() {
         // Liberta a flag após React processar o setState
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            isUserEditingRef.current = false;
+            setUserEditing(false);
           });
         });
         return;
@@ -2965,7 +2993,7 @@ export default function Home() {
     // Liberta a flag após React processar o setState
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        isUserEditingRef.current = false;
+        setUserEditing(false);
       });
     });
   };
@@ -3021,12 +3049,12 @@ export default function Home() {
     const footerHtml = buildFooterImageHtml(src, width, height);
 
     // Protege contra o useEffect([processedHtml]) sobrescrever o DOM
-    isUserEditingRef.current = true;
+    setUserEditing(true);
 
     if (!previewRef.current) {
       const newHtml = applyFooterImageToHtml(processedHtml, src, width, height);
       setProcessedHtml(newHtml);
-      requestAnimationFrame(() => { requestAnimationFrame(() => { isUserEditingRef.current = false; }); });
+      requestAnimationFrame(() => { requestAnimationFrame(() => { setUserEditing(false); }); });
       return;
     }
 
@@ -3047,7 +3075,7 @@ export default function Home() {
         const success = document.execCommand("insertHTML", false, footerHtml);
         if (success) {
           setProcessedHtml(preview.innerHTML);
-          requestAnimationFrame(() => { requestAnimationFrame(() => { isUserEditingRef.current = false; }); });
+          requestAnimationFrame(() => { requestAnimationFrame(() => { setUserEditing(false); }); });
           return;
         }
       } catch (_) {
@@ -3066,7 +3094,7 @@ export default function Home() {
         range.collapse(false); // move para o fim da selecção
         range.insertNode(fragment);
         setProcessedHtml(preview.innerHTML);
-        requestAnimationFrame(() => { requestAnimationFrame(() => { isUserEditingRef.current = false; }); });
+        requestAnimationFrame(() => { requestAnimationFrame(() => { setUserEditing(false); }); });
         return;
       } catch (_) {
         // Continua para fallback final
@@ -3089,7 +3117,7 @@ export default function Home() {
       preview.appendChild(fragment);
     }
     setProcessedHtml(preview.innerHTML);
-    requestAnimationFrame(() => { requestAnimationFrame(() => { isUserEditingRef.current = false; }); });
+    requestAnimationFrame(() => { requestAnimationFrame(() => { setUserEditing(false); }); });
   };
 
   /** Trata o upload da imagem de rodapé */
@@ -3186,20 +3214,20 @@ export default function Home() {
           }
         }
       }
-      isUserEditingRef.current = true;
+      setUserEditing(true);
       setProcessedHtml(previewRef.current.innerHTML);
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          isUserEditingRef.current = false;
+          setUserEditing(false);
         });
       });
     } else if (processedHtml) {
       const newHtml = applyFooterImageToHtml(processedHtml, "", 0, 0);
-      isUserEditingRef.current = true;
+      setUserEditing(true);
       setProcessedHtml(newHtml);
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          isUserEditingRef.current = false;
+          setUserEditing(false);
         });
       });
     }
@@ -3228,14 +3256,14 @@ export default function Home() {
   const handleDisclaimerChange = (text: string) => {
     setDisclaimerText(text);
     // Protege contra o useEffect([processedHtml]) sobrescrever o DOM
-    isUserEditingRef.current = true;
+    setUserEditing(true);
     // Usa o innerHTML actual do DOM do preview (fonte de verdade) em vez do estado React
     // que pode estar desactualizado após edições directas ao DOM (e.g. imagem de rodapé)
     const currentHtml = previewRef.current
       ? previewRef.current.innerHTML
       : processedHtml;
     if (!currentHtml) {
-      isUserEditingRef.current = false;
+      setUserEditing(false);
       return;
     }
     const newHtml = applyDisclaimerToHtml(currentHtml, text);
@@ -3243,7 +3271,7 @@ export default function Home() {
     if (previewRef.current) previewRef.current.innerHTML = newHtml;
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        isUserEditingRef.current = false;
+        setUserEditing(false);
       });
     });
   };
@@ -3684,11 +3712,11 @@ export default function Home() {
 
       // Atualiza o processedHtml com o conteúdo editado do preview
       if (previewRef.current) {
-        isUserEditingRef.current = true;
+        setUserEditing(true);
         setProcessedHtml(previewRef.current.innerHTML);
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            isUserEditingRef.current = false;
+            setUserEditing(false);
           });
         });
       }
@@ -3703,11 +3731,11 @@ export default function Home() {
 
         // Atualiza o processedHtml com o conteúdo editado do preview
         if (previewRef.current) {
-          isUserEditingRef.current = true;
+          setUserEditing(true);
           setProcessedHtml(previewRef.current.innerHTML);
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-              isUserEditingRef.current = false;
+              setUserEditing(false);
             });
           });
         }
@@ -3732,7 +3760,7 @@ export default function Home() {
 
       // Sincroniza o HTML processado e o state dos links com debounce
       // para não interromper a escrita no input
-      isUserEditingRef.current = true;
+      setUserEditing(true);
       if (syncStateTimerRef.current) {
         clearTimeout(syncStateTimerRef.current);
       }
@@ -3747,7 +3775,7 @@ export default function Home() {
           setProcessedHtml(previewRef.current.innerHTML);
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-              isUserEditingRef.current = false;
+              setUserEditing(false);
             });
           });
         }
@@ -4758,7 +4786,10 @@ export default function Home() {
                       onInput={() => {
                         if (previewRef.current) {
                           // Mantém a flag activa enquanto o user está a escrever
+                          // (usa directamente o ref para não activar o safety timer de 2s)
                           isUserEditingRef.current = true;
+                          // Regista o timestamp da última edição directa no canvas
+                          lastDirectEditTimestampRef.current = Date.now();
                           // Cancela qualquer sync pendente
                           if (syncStateTimerRef.current) {
                             clearTimeout(syncStateTimerRef.current);
@@ -4791,11 +4822,11 @@ export default function Home() {
                         }
                         if (previewRef.current) {
                           const html = previewRef.current.innerHTML;
-                          isUserEditingRef.current = true;
+                          setUserEditing(true);
                           setProcessedHtml(html);
                           requestAnimationFrame(() => {
                             requestAnimationFrame(() => {
-                              isUserEditingRef.current = false;
+                              setUserEditing(false);
                             });
                           });
                         }
