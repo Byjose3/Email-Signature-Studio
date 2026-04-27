@@ -92,6 +92,8 @@ export default function Home() {
   const isUserEditingRef = useRef<boolean>(false);
   // Debounce timer for syncing state after user stops typing
   const syncStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Flag to prevent onBlur from syncing state during footer image insertion
+  const isInsertingFooterRef = useRef<boolean>(false);
 
   useEffect(() => {
     // Carrega assinaturas guardadas do localStorage
@@ -1044,8 +1046,9 @@ export default function Home() {
   // Atualiza o preview ref quando processedHtml muda (aplicação de cores)
   // Ignora quando o user está a editar diretamente (evita restaurar conteúdo apagado)
   useEffect(() => {
-    // Se o user está a editar, nunca sobrepor o DOM
+    // Se o user está a editar ou a inserir imagem de rodapé, nunca sobrepor o DOM
     if (isUserEditingRef.current) return;
+    if (isInsertingFooterRef.current) return;
     if (processedHtml && previewRef.current) {
       // Só atualiza se o conteúdo for diferente (evita loop)
       const currentHtml = previewRef.current.innerHTML;
@@ -3013,7 +3016,11 @@ export default function Home() {
   /** Trata o upload da imagem de rodapé */
   const handleFooterImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      // Cancelou o file dialog — limpa o flag
+      isInsertingFooterRef.current = false;
+      return;
+    }
 
     compressImage(file, 800, 400, 0.82).then((src) => {
       const img = new window.Image();
@@ -3038,8 +3045,15 @@ export default function Home() {
             insertFooterImageAtCursor(src, currentWidth, 0);
           }
         }
+        // Liberta o flag após inserção completa
+        isInsertingFooterRef.current = false;
+      };
+      img.onerror = () => {
+        isInsertingFooterRef.current = false;
       };
       img.src = src;
+    }).catch(() => {
+      isInsertingFooterRef.current = false;
     });
     e.target.value = "";
   };
@@ -4353,12 +4367,24 @@ export default function Home() {
                               // Guarda o range ANTES de o canvas perder o foco
                               e.preventDefault();
                               saveCursorPosition();
+                              // Sinaliza que vamos inserir imagem (bloqueia o onBlur sync)
+                              isInsertingFooterRef.current = true;
                             }}
-                            onClick={() =>
+                            onClick={() => {
                               document
                                 .getElementById("footer-image-upload")
-                                ?.click()
-                            }
+                                ?.click();
+                              // Se o user fechar o file dialog sem escolher ficheiro,
+                              // liberta o flag quando a janela recuperar o foco
+                              const releaseFlag = () => {
+                                // Dá tempo ao onChange de disparar primeiro (se ficheiro foi escolhido)
+                                setTimeout(() => {
+                                  isInsertingFooterRef.current = false;
+                                }, 500);
+                                window.removeEventListener("focus", releaseFlag);
+                              };
+                              window.addEventListener("focus", releaseFlag, { once: true });
+                            }}
                             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors font-medium text-sm"
                           >
                             <Upload className="w-4 h-4" />
@@ -4637,6 +4663,9 @@ export default function Home() {
                         }
                       }}
                       onBlur={() => {
+                        // Não sincroniza se estiver a inserir imagem de rodapé
+                        // (o file dialog causa blur antes da imagem ser inserida)
+                        if (isInsertingFooterRef.current) return;
                         // Sincroniza imediatamente ao perder o foco
                         if (syncStateTimerRef.current) {
                           clearTimeout(syncStateTimerRef.current);
