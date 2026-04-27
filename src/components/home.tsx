@@ -28,6 +28,12 @@ import {
   Settings,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 interface SavedSignature {
   id: string;
@@ -82,6 +88,8 @@ export default function Home() {
   const savedInsertChildIndex = useRef<number | null>(null);
   const lastMousePos = useRef<{ x: number; y: number } | null>(null);
   const backupFileInputRef = useRef<HTMLInputElement>(null);
+  // Flag to prevent useEffect from overwriting the DOM while user is editing
+  const isUserEditingRef = useRef<boolean>(false);
 
   useEffect(() => {
     // Carrega assinaturas guardadas do localStorage
@@ -1032,7 +1040,9 @@ export default function Home() {
   // }, [textColor, separatorColor, originalHtml]);
 
   // Atualiza o preview ref quando processedHtml muda (aplicação de cores)
+  // Ignora quando o user está a editar diretamente (evita restaurar conteúdo apagado)
   useEffect(() => {
+    if (isUserEditingRef.current) return;
     if (processedHtml && previewRef.current) {
       // Só atualiza se o conteúdo for diferente (evita loop)
       if (previewRef.current.innerHTML !== processedHtml) {
@@ -3630,12 +3640,6 @@ export default function Home() {
 
       return (
         <div key={imageId} className="space-y-2">
-          {isBase64 && (
-            <div className="flex items-start gap-2 px-3 py-2 bg-amber-50 border border-amber-300 rounded-lg text-xs text-amber-800">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-500" />
-              <span><strong>Imagem em base64</strong> — Comprimida automaticamente. Para máxima compatibilidade com Gmail use uma <strong>URL externa</strong>.</span>
-            </div>
-          )}
           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
             <div className="flex-shrink-0">
               <img
@@ -3657,8 +3661,8 @@ export default function Home() {
                 {isBase64 ? (() => {
                   const sizeKb = Math.round(currentSrc.length * 0.75 / 1024);
                   return (
-                    <span className={`font-medium flex items-center gap-1 ${sizeKb > 50 ? "text-red-600" : "text-amber-600"}`}>
-                      <AlertCircle className="w-3 h-3" /> Base64 · {sizeKb} KB {sizeKb > 50 ? "⚠️ grande" : "✓ ok"}
+                    <span className={`font-medium flex items-center gap-1 ${sizeKb > 50 ? "text-red-600" : "text-green-600"}`}>
+                      <Check className="w-3 h-3" /> Base64 comprimida · {sizeKb} KB
                     </span>
                   );
                 })() : (
@@ -3681,22 +3685,28 @@ export default function Home() {
               </div>
             </label>
           </div>
-          <div className="pl-3">
-            <label className="block text-xs font-medium text-gray-600 mb-1 flex items-center gap-1">
-              <Link2 className="w-3 h-3" />
-              URL da imagem (recomendado para Gmail):
-            </label>
-            <input
-              type="url"
-              key={imageId + "-url"}
-              defaultValue={isBase64 ? "" : currentSrc}
-              onBlur={(e) => handleImageUrlChange(imageId, e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") handleImageUrlChange(imageId, (e.target as HTMLInputElement).value); }}
-              placeholder="https://exemplo.com/logo.png"
-              className={`w-full px-3 py-1.5 text-sm border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${isBase64 ? "border-amber-400 bg-amber-50" : "border-gray-300"}`}
-            />
-            <p className="text-xs text-gray-400 mt-1">Cole aqui o link direto da imagem hospedada (Google Drive, Imgur, CDN, etc.)</p>
-          </div>
+          <Accordion type="single" collapsible className="pl-1">
+            <AccordionItem value="url" className="border border-gray-200 rounded-md">
+              <AccordionTrigger className="px-3 py-2 text-xs font-medium text-gray-600 hover:no-underline">
+                <span className="flex items-center gap-1.5">
+                  <Link2 className="w-3.5 h-3.5" />
+                  Usar URL externa {isBase64 ? "(recomendado para Gmail)" : ""}
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="px-3 pb-3">
+                <input
+                  type="url"
+                  key={imageId + "-url"}
+                  defaultValue={isBase64 ? "" : currentSrc}
+                  onBlur={(e) => handleImageUrlChange(imageId, e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleImageUrlChange(imageId, (e.target as HTMLInputElement).value); }}
+                  placeholder="https://exemplo.com/logo.png"
+                  className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <p className="text-xs text-gray-400 mt-1">Cole o link direto da imagem (Google Drive, Imgur, CDN, etc.)</p>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
           {!isLogo && (
             <div className="pl-3">
               <label className="block text-xs font-medium text-gray-600 mb-1">
@@ -3945,12 +3955,7 @@ export default function Home() {
                           })}
                         </div>
 
-                        {sig.html && sig.html.includes("data:image") && (
-                          <div className="flex items-start gap-2 px-2 py-2 bg-amber-50 border border-amber-300 rounded text-xs text-amber-800 mb-3">
-                            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-amber-500" />
-                            <span>Contém imagens base64 — editar e substituir por URLs externas para melhor compatibilidade com Gmail.</span>
-                          </div>
-                        )}
+                        
 
                         <div className="flex gap-2">
                           <button
@@ -4507,17 +4512,6 @@ export default function Home() {
                     cores e ajustar o logo.
                   </p>
 
-                  {/* Aviso de base64 */}
-                  {processedHtml && processedHtml.includes("data:image") && (
-                    <div className="flex items-start gap-2 px-4 py-3 bg-amber-50 border border-amber-400 rounded-lg text-sm text-amber-900 mb-4">
-                      <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-amber-500" />
-                      <div>
-                        <p className="font-semibold">⚠️ Imagens em base64 detetadas</p>
-                        <p className="text-xs mt-1 text-amber-800">A assinatura contém imagens embutidas (base64) que podem causar problemas no Gmail — emails truncados ou imagens bloqueadas. Substitua-as por <strong>URLs externas</strong> no painel de imagens acima.</p>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Botão para guardar assinatura */}
                   {!showSaveDialog && (
                     <div className="mb-4">
@@ -4576,7 +4570,12 @@ export default function Home() {
                       suppressContentEditableWarning={true}
                       onInput={() => {
                         if (previewRef.current) {
+                          isUserEditingRef.current = true;
                           setProcessedHtml(previewRef.current.innerHTML);
+                          // Reset flag after React flush
+                          requestAnimationFrame(() => {
+                            isUserEditingRef.current = false;
+                          });
                         }
                       }}
                       onMouseUp={(e) => {
