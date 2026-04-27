@@ -2437,8 +2437,10 @@ export default function Home() {
             setLogoHeight(newHeight);
             if (newNaturalRatio > 0) setOriginalAspectRatio(newNaturalRatio);
 
+            // Usa o DOM vivo (source of truth) para preservar edições manuais do utilizador
+            const sourceHtml = previewRef.current ? previewRef.current.innerHTML : processedHtml;
             const parser = new DOMParser();
-            const doc = parser.parseFromString(processedHtml, "text/html");
+            const doc = parser.parseFromString(sourceHtml, "text/html");
             const img = doc.querySelector(`img[data-image-id="${imageId}"]`);
 
             if (img) {
@@ -2461,7 +2463,14 @@ export default function Home() {
               (img as HTMLElement).style.outline = "none";
 
               const newHtml = doc.body.innerHTML;
+              isUserEditingRef.current = true;
               setProcessedHtml(newHtml);
+              if (previewRef.current) previewRef.current.innerHTML = newHtml;
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                  isUserEditingRef.current = false;
+                });
+              });
 
               if (pasteAreaRef.current) {
                 const pasteDoc = parser.parseFromString(
@@ -2495,14 +2504,23 @@ export default function Home() {
               }
             }
           } else {
+            // Usa o DOM vivo (source of truth) para preservar edições manuais do utilizador
+            const sourceHtml = previewRef.current ? previewRef.current.innerHTML : processedHtml;
             const parser = new DOMParser();
-            const doc = parser.parseFromString(processedHtml, "text/html");
+            const doc = parser.parseFromString(sourceHtml, "text/html");
             const img = doc.querySelector(`img[data-image-id="${imageId}"]`);
 
             if (img) {
               img.setAttribute("src", base64);
               const newHtml = doc.body.innerHTML;
+              isUserEditingRef.current = true;
               setProcessedHtml(newHtml);
+              if (previewRef.current) previewRef.current.innerHTML = newHtml;
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                  isUserEditingRef.current = false;
+                });
+              });
 
               if (pasteAreaRef.current) {
                 const pasteDoc = parser.parseFromString(
@@ -2536,14 +2554,23 @@ export default function Home() {
     const trimmedUrl = newUrl.trim();
     if (!trimmedUrl.startsWith("http://") && !trimmedUrl.startsWith("https://") && !trimmedUrl.startsWith("//")) return;
 
+    // Usa o DOM vivo (source of truth) para preservar edições manuais do utilizador
+    const sourceHtml = previewRef.current ? previewRef.current.innerHTML : processedHtml;
     const parser = new DOMParser();
-    const doc = parser.parseFromString(processedHtml, "text/html");
+    const doc = parser.parseFromString(sourceHtml, "text/html");
     const img = doc.querySelector(`img[data-image-id="${imageId}"]`);
 
     if (img) {
       img.setAttribute("src", trimmedUrl);
       const newHtml = doc.body.innerHTML;
+      isUserEditingRef.current = true;
       setProcessedHtml(newHtml);
+      if (previewRef.current) previewRef.current.innerHTML = newHtml;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          isUserEditingRef.current = false;
+        });
+      });
 
       if (pasteAreaRef.current) {
         const pasteDoc = parser.parseFromString(pasteAreaRef.current.innerHTML, "text/html");
@@ -2650,8 +2677,10 @@ export default function Home() {
   };
 
   const updateLogoSize = (width: number, height: number) => {
+    // Usa o DOM vivo (source of truth) para preservar edições manuais do utilizador
+    const sourceHtml = previewRef.current ? previewRef.current.innerHTML : processedHtml;
     const parser = new DOMParser();
-    const doc = parser.parseFromString(processedHtml, "text/html");
+    const doc = parser.parseFromString(sourceHtml, "text/html");
     const logo = doc.querySelector('img[data-image-id="img-0"]');
 
     if (logo) {
@@ -2713,7 +2742,14 @@ export default function Home() {
       }
 
       const newHtml = doc.body.innerHTML;
+      isUserEditingRef.current = true;
       setProcessedHtml(newHtml);
+      if (previewRef.current) previewRef.current.innerHTML = newHtml;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          isUserEditingRef.current = false;
+        });
+      });
 
       // Atualiza também a área de paste
       if (pasteAreaRef.current) {
@@ -2888,6 +2924,10 @@ export default function Home() {
   const updateFooterImageSize = (width: number, height: number) => {
     if (!footerImageSrc) return;
 
+    // Protege contra o useEffect([processedHtml]) sobrescrever o DOM
+    // enquanto sincronizamos o estado com as novas dimensões
+    isUserEditingRef.current = true;
+
     // Se a imagem já existe no preview, actualiza apenas os atributos sem re-inserir
     if (previewRef.current) {
       const existingImg = previewRef.current.querySelector<HTMLImageElement>('[data-footer-image="true"]');
@@ -2902,19 +2942,32 @@ export default function Home() {
           existingImg.removeAttribute("height");
           existingImg.style.height = "";
         }
-        // Sincroniza o processedHtml com o novo innerHTML para exportação
+        // Sincroniza o processedHtml com o novo innerHTML (inclui edições manuais do user)
         setProcessedHtml(previewRef.current.innerHTML);
+        // Liberta a flag após React processar o setState
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            isUserEditingRef.current = false;
+          });
+        });
         return;
       }
     }
 
     // Fallback: imagem ainda não existe no preview – usa o caminho normal
+    // Lê sempre do DOM vivo (source of truth) para preservar edições manuais
     const currentHtml = previewRef.current
       ? previewRef.current.innerHTML
       : processedHtml;
     const newHtml = applyFooterImageToHtml(currentHtml, footerImageSrc, width, height);
     setProcessedHtml(newHtml);
     if (previewRef.current) previewRef.current.innerHTML = newHtml;
+    // Liberta a flag após React processar o setState
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        isUserEditingRef.current = false;
+      });
+    });
   };
 
   /** Guarda a posição de cursor actual como índice de filho directo do preview — resistente a perda de foco */
@@ -2967,9 +3020,13 @@ export default function Home() {
   const insertFooterImageAtCursor = (src: string, width: number, height: number) => {
     const footerHtml = buildFooterImageHtml(src, width, height);
 
+    // Protege contra o useEffect([processedHtml]) sobrescrever o DOM
+    isUserEditingRef.current = true;
+
     if (!previewRef.current) {
       const newHtml = applyFooterImageToHtml(processedHtml, src, width, height);
       setProcessedHtml(newHtml);
+      requestAnimationFrame(() => { requestAnimationFrame(() => { isUserEditingRef.current = false; }); });
       return;
     }
 
@@ -2990,6 +3047,7 @@ export default function Home() {
         const success = document.execCommand("insertHTML", false, footerHtml);
         if (success) {
           setProcessedHtml(preview.innerHTML);
+          requestAnimationFrame(() => { requestAnimationFrame(() => { isUserEditingRef.current = false; }); });
           return;
         }
       } catch (_) {
@@ -3008,6 +3066,7 @@ export default function Home() {
         range.collapse(false); // move para o fim da selecção
         range.insertNode(fragment);
         setProcessedHtml(preview.innerHTML);
+        requestAnimationFrame(() => { requestAnimationFrame(() => { isUserEditingRef.current = false; }); });
         return;
       } catch (_) {
         // Continua para fallback final
@@ -3030,6 +3089,7 @@ export default function Home() {
       preview.appendChild(fragment);
     }
     setProcessedHtml(preview.innerHTML);
+    requestAnimationFrame(() => { requestAnimationFrame(() => { isUserEditingRef.current = false; }); });
   };
 
   /** Trata o upload da imagem de rodapé */
@@ -3126,10 +3186,22 @@ export default function Home() {
           }
         }
       }
+      isUserEditingRef.current = true;
       setProcessedHtml(previewRef.current.innerHTML);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          isUserEditingRef.current = false;
+        });
+      });
     } else if (processedHtml) {
       const newHtml = applyFooterImageToHtml(processedHtml, "", 0, 0);
+      isUserEditingRef.current = true;
       setProcessedHtml(newHtml);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          isUserEditingRef.current = false;
+        });
+      });
     }
   };
 
@@ -3155,15 +3227,25 @@ export default function Home() {
   /** Atualiza o disclaimer no preview em tempo real */
   const handleDisclaimerChange = (text: string) => {
     setDisclaimerText(text);
+    // Protege contra o useEffect([processedHtml]) sobrescrever o DOM
+    isUserEditingRef.current = true;
     // Usa o innerHTML actual do DOM do preview (fonte de verdade) em vez do estado React
     // que pode estar desactualizado após edições directas ao DOM (e.g. imagem de rodapé)
     const currentHtml = previewRef.current
       ? previewRef.current.innerHTML
       : processedHtml;
-    if (!currentHtml) return;
+    if (!currentHtml) {
+      isUserEditingRef.current = false;
+      return;
+    }
     const newHtml = applyDisclaimerToHtml(currentHtml, text);
     setProcessedHtml(newHtml);
     if (previewRef.current) previewRef.current.innerHTML = newHtml;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        isUserEditingRef.current = false;
+      });
+    });
   };
 
   // ────────────────────────────────────────────────────────────────────────────
@@ -3602,7 +3684,13 @@ export default function Home() {
 
       // Atualiza o processedHtml com o conteúdo editado do preview
       if (previewRef.current) {
+        isUserEditingRef.current = true;
         setProcessedHtml(previewRef.current.innerHTML);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            isUserEditingRef.current = false;
+          });
+        });
       }
     } catch (error) {
       // Se falhar (seleção complexa), tenta abordagem alternativa
@@ -3615,7 +3703,13 @@ export default function Home() {
 
         // Atualiza o processedHtml com o conteúdo editado do preview
         if (previewRef.current) {
+          isUserEditingRef.current = true;
           setProcessedHtml(previewRef.current.innerHTML);
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              isUserEditingRef.current = false;
+            });
+          });
         }
       } catch (e) {
         setError(
