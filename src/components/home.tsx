@@ -2459,6 +2459,31 @@ export default function Home() {
     }
   };
 
+  const handleImageUrlChange = (imageId: string, newUrl: string) => {
+    if (!newUrl || !newUrl.trim()) return;
+    const trimmedUrl = newUrl.trim();
+    if (!trimmedUrl.startsWith("http://") && !trimmedUrl.startsWith("https://") && !trimmedUrl.startsWith("//")) return;
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(processedHtml, "text/html");
+    const img = doc.querySelector(`img[data-image-id="${imageId}"]`);
+
+    if (img) {
+      img.setAttribute("src", trimmedUrl);
+      const newHtml = doc.body.innerHTML;
+      setProcessedHtml(newHtml);
+
+      if (pasteAreaRef.current) {
+        const pasteDoc = parser.parseFromString(pasteAreaRef.current.innerHTML, "text/html");
+        const pasteImg = pasteDoc.querySelector(`img[data-image-id="${imageId}"]`);
+        if (pasteImg) {
+          pasteImg.setAttribute("src", trimmedUrl);
+          pasteAreaRef.current.innerHTML = pasteDoc.body.innerHTML;
+        }
+      }
+    }
+  };
+
   const handleSocialLinkUpdate = (imageId: string, newLink: string) => {
     const parser = new DOMParser();
     const doc = parser.parseFromString(processedHtml, "text/html");
@@ -3566,13 +3591,21 @@ export default function Home() {
       const altText = img.getAttribute("alt") || `Imagem ${index + 1}`;
       const isLogo = altText.toLowerCase().includes("logo") || index === 0;
       const socialLink = img.getAttribute("data-social-link") || "";
+      const currentSrc = img.getAttribute("src") || "";
+      const isBase64 = currentSrc.startsWith("data:");
 
       return (
         <div key={imageId} className="space-y-2">
+          {isBase64 && (
+            <div className="flex items-start gap-2 px-3 py-2 bg-amber-50 border border-amber-300 rounded-lg text-xs text-amber-800">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-500" />
+              <span><strong>Imagem em base64</strong> — O Gmail pode bloquear ou truncar assinaturas com imagens embutidas. Use uma <strong>URL externa</strong> para melhor compatibilidade.</span>
+            </div>
+          )}
           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
             <div className="flex-shrink-0">
               <img
-                src={img.getAttribute("src") || ""}
+                src={currentSrc}
                 alt={altText}
                 className="w-16 h-16 object-contain rounded border border-gray-300 bg-white"
               />
@@ -3586,8 +3619,16 @@ export default function Home() {
                 )}
                 {altText}
               </p>
-              <p className="text-xs text-gray-500 mt-1">
-                {isLogo ? "Logo da empresa" : "Ícone/Imagem"}
+              <p className="text-xs mt-0.5 flex items-center gap-1">
+                {isBase64 ? (
+                  <span className="text-amber-600 font-medium flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" /> Base64 (evitar no Gmail)
+                  </span>
+                ) : (
+                  <span className="text-green-600 font-medium flex items-center gap-1">
+                    <Check className="w-3 h-3" /> URL externa ✓
+                  </span>
+                )}
               </p>
             </div>
             <label className="flex-shrink-0 cursor-pointer">
@@ -3597,11 +3638,27 @@ export default function Home() {
                 onChange={(e) => handleImageUpload(imageId, e)}
                 className="hidden"
               />
-              <div className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium shadow-sm">
+              <div className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium shadow-sm">
                 <Upload className="w-4 h-4" />
-                Substituir
+                Ficheiro
               </div>
             </label>
+          </div>
+          <div className="pl-3">
+            <label className="block text-xs font-medium text-gray-600 mb-1 flex items-center gap-1">
+              <Link2 className="w-3 h-3" />
+              URL da imagem (recomendado para Gmail):
+            </label>
+            <input
+              type="url"
+              key={imageId + "-url"}
+              defaultValue={isBase64 ? "" : currentSrc}
+              onBlur={(e) => handleImageUrlChange(imageId, e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleImageUrlChange(imageId, (e.target as HTMLInputElement).value); }}
+              placeholder="https://exemplo.com/logo.png"
+              className={`w-full px-3 py-1.5 text-sm border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${isBase64 ? "border-amber-400 bg-amber-50" : "border-gray-300"}`}
+            />
+            <p className="text-xs text-gray-400 mt-1">Cole aqui o link direto da imagem hospedada (Google Drive, Imgur, CDN, etc.)</p>
           </div>
           {!isLogo && (
             <div className="pl-3">
@@ -3850,6 +3907,13 @@ export default function Home() {
                             minute: "2-digit",
                           })}
                         </div>
+
+                        {sig.html && sig.html.includes("data:image") && (
+                          <div className="flex items-start gap-2 px-2 py-2 bg-amber-50 border border-amber-300 rounded text-xs text-amber-800 mb-3">
+                            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-amber-500" />
+                            <span>Contém imagens base64 — editar e substituir por URLs externas para melhor compatibilidade com Gmail.</span>
+                          </div>
+                        )}
 
                         <div className="flex gap-2">
                           <button
@@ -4405,6 +4469,17 @@ export default function Home() {
                     Clique para editar texto. Use os controles para aplicar
                     cores e ajustar o logo.
                   </p>
+
+                  {/* Aviso de base64 */}
+                  {processedHtml && processedHtml.includes("data:image") && (
+                    <div className="flex items-start gap-2 px-4 py-3 bg-amber-50 border border-amber-400 rounded-lg text-sm text-amber-900 mb-4">
+                      <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-amber-500" />
+                      <div>
+                        <p className="font-semibold">⚠️ Imagens em base64 detetadas</p>
+                        <p className="text-xs mt-1 text-amber-800">A assinatura contém imagens embutidas (base64) que podem causar problemas no Gmail — emails truncados ou imagens bloqueadas. Substitua-as por <strong>URLs externas</strong> no painel de imagens acima.</p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Botão para guardar assinatura */}
                   {!showSaveDialog && (
