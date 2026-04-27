@@ -90,6 +90,8 @@ export default function Home() {
   const backupFileInputRef = useRef<HTMLInputElement>(null);
   // Flag to prevent useEffect from overwriting the DOM while user is editing
   const isUserEditingRef = useRef<boolean>(false);
+  // Debounce timer for syncing state after user stops typing
+  const syncStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // Carrega assinaturas guardadas do localStorage
@@ -1042,10 +1044,12 @@ export default function Home() {
   // Atualiza o preview ref quando processedHtml muda (aplicação de cores)
   // Ignora quando o user está a editar diretamente (evita restaurar conteúdo apagado)
   useEffect(() => {
+    // Se o user está a editar, nunca sobrepor o DOM
     if (isUserEditingRef.current) return;
     if (processedHtml && previewRef.current) {
       // Só atualiza se o conteúdo for diferente (evita loop)
-      if (previewRef.current.innerHTML !== processedHtml) {
+      const currentHtml = previewRef.current.innerHTML;
+      if (currentHtml !== processedHtml) {
         previewRef.current.innerHTML = processedHtml;
       }
     }
@@ -4570,11 +4574,43 @@ export default function Home() {
                       suppressContentEditableWarning={true}
                       onInput={() => {
                         if (previewRef.current) {
+                          // Mantém a flag activa enquanto o user está a escrever
                           isUserEditingRef.current = true;
-                          setProcessedHtml(previewRef.current.innerHTML);
-                          // Reset flag after React flush
+                          // Cancela qualquer sync pendente
+                          if (syncStateTimerRef.current) {
+                            clearTimeout(syncStateTimerRef.current);
+                          }
+                          // Sincroniza o estado após 600ms de inactividade
+                          // (só então permite que o useEffect volte a actualizar o DOM)
+                          syncStateTimerRef.current = setTimeout(() => {
+                            if (previewRef.current) {
+                              const html = previewRef.current.innerHTML;
+                              // Actualiza o estado sem re-renderizar o DOM (flag ainda true durante setProcessedHtml)
+                              setProcessedHtml(html);
+                              // Só liberta a flag depois de React ter processado o setState
+                              requestAnimationFrame(() => {
+                                requestAnimationFrame(() => {
+                                  isUserEditingRef.current = false;
+                                });
+                              });
+                            }
+                          }, 600);
+                        }
+                      }}
+                      onBlur={() => {
+                        // Sincroniza imediatamente ao perder o foco
+                        if (syncStateTimerRef.current) {
+                          clearTimeout(syncStateTimerRef.current);
+                          syncStateTimerRef.current = null;
+                        }
+                        if (previewRef.current) {
+                          const html = previewRef.current.innerHTML;
+                          isUserEditingRef.current = true;
+                          setProcessedHtml(html);
                           requestAnimationFrame(() => {
-                            isUserEditingRef.current = false;
+                            requestAnimationFrame(() => {
+                              isUserEditingRef.current = false;
+                            });
                           });
                         }
                       }}
