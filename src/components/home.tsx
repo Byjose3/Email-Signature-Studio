@@ -2328,17 +2328,61 @@ export default function Home() {
     }
   };
 
+  /**
+   * Comprime uma imagem usando Canvas API.
+   * - Reduz dimensões se excederem maxWidth/maxHeight
+   * - Converte para JPEG (ou PNG se tiver transparência) com qualidade configurável
+   * Retorna uma Promise com o data URI comprimido.
+   */
+  const compressImage = (
+    file: File,
+    maxWidth = 600,
+    maxHeight = 300,
+    quality = 0.82,
+  ): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const src = e.target?.result as string;
+        const img = new window.Image();
+        img.onload = () => {
+          let { naturalWidth: w, naturalHeight: h } = img;
+
+          // Reduz proporcionalmente se necessário
+          if (w > maxWidth || h > maxHeight) {
+            const ratio = Math.min(maxWidth / w, maxHeight / h);
+            w = Math.round(w * ratio);
+            h = Math.round(h * ratio);
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d")!;
+          ctx.drawImage(img, 0, 0, w, h);
+
+          // PNG para imagens com transparência (PNG original), JPEG para o resto
+          const isPng = file.type === "image/png";
+          const compressed = isPng
+            ? canvas.toDataURL("image/png") // PNG mantém transparência mas sem redução de qualidade
+            : canvas.toDataURL("image/jpeg", quality);
+
+          resolve(compressed);
+        };
+        img.src = src;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleImageUpload = (
     imageId: string,
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
     if (file && file.type.startsWith("image/")) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const base64 = e.target?.result as string;
-
-        // Carregar a imagem para obter dimensões naturais e calcular aspect ratio
+      compressImage(file, 800, 400, 0.82).then((base64) => {
+        // Carregar a imagem comprimida para obter dimensões reais pós-compressão
         const imageElement = document.createElement("img");
         imageElement.onload = () => {
           const naturalWidth = imageElement.naturalWidth;
@@ -2350,11 +2394,9 @@ export default function Home() {
 
           // Se for o logo (img-0), atualizar dimensões mantendo aspect ratio
           if (imageId === "img-0") {
-            // Manter a largura atual ou usar uma largura padrão
             const newWidth = logoWidth > 0 ? logoWidth : 160;
-            // Calcula height a partir do aspect ratio da nova imagem
-            const newNaturalRatio = imageElement.naturalWidth > 0 && imageElement.naturalHeight > 0
-              ? imageElement.naturalWidth / imageElement.naturalHeight
+            const newNaturalRatio = naturalWidth > 0 && naturalHeight > 0
+              ? naturalWidth / naturalHeight
               : originalAspectRatio;
             const newHeight = newNaturalRatio > 0 ? Math.round(newWidth / newNaturalRatio) : 0;
 
@@ -2362,7 +2404,6 @@ export default function Home() {
             setLogoHeight(newHeight);
             if (newNaturalRatio > 0) setOriginalAspectRatio(newNaturalRatio);
 
-            // Atualizar o HTML com as novas dimensões
             const parser = new DOMParser();
             const doc = parser.parseFromString(processedHtml, "text/html");
             const img = doc.querySelector(`img[data-image-id="${imageId}"]`);
@@ -2389,7 +2430,6 @@ export default function Home() {
               const newHtml = doc.body.innerHTML;
               setProcessedHtml(newHtml);
 
-              // Atualiza também a área de paste
               if (pasteAreaRef.current) {
                 const pasteDoc = parser.parseFromString(
                   pasteAreaRef.current.innerHTML,
@@ -2422,7 +2462,6 @@ export default function Home() {
               }
             }
           } else {
-            // Para outras imagens (não logo), apenas atualizar src
             const parser = new DOMParser();
             const doc = parser.parseFromString(processedHtml, "text/html");
             const img = doc.querySelector(`img[data-image-id="${imageId}"]`);
@@ -2432,7 +2471,6 @@ export default function Home() {
               const newHtml = doc.body.innerHTML;
               setProcessedHtml(newHtml);
 
-              // Atualiza também a área de paste
               if (pasteAreaRef.current) {
                 const pasteDoc = parser.parseFromString(
                   pasteAreaRef.current.innerHTML,
@@ -2448,11 +2486,12 @@ export default function Home() {
               }
             }
           }
+
+          imageElement.src = base64;
         };
 
         imageElement.src = base64;
-      };
-      reader.readAsDataURL(file);
+      });
     } else {
       setError("Por favor, selecione uma imagem válida.");
       setTimeout(() => setError(""), 3000);
@@ -2937,10 +2976,7 @@ export default function Home() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const src = ev.target?.result as string;
-      // Detecta dimensões naturais para calcular aspect ratio
+    compressImage(file, 800, 400, 0.82).then((src) => {
       const img = new window.Image();
       img.onload = () => {
         const ratio = img.naturalWidth / img.naturalHeight;
@@ -2952,7 +2988,6 @@ export default function Home() {
         if (processedHtml) {
           const existingImg = previewRef.current?.querySelector('[data-footer-image="true"]');
           if (existingImg) {
-            // Já existe — apenas actualiza o src in-place
             existingImg.setAttribute("src", src);
             existingImg.setAttribute("width", String(currentWidth));
             (existingImg as HTMLElement).style.width = `${currentWidth}px`;
@@ -2966,8 +3001,7 @@ export default function Home() {
         }
       };
       img.src = src;
-    };
-    reader.readAsDataURL(file);
+    });
     e.target.value = "";
   };
 
@@ -3599,7 +3633,7 @@ export default function Home() {
           {isBase64 && (
             <div className="flex items-start gap-2 px-3 py-2 bg-amber-50 border border-amber-300 rounded-lg text-xs text-amber-800">
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-500" />
-              <span><strong>Imagem em base64</strong> — O Gmail pode bloquear ou truncar assinaturas com imagens embutidas. Use uma <strong>URL externa</strong> para melhor compatibilidade.</span>
+              <span><strong>Imagem em base64</strong> — Comprimida automaticamente. Para máxima compatibilidade com Gmail use uma <strong>URL externa</strong>.</span>
             </div>
           )}
           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
@@ -3620,11 +3654,14 @@ export default function Home() {
                 {altText}
               </p>
               <p className="text-xs mt-0.5 flex items-center gap-1">
-                {isBase64 ? (
-                  <span className="text-amber-600 font-medium flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" /> Base64 (evitar no Gmail)
-                  </span>
-                ) : (
+                {isBase64 ? (() => {
+                  const sizeKb = Math.round(currentSrc.length * 0.75 / 1024);
+                  return (
+                    <span className={`font-medium flex items-center gap-1 ${sizeKb > 50 ? "text-red-600" : "text-amber-600"}`}>
+                      <AlertCircle className="w-3 h-3" /> Base64 · {sizeKb} KB {sizeKb > 50 ? "⚠️ grande" : "✓ ok"}
+                    </span>
+                  );
+                })() : (
                   <span className="text-green-600 font-medium flex items-center gap-1">
                     <Check className="w-3 h-3" /> URL externa ✓
                   </span>
