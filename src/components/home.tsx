@@ -60,7 +60,7 @@ export default function Home() {
   const [logoWidth, setLogoWidth] = useState<number>(160);
   const [logoHeight, setLogoHeight] = useState<number>(0);
   const [aspectRatioLocked, setAspectRatioLocked] = useState(true);
-  const [originalAspectRatio, setOriginalAspectRatio] = useState<number>(1);
+  const [originalAspectRatio, setOriginalAspectRatio] = useState<number | null>(null);
   const [textColor, setTextColor] = useState<string>("");
   const [separatorColor, setSeparatorColor] = useState<string>("");
   const [footerImageSrc, setFooterImageSrc] = useState<string>("");
@@ -352,7 +352,7 @@ export default function Home() {
       // Reset de dimensões do logo
       setLogoWidth(0);
       setLogoHeight(0);
-      setOriginalAspectRatio(1);
+      setOriginalAspectRatio(null);
 
       // Reset de imagem de rodapé
       setFooterImageSrc("");
@@ -1449,6 +1449,7 @@ export default function Home() {
           if (!width) width = 160;
 
           // Calcula e guarda aspect ratio original se a imagem estiver carregada
+          let computedHeight = 0;
           if (
             imgElement.complete &&
             imgElement.naturalWidth &&
@@ -1456,23 +1457,32 @@ export default function Home() {
           ) {
             const ratio = imgElement.naturalWidth / imgElement.naturalHeight;
             setOriginalAspectRatio(ratio);
+            // Sempre calcula height a partir do aspect ratio real da imagem
+            // Nunca usa o height do atributo pois pode estar errado (ex: 160x160)
+            computedHeight = Math.round(width / ratio);
+          } else {
+            // Imagem ainda não carregada — height é auto (0) para manter aspect ratio natural
+            // Não usa o height do atributo pois pode estar incorreto (ex: 160x160 para logo não quadrado)
+            computedHeight = 0;
 
-            // Calcula height baseado no aspect ratio para manter proporções
-            // Isso evita que o Gmail permita redimensionar o logo
-            if (!height || height === 0) {
-              height = Math.round(width / ratio);
-            }
+            // Carrega a imagem de forma assíncrona para obter o aspect ratio real
+            const loaderImg = new window.Image();
+            loaderImg.onload = () => {
+              if (loaderImg.naturalWidth && loaderImg.naturalHeight) {
+                const ratio = loaderImg.naturalWidth / loaderImg.naturalHeight;
+                setOriginalAspectRatio(ratio);
+                // Actualiza a altura com base no aspect ratio real
+                setLogoHeight(0); // 0 = auto, height calculada via aspect ratio
+              }
+            };
+            loaderImg.src = imgElement.src || imgElement.getAttribute("src") || "";
           }
 
-          // Define dimensões iniciais no estado — calcula height explícito a partir do aspect ratio
+          // Define dimensões iniciais no estado
           setLogoWidth(width);
-          // Se temos aspect ratio, calcula height explícito para forçar dimensões em todos os clientes
-          const computedHeight = (originalAspectRatio > 0 && imgElement.complete && imgElement.naturalWidth)
-            ? Math.round(width / (imgElement.naturalWidth / imgElement.naturalHeight))
-            : (height > 0 ? height : 0);
           setLogoHeight(computedHeight);
 
-          // Aplica width E height explícitos — clientes como Outlook, Apple Mail ignoram "auto"
+          // Aplica width e height (se calculado) nos atributos
           img.setAttribute("width", String(width));
           if (computedHeight > 0) {
             img.setAttribute("height", String(computedHeight));
@@ -1482,6 +1492,8 @@ export default function Home() {
           } else {
             img.removeAttribute("height");
             img.style.removeProperty("height");
+            img.style.removeProperty("maxHeight");
+            img.style.removeProperty("minHeight");
           }
           img.style.width = `${width}px`;
           img.style.maxWidth = `${width}px`;
@@ -2525,7 +2537,7 @@ export default function Home() {
       // For the logo (img-0), also apply current width/height dimensions
       if (imageId === "img-0") {
         const w = logoWidth > 0 ? logoWidth : 160;
-        const h = originalAspectRatio > 0 ? Math.round(w / originalAspectRatio) : logoHeight;
+        const h = originalAspectRatio ? Math.round(w / originalAspectRatio) : logoHeight;
         img.setAttribute("width", String(w));
         if (h > 0) {
           img.setAttribute("height", String(h));
@@ -2550,7 +2562,7 @@ export default function Home() {
           liveImg.setAttribute("src", trimmedUrl);
           if (imageId === "img-0") {
             const w = logoWidth > 0 ? logoWidth : 160;
-            const h = originalAspectRatio > 0 ? Math.round(w / originalAspectRatio) : logoHeight;
+            const h = originalAspectRatio ? Math.round(w / originalAspectRatio) : logoHeight;
             liveImg.setAttribute("width", String(w));
             if (h > 0) {
               liveImg.setAttribute("height", String(h));
@@ -2584,7 +2596,7 @@ export default function Home() {
           pasteImg.setAttribute("src", trimmedUrl);
           if (imageId === "img-0") {
             const w = logoWidth > 0 ? logoWidth : 160;
-            const h = originalAspectRatio > 0 ? Math.round(w / originalAspectRatio) : logoHeight;
+            const h = originalAspectRatio ? Math.round(w / originalAspectRatio) : logoHeight;
             pasteImg.setAttribute("width", String(w));
             if (h > 0) {
               pasteImg.setAttribute("height", String(h));
@@ -2698,7 +2710,7 @@ export default function Home() {
     // Calcula height real a partir do aspect ratio se não foi especificado
     const effectiveHeight = height > 0
       ? height
-      : (originalAspectRatio > 0 ? Math.round(width / originalAspectRatio) : 0);
+      : (originalAspectRatio ? Math.round(width / originalAspectRatio) : 0);
 
     const applyToImg = (logo: Element, parentCell: Element | null) => {
       logo.setAttribute("width", String(width));
@@ -2767,7 +2779,7 @@ export default function Home() {
       if (pasteLogo) {
         const effectiveHeightPaste = height > 0
           ? height
-          : (originalAspectRatio > 0 ? Math.round(width / originalAspectRatio) : 0);
+          : (originalAspectRatio ? Math.round(width / originalAspectRatio) : 0);
 
         pasteLogo.setAttribute("width", String(width));
         if (effectiveHeightPaste > 0) {
@@ -2810,7 +2822,7 @@ export default function Home() {
     setLogoWidth(newWidth);
 
     // Calcula height a partir do aspect ratio para manter proporções em todos os clientes
-    const computedHeight = originalAspectRatio > 0 ? Math.round(newWidth / originalAspectRatio) : 0;
+    const computedHeight = originalAspectRatio ? Math.round(newWidth / originalAspectRatio) : 0;
     setLogoHeight(computedHeight);
     updateLogoSize(newWidth, computedHeight);
   };
@@ -4343,7 +4355,7 @@ export default function Home() {
                             </label>
                             <input
                               type="text"
-                              value={logoHeight > 0 ? logoHeight : (originalAspectRatio > 0 ? Math.round(logoWidth / originalAspectRatio) : "auto")}
+                              value={logoHeight > 0 ? logoHeight : "auto"}
                               readOnly
                               disabled
                               className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
@@ -4358,7 +4370,7 @@ export default function Home() {
                           <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5" />
                           <div>
                             <strong>Dica:</strong> Dimensões atuais: {logoWidth}
-                            x{logoHeight}px
+                            x{logoHeight > 0 ? logoHeight : "auto"}px
                             {logoWidth > 200 && (
                               <span className="text-orange-600 ml-2 inline-flex items-center gap-1">
                                 <AlertCircle className="w-3 h-3" /> Logo pode
