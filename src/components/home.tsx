@@ -2568,8 +2568,15 @@ export default function Home() {
 
   const handleImageUrlChange = (imageId: string, newUrl: string) => {
     if (!newUrl || !newUrl.trim()) return;
-    const trimmedUrl = newUrl.trim();
+    let trimmedUrl = newUrl.trim();
     if (!trimmedUrl.startsWith("http://") && !trimmedUrl.startsWith("https://") && !trimmedUrl.startsWith("//")) return;
+
+    // Converte URLs do Google Drive de partilha para URLs diretas de download
+    // Padrão: https://drive.google.com/file/d/FILE_ID/view?... → https://drive.google.com/uc?export=view&id=FILE_ID
+    const gdriveMatcher = trimmedUrl.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (gdriveMatcher) {
+      trimmedUrl = `https://drive.google.com/uc?export=view&id=${gdriveMatcher[1]}`;
+    }
 
     // Usa o DOM vivo (source of truth) para preservar edições manuais do utilizador
     const sourceHtml = previewRef.current ? previewRef.current.innerHTML : processedHtml;
@@ -2626,24 +2633,12 @@ export default function Home() {
             liveImg.style.outline = "none";
           }
           // Sync state from live DOM (without replacing innerHTML)
-          setUserEditing(true);
           setProcessedHtml(previewRef.current.innerHTML);
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              setUserEditing(false);
-            });
-          });
         } else {
           // Fallback: replace innerHTML
           const newHtml = doc.body.innerHTML;
-          setUserEditing(true);
           previewRef.current.innerHTML = newHtml;
           setProcessedHtml(newHtml);
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              setUserEditing(false);
-            });
-          });
         }
       }
 
@@ -3300,8 +3295,13 @@ export default function Home() {
   /** Aplica uma URL externa como imagem de rodapé */
   const handleFooterImageUrl = (url: string) => {
     if (!url || !url.trim()) return;
-    const trimmedUrl = url.trim();
+    let trimmedUrl = url.trim();
     if (!trimmedUrl.startsWith("http://") && !trimmedUrl.startsWith("https://") && !trimmedUrl.startsWith("//")) return;
+    // Converte Google Drive share link para URL direta
+    const gdriveMatcher = trimmedUrl.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (gdriveMatcher) {
+      trimmedUrl = `https://drive.google.com/uc?export=view&id=${gdriveMatcher[1]}`;
+    }
 
     const img = new window.Image();
     img.onload = () => {
@@ -3995,15 +3995,15 @@ export default function Home() {
               </AccordionTrigger>
               <AccordionContent className="px-3 pb-3">
                 <input
-                  type="url"
-                  key={imageId + "-url"}
+                  type="text"
+                  key={imageId + "-url-" + (isBase64 ? "b64" : currentSrc.slice(0, 80))}
                   defaultValue={isBase64 ? "" : currentSrc}
                   onBlur={(e) => handleImageUrlChange(imageId, e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleImageUrlChange(imageId, (e.target as HTMLInputElement).value); }}
+                  onKeyDown={(e) => { if (e.key === "Enter") { handleImageUrlChange(imageId, (e.target as HTMLInputElement).value); (e.target as HTMLInputElement).blur(); } }}
                   placeholder="https://exemplo.com/logo.png"
                   className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
-                <p className="text-xs text-gray-400 mt-1">Cole o link direto da imagem (Google Drive, Imgur, CDN, etc.)</p>
+                <p className="text-xs text-gray-400 mt-1">Cole o link <strong>direto</strong> da imagem (Imgur, CDN, etc.). Links de partilha do Google Drive são convertidos automaticamente.</p>
               </AccordionContent>
             </AccordionItem>
           </Accordion>
