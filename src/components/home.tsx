@@ -2466,102 +2466,91 @@ export default function Home() {
             if (newNaturalRatio > 0) setOriginalAspectRatio(newNaturalRatio);
 
             // Usa o DOM vivo (source of truth) para preservar edições manuais do utilizador
-            const sourceHtml = previewRef.current ? previewRef.current.innerHTML : processedHtml;
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(sourceHtml, "text/html");
-            const img = doc.querySelector(`img[data-image-id="${imageId}"]`);
-
-            if (img) {
-              img.setAttribute("src", base64);
-              img.setAttribute("width", String(newWidth));
-              if (newHeight > 0) {
-                img.setAttribute("height", String(newHeight));
-                (img as HTMLElement).style.height = `${newHeight}px`;
-                (img as HTMLElement).style.maxHeight = `${newHeight}px`;
-                (img as HTMLElement).style.minHeight = `${newHeight}px`;
-              } else {
-                img.removeAttribute("height");
-                (img as HTMLElement).style.removeProperty("height");
-              }
-              (img as HTMLElement).style.width = `${newWidth}px`;
-              (img as HTMLElement).style.maxWidth = `${newWidth}px`;
-              (img as HTMLElement).style.minWidth = `${newWidth}px`;
-              (img as HTMLElement).style.display = "block";
-              (img as HTMLElement).style.border = "0";
-              (img as HTMLElement).style.outline = "none";
-
-              const newHtml = doc.body.innerHTML;
-              setUserEditing(true);
-              setProcessedHtml(newHtml);
-              if (previewRef.current) previewRef.current.innerHTML = newHtml;
-              requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                  setUserEditing(false);
-                });
-              });
-
-              if (pasteAreaRef.current) {
-                const pasteDoc = parser.parseFromString(
-                  pasteAreaRef.current.innerHTML,
-                  "text/html",
-                );
-                const pasteImg = pasteDoc.querySelector(
-                  'img[data-image-id="' + imageId + '"]',
-                );
-                if (pasteImg) {
-                  pasteImg.setAttribute("src", base64);
-                  pasteImg.setAttribute("width", String(newWidth));
-                  if (newHeight > 0) {
-                    pasteImg.setAttribute("height", String(newHeight));
-                    (pasteImg as HTMLElement).style.height = `${newHeight}px`;
-                    (pasteImg as HTMLElement).style.maxHeight = `${newHeight}px`;
-                    (pasteImg as HTMLElement).style.minHeight = `${newHeight}px`;
-                  } else {
-                    pasteImg.removeAttribute("height");
-                    (pasteImg as HTMLElement).style.removeProperty("height");
-                  }
-                  (pasteImg as HTMLElement).style.width = `${newWidth}px`;
-                  (pasteImg as HTMLElement).style.maxWidth = `${newWidth}px`;
-                  (pasteImg as HTMLElement).style.minWidth = `${newWidth}px`;
-                  (pasteImg as HTMLElement).style.display = "block";
-                  (pasteImg as HTMLElement).style.border = "0";
-                  (pasteImg as HTMLElement).style.outline = "none";
-
-                  pasteAreaRef.current.innerHTML = pasteDoc.body.innerHTML;
+            // Update live DOM directly — avoids replacing innerHTML which breaks canvas state
+            if (previewRef.current) {
+              const liveImg = previewRef.current.querySelector(`img[data-image-id="${imageId}"]`) as HTMLImageElement | null;
+              if (liveImg) {
+                setUserEditing(true);
+                liveImg.setAttribute("src", base64);
+                liveImg.setAttribute("width", String(newWidth));
+                if (newHeight > 0) {
+                  liveImg.setAttribute("height", String(newHeight));
+                  liveImg.style.height = `${newHeight}px`;
+                  liveImg.style.maxHeight = `${newHeight}px`;
+                  liveImg.style.minHeight = `${newHeight}px`;
+                } else {
+                  liveImg.removeAttribute("height");
+                  liveImg.style.removeProperty("height");
+                  liveImg.style.removeProperty("maxHeight");
+                  liveImg.style.removeProperty("minHeight");
                 }
+                liveImg.style.width = `${newWidth}px`;
+                liveImg.style.maxWidth = `${newWidth}px`;
+                liveImg.style.minWidth = `${newWidth}px`;
+                liveImg.style.display = "block";
+                liveImg.style.border = "0";
+                liveImg.style.outline = "none";
+                // Also update parent TD width
+                let parentTd = liveImg.parentElement;
+                while (parentTd && parentTd.tagName !== "TD") parentTd = parentTd.parentElement;
+                if (parentTd) {
+                  (parentTd as HTMLElement).style.width = `${newWidth}px`;
+                  (parentTd as HTMLElement).style.minWidth = `${newWidth}px`;
+                  (parentTd as HTMLElement).style.maxWidth = `${newWidth}px`;
+                  (parentTd as HTMLElement).setAttribute("width", String(newWidth));
+                }
+                setProcessedHtml(previewRef.current.innerHTML);
+                requestAnimationFrame(() => {
+                  requestAnimationFrame(() => {
+                    setUserEditing(false);
+                  });
+                });
+              }
+            }
+
+            if (pasteAreaRef.current) {
+              const pasteDoc = new DOMParser().parseFromString(pasteAreaRef.current.innerHTML, "text/html");
+              const pasteImg = pasteDoc.querySelector(`img[data-image-id="${imageId}"]`);
+              if (pasteImg) {
+                pasteImg.setAttribute("src", base64);
+                pasteImg.setAttribute("width", String(newWidth));
+                if (newHeight > 0) {
+                  pasteImg.setAttribute("height", String(newHeight));
+                  (pasteImg as HTMLElement).style.height = `${newHeight}px`;
+                  (pasteImg as HTMLElement).style.maxHeight = `${newHeight}px`;
+                  (pasteImg as HTMLElement).style.minHeight = `${newHeight}px`;
+                } else {
+                  pasteImg.removeAttribute("height");
+                  (pasteImg as HTMLElement).style.removeProperty("height");
+                }
+                (pasteImg as HTMLElement).style.width = `${newWidth}px`;
+                (pasteImg as HTMLElement).style.maxWidth = `${newWidth}px`;
+                (pasteImg as HTMLElement).style.display = "block";
+                pasteAreaRef.current.innerHTML = pasteDoc.body.innerHTML;
               }
             }
           } else {
-            // Usa o DOM vivo (source of truth) para preservar edições manuais do utilizador
-            const sourceHtml = previewRef.current ? previewRef.current.innerHTML : processedHtml;
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(sourceHtml, "text/html");
-            const img = doc.querySelector(`img[data-image-id="${imageId}"]`);
-
-            if (img) {
-              img.setAttribute("src", base64);
-              const newHtml = doc.body.innerHTML;
-              setUserEditing(true);
-              setProcessedHtml(newHtml);
-              if (previewRef.current) previewRef.current.innerHTML = newHtml;
-              requestAnimationFrame(() => {
+            // Non-logo image: update src directly in live DOM
+            if (previewRef.current) {
+              const liveImg = previewRef.current.querySelector(`img[data-image-id="${imageId}"]`) as HTMLImageElement | null;
+              if (liveImg) {
+                setUserEditing(true);
+                liveImg.setAttribute("src", base64);
+                setProcessedHtml(previewRef.current.innerHTML);
                 requestAnimationFrame(() => {
-                  setUserEditing(false);
+                  requestAnimationFrame(() => {
+                    setUserEditing(false);
+                  });
                 });
-              });
+              }
+            }
 
-              if (pasteAreaRef.current) {
-                const pasteDoc = parser.parseFromString(
-                  pasteAreaRef.current.innerHTML,
-                  "text/html",
-                );
-                const pasteImg = pasteDoc.querySelector(
-                  'img[data-image-id="' + imageId + '"]',
-                );
-                if (pasteImg) {
-                  pasteImg.setAttribute("src", base64);
-                  pasteAreaRef.current.innerHTML = pasteDoc.body.innerHTML;
-                }
+            if (pasteAreaRef.current) {
+              const pasteDoc = new DOMParser().parseFromString(pasteAreaRef.current.innerHTML, "text/html");
+              const pasteImg = pasteDoc.querySelector(`img[data-image-id="${imageId}"]`);
+              if (pasteImg) {
+                pasteImg.setAttribute("src", base64);
+                pasteAreaRef.current.innerHTML = pasteDoc.body.innerHTML;
               }
             }
           }
@@ -2590,21 +2579,92 @@ export default function Home() {
 
     if (img) {
       img.setAttribute("src", trimmedUrl);
-      const newHtml = doc.body.innerHTML;
-      setUserEditing(true);
-      setProcessedHtml(newHtml);
-      if (previewRef.current) previewRef.current.innerHTML = newHtml;
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setUserEditing(false);
-        });
-      });
+
+      // For the logo (img-0), also apply current width/height dimensions
+      if (imageId === "img-0") {
+        const w = logoWidth > 0 ? logoWidth : 160;
+        const h = originalAspectRatio > 0 ? Math.round(w / originalAspectRatio) : logoHeight;
+        img.setAttribute("width", String(w));
+        if (h > 0) {
+          img.setAttribute("height", String(h));
+          (img as HTMLElement).style.height = `${h}px`;
+          (img as HTMLElement).style.maxHeight = `${h}px`;
+          (img as HTMLElement).style.minHeight = `${h}px`;
+        } else {
+          img.removeAttribute("height");
+        }
+        (img as HTMLElement).style.width = `${w}px`;
+        (img as HTMLElement).style.maxWidth = `${w}px`;
+        (img as HTMLElement).style.minWidth = `${w}px`;
+        (img as HTMLElement).style.display = "block";
+        (img as HTMLElement).style.border = "0";
+        (img as HTMLElement).style.outline = "none";
+      }
+
+      // Update live DOM directly to avoid replacing innerHTML (preserves canvas state)
+      if (previewRef.current) {
+        const liveImg = previewRef.current.querySelector(`img[data-image-id="${imageId}"]`) as HTMLImageElement | null;
+        if (liveImg) {
+          liveImg.setAttribute("src", trimmedUrl);
+          if (imageId === "img-0") {
+            const w = logoWidth > 0 ? logoWidth : 160;
+            const h = originalAspectRatio > 0 ? Math.round(w / originalAspectRatio) : logoHeight;
+            liveImg.setAttribute("width", String(w));
+            if (h > 0) {
+              liveImg.setAttribute("height", String(h));
+              liveImg.style.height = `${h}px`;
+              liveImg.style.maxHeight = `${h}px`;
+              liveImg.style.minHeight = `${h}px`;
+            } else {
+              liveImg.removeAttribute("height");
+            }
+            liveImg.style.width = `${w}px`;
+            liveImg.style.maxWidth = `${w}px`;
+            liveImg.style.minWidth = `${w}px`;
+            liveImg.style.display = "block";
+            liveImg.style.border = "0";
+            liveImg.style.outline = "none";
+          }
+          // Sync state from live DOM (without replacing innerHTML)
+          setUserEditing(true);
+          setProcessedHtml(previewRef.current.innerHTML);
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              setUserEditing(false);
+            });
+          });
+        } else {
+          // Fallback: replace innerHTML
+          const newHtml = doc.body.innerHTML;
+          setUserEditing(true);
+          previewRef.current.innerHTML = newHtml;
+          setProcessedHtml(newHtml);
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              setUserEditing(false);
+            });
+          });
+        }
+      }
 
       if (pasteAreaRef.current) {
         const pasteDoc = parser.parseFromString(pasteAreaRef.current.innerHTML, "text/html");
         const pasteImg = pasteDoc.querySelector(`img[data-image-id="${imageId}"]`);
         if (pasteImg) {
           pasteImg.setAttribute("src", trimmedUrl);
+          if (imageId === "img-0") {
+            const w = logoWidth > 0 ? logoWidth : 160;
+            const h = originalAspectRatio > 0 ? Math.round(w / originalAspectRatio) : logoHeight;
+            pasteImg.setAttribute("width", String(w));
+            if (h > 0) {
+              pasteImg.setAttribute("height", String(h));
+              (pasteImg as HTMLElement).style.height = `${h}px`;
+            } else {
+              pasteImg.removeAttribute("height");
+            }
+            (pasteImg as HTMLElement).style.width = `${w}px`;
+            (pasteImg as HTMLElement).style.maxWidth = `${w}px`;
+          }
           pasteAreaRef.current.innerHTML = pasteDoc.body.innerHTML;
         }
       }
@@ -2705,18 +2765,12 @@ export default function Home() {
   };
 
   const updateLogoSize = (width: number, height: number) => {
-    // Usa o DOM vivo (source of truth) para preservar edições manuais do utilizador
-    const sourceHtml = previewRef.current ? previewRef.current.innerHTML : processedHtml;
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(sourceHtml, "text/html");
-    const logo = doc.querySelector('img[data-image-id="img-0"]');
+    // Calcula height real a partir do aspect ratio se não foi especificado
+    const effectiveHeight = height > 0
+      ? height
+      : (originalAspectRatio > 0 ? Math.round(width / originalAspectRatio) : 0);
 
-    if (logo) {
-      // Calcula height real a partir do aspect ratio se não foi especificado
-      const effectiveHeight = height > 0
-        ? height
-        : (originalAspectRatio > 0 ? Math.round(width / originalAspectRatio) : 0);
-
+    const applyToImg = (logo: Element, parentCell: Element | null) => {
       logo.setAttribute("width", String(width));
       if (effectiveHeight > 0) {
         logo.setAttribute("height", String(effectiveHeight));
@@ -2736,116 +2790,88 @@ export default function Home() {
       (logo as HTMLElement).style.border = "0";
       (logo as HTMLElement).style.outline = "none";
 
-      // Atualiza a célula da tabela que contém o logo
-      let parentCell = logo.parentElement;
-      while (parentCell && parentCell.tagName !== "TD") {
-        parentCell = parentCell.parentElement;
-      }
-
       if (parentCell) {
-        // Busca espaçamento detectado da célula com borda (próxima célula)
-        let spacingBefore = 15; // fallback
         const nextCell = (parentCell as HTMLElement).nextElementSibling;
+        let spacingBefore = 15;
         if (nextCell) {
-          const spacingBeforeAttr = nextCell.getAttribute(
-            "data-spacing-before",
-          );
-          if (spacingBeforeAttr) {
-            const match = spacingBeforeAttr.match(/(\d+(?:\.\d+)?)px/);
+          const attr = nextCell.getAttribute("data-spacing-before");
+          if (attr) {
+            const match = attr.match(/(\d+(?:\.\d+)?)px/);
             if (match) spacingBefore = parseFloat(match[1]);
           }
         }
-
-        // Define célula do logo COM width fixo igual ao da imagem (força clientes a respeitar)
         (parentCell as HTMLElement).style.width = `${width}px`;
         (parentCell as HTMLElement).style.minWidth = `${width}px`;
         (parentCell as HTMLElement).style.maxWidth = `${width}px`;
         (parentCell as HTMLElement).setAttribute("width", String(width));
-        (parentCell as HTMLElement).style.paddingRight = "0"; // Sem padding direito na célula do logo
+        (parentCell as HTMLElement).style.paddingRight = "0";
         (parentCell as HTMLElement).style.paddingLeft = "0";
         (parentCell as HTMLElement).style.paddingTop = "0";
         (parentCell as HTMLElement).style.paddingBottom = "0";
         (parentCell as HTMLElement).style.verticalAlign = "top";
         (parentCell as HTMLElement).setAttribute("valign", "top");
       }
+    };
 
-      const newHtml = doc.body.innerHTML;
-      setUserEditing(true);
-      setProcessedHtml(newHtml);
-      if (previewRef.current) previewRef.current.innerHTML = newHtml;
-      requestAnimationFrame(() => {
+    // Update live DOM directly — avoids replacing innerHTML which breaks canvas state
+    if (previewRef.current) {
+      const liveLogoEl = previewRef.current.querySelector('img[data-image-id="img-0"]');
+      if (liveLogoEl) {
+        setUserEditing(true);
+        let liveCell = liveLogoEl.parentElement;
+        while (liveCell && liveCell.tagName !== "TD") liveCell = liveCell.parentElement;
+        applyToImg(liveLogoEl, liveCell);
+        setProcessedHtml(previewRef.current.innerHTML);
         requestAnimationFrame(() => {
-          setUserEditing(false);
+          requestAnimationFrame(() => {
+            setUserEditing(false);
+          });
         });
-      });
+      }
+    }
 
-      // Atualiza também a área de paste
-      if (pasteAreaRef.current) {
-        const pasteDoc = parser.parseFromString(
-          pasteAreaRef.current.innerHTML,
-          "text/html",
-        );
-        const pasteLogo = pasteDoc.querySelector('img[data-image-id="img-0"]');
-        if (pasteLogo) {
-          // Calcula height real a partir do aspect ratio se não foi especificado
-          const effectiveHeightPaste = height > 0
-            ? height
-            : (originalAspectRatio > 0 ? Math.round(width / originalAspectRatio) : 0);
+    // Atualiza também a área de paste (via DOMParser já que não é contentEditable)
+    if (pasteAreaRef.current) {
+      const pasteDoc = new DOMParser().parseFromString(pasteAreaRef.current.innerHTML, "text/html");
+      const pasteLogo = pasteDoc.querySelector('img[data-image-id="img-0"]');
+      if (pasteLogo) {
+        const effectiveHeightPaste = height > 0
+          ? height
+          : (originalAspectRatio > 0 ? Math.round(width / originalAspectRatio) : 0);
 
-          pasteLogo.setAttribute("width", String(width));
-          if (effectiveHeightPaste > 0) {
-            pasteLogo.setAttribute("height", String(effectiveHeightPaste));
-            (pasteLogo as HTMLElement).style.height = `${effectiveHeightPaste}px`;
-            (pasteLogo as HTMLElement).style.maxHeight = `${effectiveHeightPaste}px`;
-            (pasteLogo as HTMLElement).style.minHeight = `${effectiveHeightPaste}px`;
-          } else {
-            pasteLogo.removeAttribute("height");
-            (pasteLogo as HTMLElement).style.removeProperty("height");
-          }
-          (pasteLogo as HTMLElement).style.width = `${width}px`;
-          (pasteLogo as HTMLElement).style.maxWidth = `${width}px`;
-          (pasteLogo as HTMLElement).style.minWidth = `${width}px`;
-          (pasteLogo as HTMLElement).style.display = "block";
-          (pasteLogo as HTMLElement).style.border = "0";
-          (pasteLogo as HTMLElement).style.outline = "none";
-
-          // Atualiza a célula da tabela no paste area
-          let pasteParentCell = pasteLogo.parentElement;
-          while (pasteParentCell && pasteParentCell.tagName !== "TD") {
-            pasteParentCell = pasteParentCell.parentElement;
-          }
-
-          if (pasteParentCell) {
-            // Busca espaçamento detectado da célula com borda (próxima célula)
-            let spacingBefore = 15; // fallback
-            const nextCell = (pasteParentCell as HTMLElement)
-              .nextElementSibling;
-            if (nextCell) {
-              const spacingBeforeAttr = nextCell.getAttribute(
-                "data-spacing-before",
-              );
-              if (spacingBeforeAttr) {
-                const match = spacingBeforeAttr.match(/(\d+(?:\.\d+)?)px/);
-                if (match) spacingBefore = parseFloat(match[1]);
-              }
-            }
-
-            // Define célula do logo COM width fixo (força clientes a respeitar)
-            (pasteParentCell as HTMLElement).style.width = `${width}px`;
-            (pasteParentCell as HTMLElement).style.minWidth = `${width}px`;
-            (pasteParentCell as HTMLElement).style.maxWidth = `${width}px`;
-            (pasteParentCell as HTMLElement).setAttribute("width", String(width));
-            (pasteParentCell as HTMLElement).style.paddingRight =
-              `${spacingBefore}px`; // Usa valor detectado
-            (pasteParentCell as HTMLElement).style.paddingLeft = "0";
-            (pasteParentCell as HTMLElement).style.paddingTop = "0";
-            (pasteParentCell as HTMLElement).style.paddingBottom = "0";
-            (pasteParentCell as HTMLElement).style.verticalAlign = "top";
-            (pasteParentCell as HTMLElement).setAttribute("valign", "top");
-          }
-
-          pasteAreaRef.current.innerHTML = pasteDoc.body.innerHTML;
+        pasteLogo.setAttribute("width", String(width));
+        if (effectiveHeightPaste > 0) {
+          pasteLogo.setAttribute("height", String(effectiveHeightPaste));
+          (pasteLogo as HTMLElement).style.height = `${effectiveHeightPaste}px`;
+          (pasteLogo as HTMLElement).style.maxHeight = `${effectiveHeightPaste}px`;
+          (pasteLogo as HTMLElement).style.minHeight = `${effectiveHeightPaste}px`;
+        } else {
+          pasteLogo.removeAttribute("height");
+          (pasteLogo as HTMLElement).style.removeProperty("height");
         }
+        (pasteLogo as HTMLElement).style.width = `${width}px`;
+        (pasteLogo as HTMLElement).style.maxWidth = `${width}px`;
+        (pasteLogo as HTMLElement).style.minWidth = `${width}px`;
+        (pasteLogo as HTMLElement).style.display = "block";
+
+        let pasteParentCell = pasteLogo.parentElement;
+        while (pasteParentCell && pasteParentCell.tagName !== "TD") {
+          pasteParentCell = pasteParentCell.parentElement;
+        }
+        if (pasteParentCell) {
+          (pasteParentCell as HTMLElement).style.width = `${width}px`;
+          (pasteParentCell as HTMLElement).style.minWidth = `${width}px`;
+          (pasteParentCell as HTMLElement).style.maxWidth = `${width}px`;
+          (pasteParentCell as HTMLElement).setAttribute("width", String(width));
+          (pasteParentCell as HTMLElement).style.paddingRight = "0";
+          (pasteParentCell as HTMLElement).style.paddingLeft = "0";
+          (pasteParentCell as HTMLElement).style.paddingTop = "0";
+          (pasteParentCell as HTMLElement).style.paddingBottom = "0";
+          (pasteParentCell as HTMLElement).style.verticalAlign = "top";
+          (pasteParentCell as HTMLElement).setAttribute("valign", "top");
+        }
+
+        pasteAreaRef.current.innerHTML = pasteDoc.body.innerHTML;
       }
     }
   };
@@ -3269,6 +3295,57 @@ export default function Home() {
     } else {
       updateFooterImageSize(footerImageWidth, newHeight);
     }
+  };
+
+  /** Aplica uma URL externa como imagem de rodapé */
+  const handleFooterImageUrl = (url: string) => {
+    if (!url || !url.trim()) return;
+    const trimmedUrl = url.trim();
+    if (!trimmedUrl.startsWith("http://") && !trimmedUrl.startsWith("https://") && !trimmedUrl.startsWith("//")) return;
+
+    const img = new window.Image();
+    img.onload = () => {
+      const ratio = img.naturalWidth / img.naturalHeight;
+      setFooterOriginalAspectRatio(ratio);
+      const w = footerImageWidth > 0 ? footerImageWidth : img.naturalWidth;
+      const h = footerAspectRatioLocked ? 0 : (footerImageHeight > 0 ? footerImageHeight : 0);
+      setFooterImageSrc(trimmedUrl);
+      setFooterImageWidth(w);
+      setFooterImageHeight(h);
+      if (processedHtml) {
+        const existingImg = previewRef.current?.querySelector('[data-footer-image="true"]');
+        if (existingImg) {
+          setUserEditing(true);
+          existingImg.setAttribute("src", trimmedUrl);
+          existingImg.setAttribute("width", String(w));
+          (existingImg as HTMLElement).style.width = `${w}px`;
+          (existingImg as HTMLElement).style.maxWidth = `${w}px`;
+          if (h > 0) {
+            existingImg.setAttribute("height", String(h));
+            (existingImg as HTMLElement).style.height = `${h}px`;
+          } else {
+            existingImg.removeAttribute("height");
+            (existingImg as HTMLElement).style.removeProperty("height");
+          }
+          if (previewRef.current) setProcessedHtml(previewRef.current.innerHTML);
+          requestAnimationFrame(() => requestAnimationFrame(() => setUserEditing(false)));
+        } else {
+          insertFooterImageAtCursor(trimmedUrl, w, h);
+        }
+      }
+    };
+    img.onerror = () => {
+      // Image may not be loadable cross-origin — insert with current width anyway
+      const w = footerImageWidth > 0 ? footerImageWidth : 400;
+      const h = footerAspectRatioLocked ? 0 : (footerImageHeight > 0 ? footerImageHeight : 0);
+      setFooterImageSrc(trimmedUrl);
+      setFooterImageWidth(w);
+      setFooterImageHeight(h);
+      if (processedHtml) {
+        insertFooterImageAtCursor(trimmedUrl, w, h);
+      }
+    };
+    img.src = trimmedUrl;
   };
 
   // ── DISCLAIMER ────────────────────────────────────────────────────────────────
@@ -4570,6 +4647,30 @@ export default function Home() {
                           )}
                         </div>
 
+                        {/* URL externa para imagem de rodapé */}
+                        <Accordion type="single" collapsible className="pl-0">
+                          <AccordionItem value="footer-url" className="border border-orange-200 rounded-md">
+                            <AccordionTrigger className="px-3 py-2 text-xs font-medium text-orange-700 hover:no-underline">
+                              <span className="flex items-center gap-1.5">
+                                <Link2 className="w-3.5 h-3.5" />
+                                Usar URL externa {!footerImageSrc && "(recomendado para Gmail)"}
+                              </span>
+                            </AccordionTrigger>
+                            <AccordionContent className="px-3 pb-3">
+                              <input
+                                type="url"
+                                key="footer-url-input"
+                                defaultValue={footerImageSrc && !footerImageSrc.startsWith("data:") ? footerImageSrc : ""}
+                                onBlur={(e) => handleFooterImageUrl(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === "Enter") handleFooterImageUrl((e.target as HTMLInputElement).value); }}
+                                placeholder="https://exemplo.com/rodape.png"
+                                className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                              />
+                              <p className="text-xs text-gray-400 mt-1">Cole o link direto da imagem (CDN, Google Drive, Imgur, etc.)</p>
+                            </AccordionContent>
+                          </AccordionItem>
+                        </Accordion>
+
                         {/* Preview miniatura */}
                         {footerImageSrc && (
                           <div className="flex items-center gap-3 bg-white/60 p-2 rounded-md">
@@ -4585,102 +4686,103 @@ export default function Home() {
                           </div>
                         )}
 
-                        {/* Controlos de dimensões (só visível quando há imagem) */}
-                        {footerImageSrc && (
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-3">
-                              <div className="flex-1">
-                                <label className="block text-xs font-medium text-gray-600 mb-1">
-                                  Largura (px)
-                                </label>
+                        {/* Controlos de dimensões — sempre visíveis para definir antes de carregar */}
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium text-gray-600">
+                            Definir dimensões {!footerImageSrc && <span className="text-orange-500">(aplicadas ao carregar)</span>}:
+                          </p>
+                          <div className="flex items-center gap-3">
+                            <div className="flex-1">
+                              <label className="block text-xs font-medium text-gray-600 mb-1">
+                                Largura (px)
+                              </label>
+                              <input
+                                type="number"
+                                value={footerImageWidth}
+                                onChange={(e) =>
+                                  footerImageSrc
+                                    ? handleFooterWidthChange(parseInt(e.target.value) || 0)
+                                    : setFooterImageWidth(parseInt(e.target.value) || 400)
+                                }
+                                min="10"
+                                max="800"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                              />
+                            </div>
+
+                            <button
+                              onClick={() =>
+                                setFooterAspectRatioLocked(
+                                  !footerAspectRatioLocked,
+                                )
+                              }
+                              className={`mt-5 p-2 rounded-md transition-colors ${
+                                footerAspectRatioLocked
+                                  ? "bg-orange-600 text-white hover:bg-orange-700"
+                                  : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                              }`}
+                              title={
+                                footerAspectRatioLocked
+                                  ? "Proporção travada"
+                                  : "Proporção livre"
+                              }
+                            >
+                              {footerAspectRatioLocked ? (
+                                <Lock className="w-5 h-5" />
+                              ) : (
+                                <Unlock className="w-5 h-5" />
+                              )}
+                            </button>
+
+                            <div className="flex-1">
+                              <label className="block text-xs font-medium text-gray-600 mb-1">
+                                Altura (px)
+                              </label>
+                              {footerAspectRatioLocked ? (
+                                <input
+                                  type="text"
+                                  value="auto"
+                                  readOnly
+                                  disabled
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
+                                />
+                              ) : (
                                 <input
                                   type="number"
-                                  value={footerImageWidth}
+                                  value={
+                                    footerImageHeight === 0
+                                      ? ""
+                                      : footerImageHeight
+                                  }
                                   onChange={(e) =>
-                                    handleFooterWidthChange(
-                                      parseInt(e.target.value) || 0,
-                                    )
+                                    footerImageSrc
+                                      ? handleFooterHeightChange(parseInt(e.target.value) || 0)
+                                      : setFooterImageHeight(parseInt(e.target.value) || 0)
                                   }
                                   min="10"
                                   max="800"
+                                  placeholder="auto"
                                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                                 />
-                              </div>
-
-                              <button
-                                onClick={() =>
-                                  setFooterAspectRatioLocked(
-                                    !footerAspectRatioLocked,
-                                  )
-                                }
-                                className={`mt-5 p-2 rounded-md transition-colors ${
-                                  footerAspectRatioLocked
-                                    ? "bg-orange-600 text-white hover:bg-orange-700"
-                                    : "bg-gray-200 text-gray-600 hover:bg-gray-300"
-                                }`}
-                                title={
-                                  footerAspectRatioLocked
-                                    ? "Proporção travada"
-                                    : "Proporção livre"
-                                }
-                              >
-                                {footerAspectRatioLocked ? (
-                                  <Lock className="w-5 h-5" />
-                                ) : (
-                                  <Unlock className="w-5 h-5" />
-                                )}
-                              </button>
-
-                              <div className="flex-1">
-                                <label className="block text-xs font-medium text-gray-600 mb-1">
-                                  Altura (px)
-                                </label>
-                                {footerAspectRatioLocked ? (
-                                  <input
-                                    type="text"
-                                    value="auto"
-                                    readOnly
-                                    disabled
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
-                                  />
-                                ) : (
-                                  <input
-                                    type="number"
-                                    value={
-                                      footerImageHeight === 0
-                                        ? ""
-                                        : footerImageHeight
-                                    }
-                                    onChange={(e) =>
-                                      handleFooterHeightChange(
-                                        parseInt(e.target.value) || 0,
-                                      )
-                                    }
-                                    min="10"
-                                    max="800"
-                                    placeholder="auto"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                  />
-                                )}
-                              </div>
-                            </div>
-
-                            <div
-                              className="text-orange-700 bg-white/50 p-2 rounded flex items-start gap-2"
-                              style={{ fontSize: "14px" }}
-                            >
-                              <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                              <div>
-                                <strong>Dica:</strong> Dimensões atuais:{" "}
-                                {footerImageWidth} ×{" "}
-                                {footerImageHeight === 0
-                                  ? "auto"
-                                  : footerImageHeight}
-                                px
-                              </div>
+                              )}
                             </div>
                           </div>
-                        )}
+
+                          <div
+                            className="text-orange-700 bg-white/50 p-2 rounded flex items-start gap-2"
+                            style={{ fontSize: "14px" }}
+                          >
+                            <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <strong>Dimensões:</strong>{" "}
+                              {footerImageWidth} ×{" "}
+                              {footerImageHeight === 0
+                                ? "auto"
+                                : footerImageHeight}
+                              px
+                            </div>
+                          </div>
+                        </div>
 
                         {footerImageSrc && (
                           <div
