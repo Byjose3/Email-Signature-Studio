@@ -730,7 +730,7 @@ export default function Home() {
                 fb.textContent = '✓ Copiado! Agora cole no Gmail (Ctrl+V)';
                 fb.className = 'feedback success show';
                 btn.style.background = '#16a34a';
-                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copiado!';
+                btn.innerHTML = "<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'/></svg> Copiado!";
             } else {
                 fb.textContent = '✗ Erro ao copiar. Selecione manualmente e use Ctrl+C.';
                 fb.className = 'feedback error show';
@@ -738,7 +738,7 @@ export default function Home() {
             setTimeout(() => {
                 fb.className = 'feedback';
                 btn.style.background = '';
-                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width=\\"14\\" height=\\"14\\" x=\\"8\\" y=\\"8\\" rx=\\"2\\" ry=\\"2\\"/><path d=\\"M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2\\"/></svg> Copiar Assinatura';
+                btn.innerHTML = "<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><rect width='14' height='14' x='8' y='8' rx='2' ry='2'/><path d='M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2'/></svg> Copiar Assinatura";
             }, 3500);
         }
     </script>
@@ -974,13 +974,13 @@ export default function Home() {
                 // Mostra feedback de sucesso
                 feedbackElement.textContent = '✓ Copiado com sucesso!';
                 feedbackElement.className = 'copy-feedback success show';
-                button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>Copiado!</span>';
+                button.innerHTML = "<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'/></svg><span>Copiado!</span>";
                 button.style.background = '#28a745';
 
                 // Reset após 3 segundos
                 setTimeout(() => {
                     feedbackElement.className = 'copy-feedback';
-                    button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="copy-icon"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg><span>Copiar Assinatura</span>';
+                    button.innerHTML = "<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='copy-icon'><rect width='14' height='14' x='8' y='8' rx='2' ry='2'/><path d='M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2'/></svg><span>Copiar Assinatura</span>";
                     button.style.background = '#007bff';
                 }, 3000);
 
@@ -3048,13 +3048,13 @@ export default function Home() {
   const insertFooterImageAtCursor = (src: string, width: number, height: number) => {
     const footerHtml = buildFooterImageHtml(src, width, height);
 
-    // Protege contra o useEffect([processedHtml]) sobrescrever o DOM
+    // Protege contra o useEffect([processedHtml]) sobrescrever o DOM durante a inserção
     setUserEditing(true);
 
     if (!previewRef.current) {
       const newHtml = applyFooterImageToHtml(processedHtml, src, width, height);
       setProcessedHtml(newHtml);
-      requestAnimationFrame(() => { requestAnimationFrame(() => { setUserEditing(false); }); });
+      // Nota: handleFooterImageUpload chama finalizeUpload() após esta função regressar
       return;
     }
 
@@ -3075,7 +3075,7 @@ export default function Home() {
         const success = document.execCommand("insertHTML", false, footerHtml);
         if (success) {
           setProcessedHtml(preview.innerHTML);
-          requestAnimationFrame(() => { requestAnimationFrame(() => { setUserEditing(false); }); });
+          // Nota: handleFooterImageUpload chama finalizeUpload() após esta função regressar
           return;
         }
       } catch (_) {
@@ -3094,7 +3094,7 @@ export default function Home() {
         range.collapse(false); // move para o fim da selecção
         range.insertNode(fragment);
         setProcessedHtml(preview.innerHTML);
-        requestAnimationFrame(() => { requestAnimationFrame(() => { setUserEditing(false); }); });
+        // Nota: handleFooterImageUpload chama finalizeUpload() após esta função regressar
         return;
       } catch (_) {
         // Continua para fallback final
@@ -3117,7 +3117,7 @@ export default function Home() {
       preview.appendChild(fragment);
     }
     setProcessedHtml(preview.innerHTML);
-    requestAnimationFrame(() => { requestAnimationFrame(() => { setUserEditing(false); }); });
+    // Nota: handleFooterImageUpload chama finalizeUpload() após esta função regressar
   };
 
   /** Trata o upload da imagem de rodapé */
@@ -3128,6 +3128,26 @@ export default function Home() {
       isInsertingFooterRef.current = false;
       return;
     }
+
+    // Cancela qualquer timer de sync pendente antes de iniciar a inserção
+    if (syncStateTimerRef.current) {
+      clearTimeout(syncStateTimerRef.current);
+      syncStateTimerRef.current = null;
+    }
+
+    /** Força a libertação de todos os flags de edição e restaura o foco no canvas */
+    const finalizeUpload = () => {
+      isInsertingFooterRef.current = false;
+      setUserEditing(false);
+      // Dá tempo ao React para processar o setState antes de focar
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (previewRef.current) {
+            previewRef.current.focus();
+          }
+        });
+      });
+    };
 
     compressImage(file, 800, 400, 0.82).then((src) => {
       const img = new window.Image();
@@ -3141,6 +3161,7 @@ export default function Home() {
         if (processedHtml) {
           const existingImg = previewRef.current?.querySelector('[data-footer-image="true"]');
           if (existingImg) {
+            setUserEditing(true);
             existingImg.setAttribute("src", src);
             existingImg.setAttribute("width", String(currentWidth));
             (existingImg as HTMLElement).style.width = `${currentWidth}px`;
@@ -3152,15 +3173,15 @@ export default function Home() {
             insertFooterImageAtCursor(src, currentWidth, 0);
           }
         }
-        // Liberta o flag após inserção completa
-        isInsertingFooterRef.current = false;
+        // Liberta todos os flags após inserção completa
+        finalizeUpload();
       };
       img.onerror = () => {
-        isInsertingFooterRef.current = false;
+        finalizeUpload();
       };
       img.src = src;
     }).catch(() => {
-      isInsertingFooterRef.current = false;
+      finalizeUpload();
     });
     e.target.value = "";
   };
@@ -4866,6 +4887,15 @@ export default function Home() {
                         }
                       }}
                       onClick={(e) => {
+                        // Garante que os flags de edição estão limpos quando o user clica no canvas
+                        // (protecção contra flags que ficaram presos após upload de imagem)
+                        if (!isInsertingFooterRef.current) {
+                          isUserEditingRef.current = false;
+                          if (userEditingSafetyTimerRef.current) {
+                            clearTimeout(userEditingSafetyTimerRef.current);
+                            userEditingSafetyTimerRef.current = null;
+                          }
+                        }
                         // Usa caretRangeFromPoint para capturar a posição exacta do rato
                         const x = e.clientX;
                         const y = e.clientY;
