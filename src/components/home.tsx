@@ -2389,61 +2389,17 @@ export default function Home() {
     }
   };
 
-  /**
-   * Comprime uma imagem usando Canvas API.
-   * - Reduz dimensões se excederem maxWidth/maxHeight
-   * - Converte para JPEG (ou PNG se tiver transparência) com qualidade configurável
-   * Retorna uma Promise com o data URI comprimido.
-   */
-  const compressImage = (
-    file: File,
-    maxWidth = 600,
-    maxHeight = 300,
-    quality = 0.82,
-  ): Promise<string> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const src = e.target?.result as string;
-        const img = new window.Image();
-        img.onload = () => {
-          let { naturalWidth: w, naturalHeight: h } = img;
-
-          // Reduz proporcionalmente se necessário
-          if (w > maxWidth || h > maxHeight) {
-            const ratio = Math.min(maxWidth / w, maxHeight / h);
-            w = Math.round(w * ratio);
-            h = Math.round(h * ratio);
-          }
-
-          const canvas = document.createElement("canvas");
-          canvas.width = w;
-          canvas.height = h;
-          const ctx = canvas.getContext("2d")!;
-          ctx.drawImage(img, 0, 0, w, h);
-
-          // PNG para imagens com transparência (PNG original), JPEG para o resto
-          const isPng = file.type === "image/png";
-          const compressed = isPng
-            ? canvas.toDataURL("image/png") // PNG mantém transparência mas sem redução de qualidade
-            : canvas.toDataURL("image/jpeg", quality);
-
-          resolve(compressed);
-        };
-        img.src = src;
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
   const handleImageUpload = (
     imageId: string,
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
     if (file && file.type.startsWith("image/")) {
-      compressImage(file, 800, 400, 0.82).then((base64) => {
-        // Carregar a imagem comprimida para obter dimensões reais pós-compressão
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target?.result as string;
+
+        // Carregar a imagem para obter dimensões naturais e calcular aspect ratio
         const imageElement = document.createElement("img");
         imageElement.onload = () => {
           const naturalWidth = imageElement.naturalWidth;
@@ -2455,38 +2411,23 @@ export default function Home() {
 
           // Se for o logo (img-0), atualizar dimensões mantendo aspect ratio
           if (imageId === "img-0") {
+            // Manter a largura atual ou usar uma largura padrão
             const newWidth = logoWidth > 0 ? logoWidth : 160;
-            const newNaturalRatio = naturalWidth > 0 && naturalHeight > 0
-              ? naturalWidth / naturalHeight
-              : originalAspectRatio;
-            const newHeight = newNaturalRatio > 0 ? Math.round(newWidth / newNaturalRatio) : 0;
 
             setLogoWidth(newWidth);
-            setLogoHeight(newHeight);
-            if (newNaturalRatio > 0) setOriginalAspectRatio(newNaturalRatio);
+            setLogoHeight(0); // Sempre 0 = auto para manter aspect ratio natural
 
             // Usa o DOM vivo (source of truth) para preservar edições manuais do utilizador
-            // Update live DOM directly — avoids replacing innerHTML which breaks canvas state
             if (previewRef.current) {
               const liveImg = previewRef.current.querySelector(`img[data-image-id="${imageId}"]`) as HTMLImageElement | null;
               if (liveImg) {
                 setUserEditing(true);
                 liveImg.setAttribute("src", base64);
                 liveImg.setAttribute("width", String(newWidth));
-                if (newHeight > 0) {
-                  liveImg.setAttribute("height", String(newHeight));
-                  liveImg.style.height = `${newHeight}px`;
-                  liveImg.style.maxHeight = `${newHeight}px`;
-                  liveImg.style.minHeight = `${newHeight}px`;
-                } else {
-                  liveImg.removeAttribute("height");
-                  liveImg.style.removeProperty("height");
-                  liveImg.style.removeProperty("maxHeight");
-                  liveImg.style.removeProperty("minHeight");
-                }
+                liveImg.removeAttribute("height");
                 liveImg.style.width = `${newWidth}px`;
                 liveImg.style.maxWidth = `${newWidth}px`;
-                liveImg.style.minWidth = `${newWidth}px`;
+                liveImg.style.removeProperty("height");
                 liveImg.style.display = "block";
                 liveImg.style.border = "0";
                 liveImg.style.outline = "none";
@@ -2495,8 +2436,6 @@ export default function Home() {
                 while (parentTd && parentTd.tagName !== "TD") parentTd = parentTd.parentElement;
                 if (parentTd) {
                   (parentTd as HTMLElement).style.width = `${newWidth}px`;
-                  (parentTd as HTMLElement).style.minWidth = `${newWidth}px`;
-                  (parentTd as HTMLElement).style.maxWidth = `${newWidth}px`;
                   (parentTd as HTMLElement).setAttribute("width", String(newWidth));
                 }
                 setProcessedHtml(previewRef.current.innerHTML);
@@ -2514,18 +2453,13 @@ export default function Home() {
               if (pasteImg) {
                 pasteImg.setAttribute("src", base64);
                 pasteImg.setAttribute("width", String(newWidth));
-                if (newHeight > 0) {
-                  pasteImg.setAttribute("height", String(newHeight));
-                  (pasteImg as HTMLElement).style.height = `${newHeight}px`;
-                  (pasteImg as HTMLElement).style.maxHeight = `${newHeight}px`;
-                  (pasteImg as HTMLElement).style.minHeight = `${newHeight}px`;
-                } else {
-                  pasteImg.removeAttribute("height");
-                  (pasteImg as HTMLElement).style.removeProperty("height");
-                }
+                pasteImg.removeAttribute("height");
                 (pasteImg as HTMLElement).style.width = `${newWidth}px`;
                 (pasteImg as HTMLElement).style.maxWidth = `${newWidth}px`;
+                (pasteImg as HTMLElement).style.removeProperty("height");
                 (pasteImg as HTMLElement).style.display = "block";
+                (pasteImg as HTMLElement).style.border = "0";
+                (pasteImg as HTMLElement).style.outline = "none";
                 pasteAreaRef.current.innerHTML = pasteDoc.body.innerHTML;
               }
             }
@@ -2559,7 +2493,8 @@ export default function Home() {
         };
 
         imageElement.src = base64;
-      });
+      };
+      reader.readAsDataURL(file);
     } else {
       setError("Por favor, selecione uma imagem válida.");
       setTimeout(() => setError(""), 3000);
@@ -3170,7 +3105,9 @@ export default function Home() {
       });
     };
 
-    compressImage(file, 800, 400, 0.82).then((src) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const src = ev.target?.result as string;
       const img = new window.Image();
       img.onload = () => {
         const ratio = img.naturalWidth / img.naturalHeight;
@@ -3182,7 +3119,6 @@ export default function Home() {
         if (processedHtml) {
           const existingImg = previewRef.current?.querySelector('[data-footer-image="true"]');
           if (existingImg) {
-            setUserEditing(true);
             existingImg.setAttribute("src", src);
             existingImg.setAttribute("width", String(currentWidth));
             (existingImg as HTMLElement).style.width = `${currentWidth}px`;
@@ -3201,9 +3137,8 @@ export default function Home() {
         finalizeUpload();
       };
       img.src = src;
-    }).catch(() => {
-      finalizeUpload();
-    });
+    };
+    reader.readAsDataURL(file);
     e.target.value = "";
   };
 
