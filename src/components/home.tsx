@@ -305,14 +305,11 @@ export default function Home() {
       // Guarda o HTML editado do preview (pode ter sido editado pelo user)
       const editedHtml = previewRef.current?.innerHTML || processedHtml;
 
-      // Cria thumbnail usando o mesmo HTML
-      const thumbnail = editedHtml;
-
       const newSignature: SavedSignature = {
         id: editingSignatureId ?? Date.now().toString(),
         name: signatureName.trim(),
         html: editedHtml, // Guarda HTML editado do preview
-        thumbnail,
+        thumbnail: "", // Não duplicar o HTML como thumbnail para poupar localStorage
         savedAt: new Date().toISOString(),
         logoWidth,
         logoHeight,
@@ -328,7 +325,13 @@ export default function Home() {
         ? savedSignatures.map((s) => s.id === editingSignatureId ? newSignature : s)
         : [...savedSignatures, newSignature];
       setSavedSignatures(updated);
-      localStorage.setItem("emailSignatures", JSON.stringify(updated));
+      try {
+        localStorage.setItem("emailSignatures", JSON.stringify(updated));
+      } catch (storageErr) {
+        // Quota excedida — avisa o user mas mantém em memória
+        setError("Aviso: A assinatura foi guardada na sessão mas o armazenamento local está cheio. Imagens muito grandes podem não ser mantidas após fechar o browser.");
+        setTimeout(() => setError(""), 8000);
+      }
 
       setSignatureName("");
       setShowSaveDialog(false);
@@ -444,7 +447,9 @@ export default function Home() {
 
     const updated = savedSignatures.filter((sig) => sig.id !== deleteConfirmId);
     setSavedSignatures(updated);
-    localStorage.setItem("emailSignatures", JSON.stringify(updated));
+    try {
+      localStorage.setItem("emailSignatures", JSON.stringify(updated));
+    } catch (_) { /* ignore */ }
     setDeleteConfirmId(null);
   };
 
@@ -1448,6 +1453,11 @@ export default function Home() {
           // Fallback para dimensões padrão
           if (!width) width = 160;
 
+          // Cap máximo: logo não deve exceder 300px de largura ao importar
+          // Muitos templates têm logos com width="600" ou maior, o que causa assinaturas enormes
+          const MAX_LOGO_WIDTH = 300;
+          if (width > MAX_LOGO_WIDTH) width = MAX_LOGO_WIDTH;
+
           // Calcula e guarda aspect ratio original se a imagem estiver carregada
           let computedHeight = 0;
           if (
@@ -2401,112 +2411,145 @@ export default function Home() {
     }
   };
 
+  /**
+   * Comprime uma imagem para base64 usando canvas.
+   * @param file - Ficheiro de imagem
+   * @param maxWidth - Largura máxima em px (default 600)
+   * @param maxHeight - Altura máxima em px (default 400)
+   * @param quality - Qualidade JPEG 0-1 (default 0.82)
+   */
+  const compressImageToBase64 = (
+    file: File,
+    maxWidth = 600,
+    maxHeight = 400,
+    quality = 0.82,
+  ): Promise<{ base64: string; naturalWidth: number; naturalHeight: number }> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const src = ev.target?.result as string;
+        const img = new window.Image();
+        img.onload = () => {
+          let { naturalWidth: w, naturalHeight: h } = img;
+          // Reduz proporcionalmente se exceder os limites
+          if (w > maxWidth || h > maxHeight) {
+            const ratio = Math.min(maxWidth / w, maxHeight / h);
+            w = Math.round(w * ratio);
+            h = Math.round(h * ratio);
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) { resolve({ base64: src, naturalWidth: img.naturalWidth, naturalHeight: img.naturalHeight }); return; }
+          ctx.drawImage(img, 0, 0, w, h);
+          // PNG para transparência, JPEG para o resto
+          const mimeType = file.type === "image/png" ? "image/png" : "image/jpeg";
+          const base64 = canvas.toDataURL(mimeType, quality);
+          resolve({ base64, naturalWidth: img.naturalWidth, naturalHeight: img.naturalHeight });
+        };
+        img.onerror = () => reject(new Error("Erro ao carregar imagem"));
+        img.src = src;
+      };
+      reader.onerror = () => reject(new Error("Erro ao ler ficheiro"));
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleImageUpload = (
     imageId: string,
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
     if (file && file.type.startsWith("image/")) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const base64 = e.target?.result as string;
+      compressImageToBase64(file, 400, 300, 0.85).then(({ base64, naturalWidth, naturalHeight }) => {
+        // Calcular aspect ratio da imagem original (antes da compressão)
+        const aspectRatio = naturalWidth / naturalHeight;
+        setOriginalAspectRatio(aspectRatio);
 
-        // Carregar a imagem para obter dimensões naturais e calcular aspect ratio
-        const imageElement = document.createElement("img");
-        imageElement.onload = () => {
-          const naturalWidth = imageElement.naturalWidth;
-          const naturalHeight = imageElement.naturalHeight;
+        // Se for o logo (img-0), atualizar dimensões mantendo aspect ratio
+        if (imageId === "img-0") {
+          // Manter a largura atual ou usar uma largura padrão
+          const newWidth = logoWidth > 0 ? logoWidth : 160;
 
-          // Calcular aspect ratio da nova imagem
-          const aspectRatio = naturalWidth / naturalHeight;
-          setOriginalAspectRatio(aspectRatio);
+          setLogoWidth(newWidth);
+          setLogoHeight(0); // Sempre 0 = auto para manter aspect ratio natural
 
-          // Se for o logo (img-0), atualizar dimensões mantendo aspect ratio
-          if (imageId === "img-0") {
-            // Manter a largura atual ou usar uma largura padrão
-            const newWidth = logoWidth > 0 ? logoWidth : 160;
-
-            setLogoWidth(newWidth);
-            setLogoHeight(0); // Sempre 0 = auto para manter aspect ratio natural
-
-            // Usa o DOM vivo (source of truth) para preservar edições manuais do utilizador
-            if (previewRef.current) {
-              const liveImg = previewRef.current.querySelector(`img[data-image-id="${imageId}"]`) as HTMLImageElement | null;
-              if (liveImg) {
-                setUserEditing(true);
-                liveImg.setAttribute("src", base64);
-                liveImg.setAttribute("width", String(newWidth));
-                liveImg.removeAttribute("height");
-                liveImg.style.width = `${newWidth}px`;
-                liveImg.style.maxWidth = `${newWidth}px`;
-                liveImg.style.removeProperty("height");
-                liveImg.style.display = "block";
-                liveImg.style.border = "0";
-                liveImg.style.outline = "none";
-                // Also update parent TD width
-                let parentTd = liveImg.parentElement;
-                while (parentTd && parentTd.tagName !== "TD") parentTd = parentTd.parentElement;
-                if (parentTd) {
-                  (parentTd as HTMLElement).style.width = `${newWidth}px`;
-                  (parentTd as HTMLElement).setAttribute("width", String(newWidth));
-                }
-                setProcessedHtml(previewRef.current.innerHTML);
+          // Usa o DOM vivo (source of truth) para preservar edições manuais do utilizador
+          if (previewRef.current) {
+            const liveImg = previewRef.current.querySelector(`img[data-image-id="${imageId}"]`) as HTMLImageElement | null;
+            if (liveImg) {
+              setUserEditing(true);
+              liveImg.setAttribute("src", base64);
+              liveImg.setAttribute("width", String(newWidth));
+              liveImg.removeAttribute("height");
+              liveImg.style.width = `${newWidth}px`;
+              liveImg.style.maxWidth = `${newWidth}px`;
+              liveImg.style.removeProperty("height");
+              liveImg.style.display = "block";
+              liveImg.style.border = "0";
+              liveImg.style.outline = "none";
+              // Also update parent TD width
+              let parentTd = liveImg.parentElement;
+              while (parentTd && parentTd.tagName !== "TD") parentTd = parentTd.parentElement;
+              if (parentTd) {
+                (parentTd as HTMLElement).style.width = `${newWidth}px`;
+                (parentTd as HTMLElement).setAttribute("width", String(newWidth));
+              }
+              setProcessedHtml(previewRef.current.innerHTML);
+              requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
-                  requestAnimationFrame(() => {
-                    setUserEditing(false);
-                  });
+                  setUserEditing(false);
                 });
-              }
-            }
-
-            if (pasteAreaRef.current) {
-              const pasteDoc = new DOMParser().parseFromString(pasteAreaRef.current.innerHTML, "text/html");
-              const pasteImg = pasteDoc.querySelector(`img[data-image-id="${imageId}"]`);
-              if (pasteImg) {
-                pasteImg.setAttribute("src", base64);
-                pasteImg.setAttribute("width", String(newWidth));
-                pasteImg.removeAttribute("height");
-                (pasteImg as HTMLElement).style.width = `${newWidth}px`;
-                (pasteImg as HTMLElement).style.maxWidth = `${newWidth}px`;
-                (pasteImg as HTMLElement).style.removeProperty("height");
-                (pasteImg as HTMLElement).style.display = "block";
-                (pasteImg as HTMLElement).style.border = "0";
-                (pasteImg as HTMLElement).style.outline = "none";
-                pasteAreaRef.current.innerHTML = pasteDoc.body.innerHTML;
-              }
-            }
-          } else {
-            // Non-logo image: update src directly in live DOM
-            if (previewRef.current) {
-              const liveImg = previewRef.current.querySelector(`img[data-image-id="${imageId}"]`) as HTMLImageElement | null;
-              if (liveImg) {
-                setUserEditing(true);
-                liveImg.setAttribute("src", base64);
-                setProcessedHtml(previewRef.current.innerHTML);
-                requestAnimationFrame(() => {
-                  requestAnimationFrame(() => {
-                    setUserEditing(false);
-                  });
-                });
-              }
-            }
-
-            if (pasteAreaRef.current) {
-              const pasteDoc = new DOMParser().parseFromString(pasteAreaRef.current.innerHTML, "text/html");
-              const pasteImg = pasteDoc.querySelector(`img[data-image-id="${imageId}"]`);
-              if (pasteImg) {
-                pasteImg.setAttribute("src", base64);
-                pasteAreaRef.current.innerHTML = pasteDoc.body.innerHTML;
-              }
+              });
             }
           }
 
-          imageElement.src = base64;
-        };
+          if (pasteAreaRef.current) {
+            const pasteDoc = new DOMParser().parseFromString(pasteAreaRef.current.innerHTML, "text/html");
+            const pasteImg = pasteDoc.querySelector(`img[data-image-id="${imageId}"]`);
+            if (pasteImg) {
+              pasteImg.setAttribute("src", base64);
+              pasteImg.setAttribute("width", String(newWidth));
+              pasteImg.removeAttribute("height");
+              (pasteImg as HTMLElement).style.width = `${newWidth}px`;
+              (pasteImg as HTMLElement).style.maxWidth = `${newWidth}px`;
+              (pasteImg as HTMLElement).style.removeProperty("height");
+              (pasteImg as HTMLElement).style.display = "block";
+              (pasteImg as HTMLElement).style.border = "0";
+              (pasteImg as HTMLElement).style.outline = "none";
+              pasteAreaRef.current.innerHTML = pasteDoc.body.innerHTML;
+            }
+          }
+        } else {
+          // Non-logo image: update src directly in live DOM
+          if (previewRef.current) {
+            const liveImg = previewRef.current.querySelector(`img[data-image-id="${imageId}"]`) as HTMLImageElement | null;
+            if (liveImg) {
+              setUserEditing(true);
+              liveImg.setAttribute("src", base64);
+              setProcessedHtml(previewRef.current.innerHTML);
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                  setUserEditing(false);
+                });
+              });
+            }
+          }
 
-        imageElement.src = base64;
-      };
-      reader.readAsDataURL(file);
+          if (pasteAreaRef.current) {
+            const pasteDoc = new DOMParser().parseFromString(pasteAreaRef.current.innerHTML, "text/html");
+            const pasteImg = pasteDoc.querySelector(`img[data-image-id="${imageId}"]`);
+            if (pasteImg) {
+              pasteImg.setAttribute("src", base64);
+              pasteAreaRef.current.innerHTML = pasteDoc.body.innerHTML;
+            }
+          }
+        }
+      }).catch(() => {
+        setError("Erro ao processar a imagem.");
+        setTimeout(() => setError(""), 3000);
+      });
     } else {
       setError("Por favor, selecione uma imagem válida.");
       setTimeout(() => setError(""), 3000);
@@ -3117,14 +3160,10 @@ export default function Home() {
       });
     };
 
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const src = ev.target?.result as string;
-      const img = new window.Image();
-      img.onload = () => {
-        const ratio = img.naturalWidth / img.naturalHeight;
+    compressImageToBase64(file, 800, 600, 0.82).then(({ base64: src, naturalWidth, naturalHeight }) => {
+        const ratio = naturalWidth / naturalHeight;
         setFooterOriginalAspectRatio(ratio);
-        const currentWidth = footerImageWidth || img.naturalWidth;
+        const currentWidth = footerImageWidth || naturalWidth;
         setFooterImageSrc(src);
         setFooterImageWidth(currentWidth);
         setFooterImageHeight(0); // auto
@@ -3144,13 +3183,9 @@ export default function Home() {
         }
         // Liberta todos os flags após inserção completa
         finalizeUpload();
-      };
-      img.onerror = () => {
+      }).catch(() => {
         finalizeUpload();
-      };
-      img.src = src;
-    };
-    reader.readAsDataURL(file);
+      });
     e.target.value = "";
   };
 
@@ -4184,7 +4219,7 @@ export default function Home() {
                         <div className="mb-3 p-2 bg-white border border-gray-200 rounded h-32 overflow-hidden relative">
                           <div
                             className="absolute top-0 left-0 origin-top-left pointer-events-none"
-                            dangerouslySetInnerHTML={{ __html: sig.thumbnail }}
+                            dangerouslySetInnerHTML={{ __html: sig.html }}
                             style={{
                               transform: "scale(0.25)",
                               transformOrigin: "top left",
