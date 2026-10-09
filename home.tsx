@@ -110,6 +110,42 @@ export const getSignatureSizeInfo = (html: string) => {
   };
 };
 
+/**
+ * Remove a imagem de rodapé com segurança.
+ * Só remove a <table> envolvente se essa tabela contiver APENAS a imagem de
+ * rodapé (o wrapper criado pela app). Se a imagem foi arrastada/colada para
+ * dentro da tabela principal da assinatura, remove só a imagem e os
+ * contentores que ficarem vazios — nunca a assinatura inteira.
+ */
+export const removeFooterImageElement = (img: Element) => {
+  const isOnlyFooter = (el: Element) =>
+    el.querySelectorAll("img").length === 1 &&
+    (el.textContent || "").replace(/[\s\u00a0\u200b]/g, "") === "";
+
+  let wrapper: Element | null = img.parentElement;
+  while (wrapper && wrapper.tagName !== "TABLE") wrapper = wrapper.parentElement;
+
+  if (wrapper && isOnlyFooter(wrapper)) {
+    // Se o wrapper está sozinho num <tr> injectado, remove o <tr>
+    const tr = wrapper.parentElement?.closest("tr");
+    if (tr && isOnlyFooter(tr)) tr.remove();
+    else wrapper.remove();
+    return;
+  }
+
+  // Imagem solta dentro da assinatura: remove a imagem e contentores vazios
+  let target: Element = img;
+  while (
+    target.parentElement &&
+    ["DIV", "P", "SPAN", "A"].includes(target.parentElement.tagName) &&
+    target.parentElement.children.length === 1 &&
+    isOnlyFooter(target.parentElement)
+  ) {
+    target = target.parentElement;
+  }
+  target.remove();
+};
+
 export default function Home() {
   const [processedHtml, setProcessedHtml] = useState("");
   const [originalHtml, setOriginalHtml] = useState(""); // HTML original sem processamento
@@ -2978,31 +3014,7 @@ export default function Home() {
     }
 
     // Remove qualquer rodapé já existente (src diferente ou remoção)
-    if (existing) {
-      let footerTable: Element | null = existing;
-      while (footerTable && footerTable.tagName !== "TABLE") {
-        footerTable = footerTable.parentElement;
-      }
-      if (footerTable) {
-        // Verifica se a tabela está dentro de um <tr> injectado
-        const parentTr = footerTable.closest("tr");
-        if (parentTr) {
-          const trImages = parentTr.querySelectorAll("img");
-          const trText = parentTr.textContent?.trim() || "";
-          const onlyHasFooterImage =
-            trImages.length === 1 &&
-            trImages[0].getAttribute("data-footer-image") === "true" &&
-            trText === "";
-          if (onlyHasFooterImage) {
-            parentTr.remove();
-          } else {
-            footerTable.remove();
-          }
-        } else {
-          footerTable.remove();
-        }
-      }
-    }
+    if (existing) removeFooterImageElement(existing);
 
     if (!src) return doc.body.innerHTML;
 
@@ -3256,47 +3268,7 @@ export default function Home() {
     // Remove directly from live DOM (source of truth) to avoid stale state issues
     if (previewRef.current) {
       const existing = previewRef.current.querySelector('[data-footer-image="true"]');
-      if (existing) {
-        // Walk up to find the wrapper table for this footer image
-        let footerTable: Element | null = existing;
-        while (footerTable && footerTable.tagName !== "TABLE") {
-          footerTable = footerTable.parentElement;
-        }
-
-        if (footerTable) {
-          // Caso 1: A tabela do footer é filha directa do preview (inserção antiga/fallback)
-          if (footerTable.parentElement === previewRef.current) {
-            footerTable.remove();
-          }
-          // Caso 2: A tabela do footer está dentro de um <td> de um <tr> injectado na tabela principal
-          else {
-            // Procura o <tr> que contém esta tabela de footer
-            let tr: Element | null = footerTable;
-            while (tr && tr.tagName !== "TR") {
-              tr = tr.parentElement;
-            }
-            if (tr) {
-              // Verifica se este <tr> contém APENAS o footer image (não tem outro conteúdo da assinatura)
-              const trImages = tr.querySelectorAll("img");
-              const trText = tr.textContent?.trim() || "";
-              const onlyHasFooterImage =
-                trImages.length === 1 &&
-                trImages[0].getAttribute("data-footer-image") === "true" &&
-                trText === "";
-              if (onlyHasFooterImage) {
-                // O <tr> foi injectado por nós — remove-o
-                tr.remove();
-              } else {
-                // O <tr> tem outro conteúdo — remove apenas a tabela do footer
-                footerTable.remove();
-              }
-            } else {
-              // Fallback: remove apenas a tabela do footer
-              footerTable.remove();
-            }
-          }
-        }
-      }
+      if (existing) removeFooterImageElement(existing);
       setUserEditing(true);
       setProcessedHtml(previewRef.current.innerHTML);
       requestAnimationFrame(() => {
